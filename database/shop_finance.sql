@@ -1,28 +1,23 @@
 -- ============================================================
--- PostgreSQL database schema
+-- PostgreSQL schema — shop_finance
 -- Web quản lý thu - chi shop handmade
--- Thiết kế từ sơ đồ XMind người dùng cung cấp
 -- PostgreSQL 15+
+-- Apply via: bash scripts/db-init.sh
+-- Diagrams: docs/DATABASE.md (Mermaid), database/shop_finance.dbml
 -- ============================================================
-
-BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS shop_finance;
 SET search_path TO shop_finance, public;
 
--- ------------------------------------------------------------
 -- 1. ENUMS
--- ------------------------------------------------------------
 CREATE TYPE user_role AS ENUM ('ADMIN', 'SHOP_OWNER', 'EMPLOYEE', 'VIEWER');
 CREATE TYPE data_source AS ENUM ('MANUAL', 'EXCEL_IMPORT');
 CREATE TYPE import_type AS ENUM ('INCOME', 'EXPENSE');
 CREATE TYPE import_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
 CREATE TYPE audit_action AS ENUM ('INSERT', 'UPDATE', 'DELETE');
 
--- ------------------------------------------------------------
 -- 2. USERS
 -- Không tạo bảng permission riêng vì phạm vi hiện tại chỉ cần 4 vai trò.
--- ------------------------------------------------------------
 CREATE TABLE app_users (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username        VARCHAR(100) NOT NULL,
@@ -45,10 +40,8 @@ CREATE UNIQUE INDEX uq_app_users_email_active
     ON app_users (LOWER(email))
     WHERE email IS NOT NULL AND deleted_at IS NULL;
 
--- ------------------------------------------------------------
 -- 3. IMPORT BATCHES
 -- Theo dõi từng lần import Excel để truy vết và chống nhập trùng.
--- ------------------------------------------------------------
 CREATE TABLE import_batches (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     import_type     import_type NOT NULL,
@@ -65,11 +58,9 @@ CREATE TABLE import_batches (
     CONSTRAINT ck_import_row_counts CHECK (success_rows + failed_rows <= total_rows)
 );
 
--- ------------------------------------------------------------
 -- 4. INCOME CATEGORIES
 -- Sơ đồ có báo cáo "theo loại thu" và "loại thu cao nhất", vì vậy DB
 -- cần khóa phân loại thu dù UI không nhất thiết phải có menu riêng.
--- ------------------------------------------------------------
 CREATE TABLE income_categories (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name            VARCHAR(150) NOT NULL,
@@ -85,10 +76,8 @@ CREATE UNIQUE INDEX uq_income_categories_name_active
     ON income_categories (LOWER(name))
     WHERE deleted_at IS NULL;
 
--- ------------------------------------------------------------
--- 5. INCOME / ORDER HEADER
+-- 5. INCOMES
 -- Mỗi khoản thu là một đơn hàng; chi tiết sản phẩm nằm ở income_items.
--- ------------------------------------------------------------
 CREATE TABLE incomes (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     income_category_id  BIGINT NOT NULL REFERENCES income_categories(id),
@@ -142,10 +131,8 @@ CREATE INDEX idx_incomes_import_batch
     ON incomes(import_batch_id)
     WHERE import_batch_id IS NOT NULL;
 
--- ------------------------------------------------------------
 -- 6. INCOME ITEMS
 -- Một đơn hàng có thể có nhiều sản phẩm / variant.
--- ------------------------------------------------------------
 CREATE TABLE income_items (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     income_id               BIGINT NOT NULL REFERENCES incomes(id) ON DELETE CASCADE,
@@ -165,9 +152,7 @@ CREATE INDEX idx_income_items_transaction_id
     ON income_items(external_transaction_id)
     WHERE external_transaction_id IS NOT NULL;
 
--- ------------------------------------------------------------
 -- 7. EXPENSE CATEGORIES
--- ------------------------------------------------------------
 CREATE TABLE expense_categories (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name            VARCHAR(150) NOT NULL,
@@ -183,9 +168,7 @@ CREATE UNIQUE INDEX uq_expense_categories_name_active
     ON expense_categories (LOWER(name))
     WHERE deleted_at IS NULL;
 
--- ------------------------------------------------------------
 -- 8. EXPENSES
--- ------------------------------------------------------------
 CREATE TABLE expenses (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     expense_date        DATE NOT NULL,
@@ -232,11 +215,9 @@ CREATE INDEX idx_expenses_import_batch
     ON expenses(import_batch_id)
     WHERE import_batch_id IS NOT NULL;
 
--- ------------------------------------------------------------
 -- 9. ATTACHMENTS
 -- Dùng 1 bảng chung nhưng vẫn giữ FK thật đến khoản thu/khoản chi.
 -- Chính xác một trong income_id / expense_id phải có giá trị.
--- ------------------------------------------------------------
 CREATE TABLE attachments (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     income_id       BIGINT REFERENCES incomes(id) ON DELETE CASCADE,
@@ -256,10 +237,8 @@ CREATE TABLE attachments (
 CREATE INDEX idx_attachments_income ON attachments(income_id) WHERE income_id IS NOT NULL;
 CREATE INDEX idx_attachments_expense ON attachments(expense_id) WHERE expense_id IS NOT NULL;
 
--- ------------------------------------------------------------
--- 10. AUDIT LOG
+-- 10. AUDIT LOGS
 -- Lưu lịch sử tạo/sửa/xóa và dữ liệu trước/sau thay đổi.
--- ------------------------------------------------------------
 CREATE TABLE audit_logs (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     table_name      VARCHAR(100) NOT NULL,
@@ -277,9 +256,7 @@ CREATE INDEX idx_audit_logs_record ON audit_logs(table_name, record_id, changed_
 CREATE INDEX idx_audit_logs_actor ON audit_logs(actor_user_id, changed_at DESC);
 CREATE INDEX idx_audit_logs_changed_at ON audit_logs(changed_at DESC);
 
--- ------------------------------------------------------------
--- 11. COMMON TRIGGERS
--- ------------------------------------------------------------
+-- 11. FUNCTIONS
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -289,30 +266,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
-CREATE TRIGGER trg_app_users_updated_at
-BEFORE UPDATE ON app_users
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_income_categories_updated_at
-BEFORE UPDATE ON income_categories
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_incomes_updated_at
-BEFORE UPDATE ON incomes
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_income_items_updated_at
-BEFORE UPDATE ON income_items
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_expense_categories_updated_at
-BEFORE UPDATE ON expense_categories
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER trg_expenses_updated_at
-BEFORE UPDATE ON expenses
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- App có thể SET LOCAL app.current_user_id = '123' trong transaction
 -- để trigger audit nhận biết người thao tác.
@@ -349,6 +302,31 @@ BEGIN
 END;
 $$;
 
+-- 12. TRIGGERS
+CREATE TRIGGER trg_app_users_updated_at
+BEFORE UPDATE ON app_users
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_income_categories_updated_at
+BEFORE UPDATE ON income_categories
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_incomes_updated_at
+BEFORE UPDATE ON incomes
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_income_items_updated_at
+BEFORE UPDATE ON income_items
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_expense_categories_updated_at
+BEFORE UPDATE ON expense_categories
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_expenses_updated_at
+BEFORE UPDATE ON expenses
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE TRIGGER audit_app_users
 AFTER INSERT OR UPDATE OR DELETE ON app_users
 FOR EACH ROW EXECUTE FUNCTION audit_row_changes();
@@ -377,10 +355,8 @@ CREATE TRIGGER audit_attachments
 AFTER INSERT OR UPDATE OR DELETE ON attachments
 FOR EACH ROW EXECUTE FUNCTION audit_row_changes();
 
--- ------------------------------------------------------------
--- 12. REPORTING VIEWS
+-- 13. REPORTING VIEWS
 -- Dashboard/Báo cáo đọc từ các view này; không lưu số tổng hợp trùng lặp.
--- ------------------------------------------------------------
 CREATE OR REPLACE VIEW vw_income_active AS
 SELECT
     i.id,
@@ -504,47 +480,3 @@ FROM expenses e
 JOIN expense_categories c ON c.id = e.expense_category_id
 WHERE e.deleted_at IS NULL
 GROUP BY e.expense_category_id, c.name, UPPER(e.currency_code);
-
--- ------------------------------------------------------------
--- 13. INITIAL REFERENCE DATA
--- Không giả định quá nhiều loại. Có thể sửa/xóa mềm sau.
--- ------------------------------------------------------------
-INSERT INTO income_categories(name, description)
-VALUES ('Bán hàng', 'Khoản thu từ đơn hàng bán sản phẩm')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO expense_categories(name, description)
-VALUES
-    ('Nguyên vật liệu', 'Chi phí mua nguyên vật liệu phục vụ sản xuất'),
-    ('Vận chuyển', 'Chi phí giao nhận, vận chuyển'),
-    ('Quảng cáo', 'Chi phí quảng cáo, marketing'),
-    ('Phí dịch vụ', 'Phí nền tảng, thanh toán hoặc dịch vụ liên quan'),
-    ('Khác', 'Các khoản chi chưa thuộc nhóm khác')
-ON CONFLICT DO NOTHING;
-
-COMMIT;
-
--- ============================================================
--- GỢI Ý TRUY VẤN
--- ============================================================
--- Dashboard theo khoảng thời gian và tiền tệ:
--- SELECT
---   COALESCE(SUM(order_total),0) AS total_income
--- FROM shop_finance.incomes
--- WHERE deleted_at IS NULL
---   AND order_date BETWEEN DATE '2026-09-01' AND DATE '2026-09-30'
---   AND UPPER(currency_code) = 'USD';
---
--- SELECT
---   COALESCE(SUM(amount),0) AS total_expense
--- FROM shop_finance.expenses
--- WHERE deleted_at IS NULL
---   AND expense_date BETWEEN DATE '2026-09-01' AND DATE '2026-09-30'
---   AND UPPER(currency_code) = 'USD';
---
--- Báo cáo tháng:
--- SELECT * FROM shop_finance.vw_cashflow_monthly ORDER BY month_start DESC;
---
--- Loại chi cao nhất:
--- SELECT * FROM shop_finance.vw_expense_by_category
--- ORDER BY total_expense DESC LIMIT 1;
