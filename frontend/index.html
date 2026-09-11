@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Handmade Finance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css?v=6" />
+</head>
+<body class="login-mode">
+  <div id="login-root"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M7 7l10 10M9 5l2 2M5 9l2 2M15 17l2 2M17 15l2 2" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <div>
+        <strong>Handmade Finance</strong>
+        <small>Shop Quản Lý Thu Chi</small>
+      </div>
+    </div>
+    <nav class="nav" id="main-nav"></nav>
+    <div class="sidebar-foot" id="side-foot"></div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="workspace" id="workspace">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+      </div>
+      <div class="user-menu">
+        <button class="user-btn" id="user-btn" type="button">
+          <span class="avatar" id="top-avatar">A</span>
+          <span class="user-meta">
+            <strong id="top-name">—</strong>
+            <small id="top-role">—</small>
+          </span>
+        </button>
+        <div class="dropdown" id="user-dd">
+          <button type="button" data-go="profile">Hồ sơ cá nhân</button>
+          <button type="button" id="logout-dd">Đăng xuất</button>
+        </div>
+      </div>
+    </header>
+    <section class="page" id="view"></section>
+  </div>
+
+  <div class="modal-back" id="modal-back">
+    <div class="modal">
+      <h3 id="modal-title">Xác nhận</h3>
+      <p id="modal-text"></p>
+      <div class="modal-actions">
+        <button class="btn secondary" id="modal-cancel">Hủy</button>
+        <button class="btn danger" id="modal-ok">Xóa</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-back" id="user-modal">
+    <div class="modal">
+      <h3>Thêm người dùng</h3>
+      <p>Tạo tài khoản mock để demo phân quyền.</p>
+      <form id="add-user-form" class="login-fields">
+        <label class="field"><span>Tên người dùng</span><input name="name" required placeholder="Nguyễn Văn A" /></label>
+        <label class="field"><span>Email</span><input name="email" type="email" required placeholder="user@demo.local" /></label>
+        <label class="field"><span>Mật khẩu</span>
+          <div class="pw-wrap">
+            <input name="password" id="new-user-pw" type="password" required minlength="4" placeholder="Nhập mật khẩu" />
+            <button type="button" class="pw-toggle" id="new-user-pw-toggle">Hiện</button>
+          </div>
+        </label>
+        <label class="field"><span>Role</span>
+          <select name="role">
+            <option value="VIEWER">Người xem</option>
+            <option value="EMPLOYEE">Nhân viên</option>
+            <option value="SHOP_OWNER">Chủ shop</option>
+            <option value="ADMIN">Quản trị</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button class="btn secondary" type="button" id="user-modal-cancel">Hủy</button>
+          <button class="btn primary" type="submit">Thêm user</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="toast-wrap" id="toasts"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/data.js?v=4"></script>
+  <script src="js/auth.js?v=4"></script>
+  <script src="js/app.js?v=8"></script>
+</body>
+</html>
