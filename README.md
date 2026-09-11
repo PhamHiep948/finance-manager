@@ -1,10 +1,15 @@
-# finance-manager
+# Finance Manager
 
-Web quản lý thu – chi Shop Handmade.
+Finance Manager là web quản lý thu – chi dành cho shop handmade, giúp theo dõi các khoản tiền ra vào và tình hình tài chính của shop một cách đơn giản, rõ ràng.
 
-- Database (EN): [docs/DATABASE.md](docs/DATABASE.md)
-- Database (VI): [docs/DATABASE.vi.md](docs/DATABASE.vi.md)
-- Hiểu database (HTML): [docs/hieu-database.html](docs/hieu-database.html)
-- Schema SQL: [database/shop_finance.sql](database/shop_finance.sql)
-- DBML: [database/shop_finance.dbml](database/shop_finance.dbml)
-- Mindmap: [docs/mindmap.png](docs/mindmap.png)
+Hệ thống hỗ trợ ghi nhận thu – chi, phân loại giao dịch, lưu chứng từ cần thiết, hóa đơn, import dữ liệu từ Excel và tổng hợp báo cáo theo thời gian, loại thu, loại chi và tiền tệ.
+
+Dữ liệu được quản lý theo hướng minh bạch, có lịch sử thay đổi và hỗ trợ nhiều nhóm người dùng trong quá trình sử dụng.
+
+## Tài liệu
+
+- [Sơ đồ database](docs/DATABASE.md)
+- [DBML](database/shop_finance.dbml)
+- [Schema SQL](database/shop_finance.sql)
+- [Mindmap](docs/mindmap.png)
+

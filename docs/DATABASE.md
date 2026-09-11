@@ -72,18 +72,12 @@ erDiagram
 
     incomes {
         bigint id PK
+        date income_date
+        text description
         bigint income_category_id FK
-        date order_date
-        varchar customer_country
-        integer product_quantity
-        numeric item_total
-        numeric discount_amount
-        numeric subtotal
-        numeric shipping_amount
-        numeric tax_amount
-        numeric order_total
-        varchar coupon_code
+        numeric amount
         varchar currency_code
+        varchar reference_code
         data_source source
         bigint import_batch_id FK
         text note
@@ -93,19 +87,6 @@ erDiagram
         timestamptz updated_at
         timestamptz deleted_at
         bigint deleted_by FK
-    }
-
-    income_items {
-        bigint id PK
-        bigint income_id FK
-        varchar product_name
-        varchar external_transaction_id
-        varchar variant
-        integer quantity
-        numeric unit_price
-        numeric line_total
-        timestamptz created_at
-        timestamptz updated_at
     }
 
     expense_categories {
@@ -127,9 +108,9 @@ erDiagram
         numeric amount
         varchar currency_code
         varchar payee
-        text note
         data_source source
         bigint import_batch_id FK
+        text note
         bigint created_by FK
         bigint updated_by FK
         timestamptz created_at
@@ -165,19 +146,13 @@ erDiagram
 
     vw_income_active {
         bigint id
-        date order_date
+        date income_date
+        text description
         bigint income_category_id
         varchar income_category_name
-        varchar customer_country
-        integer product_quantity
-        numeric item_total
-        numeric discount_amount
-        numeric subtotal
-        numeric shipping_amount
-        numeric tax_amount
-        numeric order_total
+        numeric amount
         varchar currency_code
-        varchar coupon_code
+        varchar reference_code
         data_source source
         text note
         timestamptz created_at
@@ -187,9 +162,9 @@ erDiagram
     vw_expense_active {
         bigint id
         date expense_date
+        text description
         bigint expense_category_id
         varchar expense_category_name
-        text description
         numeric amount
         varchar currency_code
         varchar payee
@@ -244,7 +219,6 @@ erDiagram
     app_users ||--o{ audit_logs : actor_user_id
 
     income_categories ||--o{ incomes : income_category_id
-    incomes ||--|{ income_items : income_id
     incomes ||--o{ attachments : income_id
     import_batches ||--o{ incomes : import_batch_id
 
