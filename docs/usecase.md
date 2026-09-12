@@ -13,6 +13,8 @@ Hệ thống: web thu – chi shop handmade (prototype mock, chưa backend).
 
 ## Sơ đồ tổng
 
+Bốn actor, bốn nhóm việc — không vẽ 17 mũi tên chồng lên nhau.
+
 ```mermaid
 flowchart TB
   Admin((Quản trị))
@@ -20,87 +22,85 @@ flowchart TB
   Staff((Nhân viên))
   Viewer((Người xem))
 
-  UC01([UC01 Đăng nhập])
-  UC02([UC02 Đăng xuất])
-  UC03([UC03 Xem dashboard])
-  UC04([UC04 Xem khoản thu])
-  UC05([UC05 Thêm khoản thu])
-  UC06([UC06 Sửa khoản thu])
-  UC07([UC07 Xóa khoản thu])
-  UC08([UC08 Xem khoản chi])
-  UC09([UC09 Thêm khoản chi])
-  UC10([UC10 Sửa khoản chi])
-  UC11([UC11 Xóa khoản chi])
-  UC12([UC12 Import Excel])
-  UC13([UC13 Xem báo cáo])
-  UC14([UC14 Xuất hóa đơn])
-  UC15([UC15 Xem nhật ký])
-  UC16([UC16 Quản lý người dùng])
-  UC17([UC17 Hồ sơ cá nhân])
+  Full["Toàn bộ: thu chi, import,<br/>báo cáo, nhật ký, user"]
+  Biz["Thu chi, import,<br/>báo cáo, nhật ký<br/>Không quản lý user"]
+  Input["Nhập thu/chi, import<br/>Sửa bản mình · không xóa<br/>Không báo cáo / nhật ký / user"]
+  Read["Chỉ đọc: dashboard,<br/>list thu/chi, báo cáo, hóa đơn"]
 
-  Admin --- UC01 & UC02 & UC03 & UC04 & UC05 & UC06 & UC07
-  Admin --- UC08 & UC09 & UC10 & UC11 & UC12 & UC13 & UC14 & UC15 & UC16 & UC17
-
-  Owner --- UC01 & UC02 & UC03 & UC04 & UC05 & UC06 & UC07
-  Owner --- UC08 & UC09 & UC10 & UC11 & UC12 & UC13 & UC14 & UC15 & UC17
-
-  Staff --- UC01 & UC02 & UC03 & UC04 & UC05 & UC06
-  Staff --- UC08 & UC09 & UC10 & UC12 & UC17
-
-  Viewer --- UC01 & UC02 & UC03 & UC04 & UC08 & UC13 & UC14 & UC17
+  Admin --> Full
+  Owner --> Biz
+  Staff --> Input
+  Viewer --> Read
 ```
 
-Nhân viên **UC06 / UC10**: chỉ bản ghi `createdBy` = chính mình. Không **UC07 / UC11**.
+Cả bốn đều: **đăng nhập, đăng xuất, dashboard, hồ sơ**.
 
-## Sơ đồ theo cụm
+### Ai được làm gì
 
-### Auth và tổng quan
+| Use case | Admin | Chủ shop | Nhân viên | Người xem |
+|---|:---:|:---:|:---:|:---:|
+| UC01 Đăng nhập | ✓ | ✓ | ✓ | ✓ |
+| UC02 Đăng xuất | ✓ | ✓ | ✓ | ✓ |
+| UC03 Dashboard | ✓ | ✓ | ✓ | ✓ |
+| UC04 Xem khoản thu | ✓ | ✓ | ✓ | ✓ |
+| UC05 Thêm khoản thu | ✓ | ✓ | ✓ | |
+| UC06 Sửa khoản thu | ✓ | ✓ | của mình | |
+| UC07 Xóa khoản thu | ✓ | ✓ | | |
+| UC08 Xem khoản chi | ✓ | ✓ | ✓ | ✓ |
+| UC09 Thêm khoản chi | ✓ | ✓ | ✓ | |
+| UC10 Sửa khoản chi | ✓ | ✓ | của mình | |
+| UC11 Xóa khoản chi | ✓ | ✓ | | |
+| UC12 Import Excel | ✓ | ✓ | ✓ | |
+| UC13 Xem báo cáo | ✓ | ✓ | | ✓ |
+| UC14 Xuất hóa đơn | ✓ | ✓ | | ✓ |
+| UC15 Xem nhật ký | ✓ | ✓ | | |
+| UC16 Quản lý user | ✓ | | | |
+| UC17 Hồ sơ cá nhân | ✓ | ✓ | ✓ | ✓ |
+
+## Sơ đồ từng vai
+
+### Quản trị
 
 ```mermaid
 flowchart LR
-  U((Người dùng đã có tài khoản))
-  UC01([Đăng nhập])
-  UC02([Đăng xuất])
-  UC03([Xem dashboard])
-  UC17([Hồ sơ cá nhân])
-  U --- UC01 & UC02 & UC03 & UC17
+  A((Quản trị))
+  A --> T[Thu: xem thêm sửa xóa]
+  A --> C[Chi: xem thêm sửa xóa]
+  A --> I[Import]
+  A --> B[Báo cáo + hóa đơn]
+  A --> N[Nhật ký]
+  A --> U[Người dùng]
 ```
 
-### Thu – chi
+### Chủ shop
 
 ```mermaid
 flowchart LR
-  A((Admin / Chủ shop))
-  E((Nhân viên))
-  V((Người xem))
-
-  R([Xem list thu/chi + lọc])
-  C([Thêm thu/chi])
-  U([Sửa thu/chi])
-  D([Xóa thu/chi])
-  I([Import Excel])
-
-  A --- R & C & U & D & I
-  E --- R & C & U & I
-  V --- R
-```
-
-### Báo cáo, nhật ký, user
-
-```mermaid
-flowchart LR
-  A((Admin))
   O((Chủ shop))
+  O --> T[Thu: xem thêm sửa xóa]
+  O --> C[Chi: xem thêm sửa xóa]
+  O --> I[Import]
+  O --> B[Báo cáo + hóa đơn]
+  O --> N[Nhật ký]
+```
+
+### Nhân viên
+
+```mermaid
+flowchart LR
+  E((Nhân viên))
+  E --> T[Thu: xem thêm · sửa của mình]
+  E --> C[Chi: xem thêm · sửa của mình]
+  E --> I[Import]
+```
+
+### Người xem
+
+```mermaid
+flowchart LR
   V((Người xem))
-
-  BC([Xem báo cáo])
-  HD([Xuất hóa đơn])
-  NK([Xem nhật ký])
-  US([Quản lý user])
-
-  A --- BC & HD & NK & US
-  O --- BC & HD & NK
-  V --- BC & HD
+  V --> R[Xem dashboard, thu, chi]
+  V --> B[Báo cáo + xuất hóa đơn]
 ```
 
 ## Mô tả ngắn từng use case
