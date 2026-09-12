@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: handmade-finance-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: handmade_finance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Ho_Chi_Minh
+      PGTZ: Asia/Ho_Chi_Minh
+    ports:
+      # Host 5432 is already used by a local PostgreSQL service on this machine.
+      - "5433:5432"
+    volumes:
+      - handmade_postgres_data:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - timezone=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d handmade_finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  handmade_postgres_data:
