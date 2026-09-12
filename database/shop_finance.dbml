@@ -1,8 +1,12 @@
 Project handmade_finance {
   database_type: "PostgreSQL"
   Note: '''
-    Thu/chi cơ bản. Schema shop_finance.
-    Không lưu chi tiết sản phẩm, discount, shipping, tax.
+    Sản phẩm: Finance Manager. Schema shop_finance.
+    Thu/chi cơ bản. Không lưu chi tiết sản phẩm, discount, shipping, tax.
+    Loại thu seed: Bán hàng, Thu khác.
+    Loại chi seed: Nguyên vật liệu, Bao bì / đóng gói, Vận chuyển, Quảng cáo,
+    Phí dịch vụ, Lương nhân viên, Điện / nước / Internet, Thuê mặt bằng,
+    Công cụ / thiết bị, Chi khác.
   '''
 }
 

@@ -335,7 +335,10 @@ input.is-error, select.is-error { border-color: var(--danger); }
 .row-item:first-of-type { border-top: 0; padding-top: 0; }
 .plus { color: #14b8a6; font-weight: 600; font-variant-numeric: tabular-nums; }
 .minus { color: #f43f5e; font-weight: 600; font-variant-numeric: tabular-nums; }
-.amount { text-align: right; font-variant-numeric: tabular-nums; }
+th.amount { text-align: right; }
+td.amount { text-align: right; }
+input[type="file"] { height: auto; padding: 8px 0; border: 0; background: transparent; }
+html { overflow-x: hidden; }
 .chart-wrap { height: 260px; }
 .chart-sm { height: 220px; }
 
@@ -466,5 +469,10 @@ tr:hover td { background: #fafafa; }
   .user-meta { display: none; }
   .kpis { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr; }
-  .topbar { padding: 0 16px; }
+@media (max-width: 480px) {
+  .page { padding: 16px; }
+  .page-title { font-size: 22px; }
+  .tabs { overflow-x: auto; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .span-2 { grid-column: auto; }
 }

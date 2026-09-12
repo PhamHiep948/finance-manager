@@ -1,5 +1,5 @@
 const ROLE_LABEL = {
-  ADMIN: "Quản trị",
+  ADMIN: "Admin",
   SHOP_OWNER: "Chủ shop",
   EMPLOYEE: "Nhân viên",
   VIEWER: "Người xem",

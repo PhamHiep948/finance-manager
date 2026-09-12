@@ -2,7 +2,7 @@ let page = "dashboard";
 let editId = null;
 let ccy = "USD";
 let reportTab = "overview";
-let reportFrom = "2026-09-01";
+let reportFrom = "2026-07-01";
 let reportTo = "2026-09-30";
 let reportSrc = "";
 let reportKind = "ALL";
@@ -26,16 +26,16 @@ const ICON_EDIT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><
 const ICON_DEL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 11v6M14 11v6M8 7V5a1 1 0 011-1h6a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const NAV = [
-  { page: "dashboard", label: "Tổng quan", perm: "dashboard" },
+  { page: "dashboard", label: "Dashboard", perm: "dashboard" },
   { page: "incomes", label: "Khoản thu", perm: "incomeRead" },
   { page: "expenses", label: "Khoản chi", perm: "expenseRead" },
   { page: "reports", label: "Báo cáo", perm: "reportRead" },
-  { page: "import", label: "Nhập Excel", perm: "importData" },
+  { page: "import", label: "Import dữ liệu", perm: "importData" },
   { page: "audit", label: "Nhật ký hoạt động", perm: "auditRead" },
 ];
 
 const TITLES = {
-  dashboard: "Tổng quan tài chính",
+  dashboard: "Dashboard",
   incomes: "Khoản thu",
   "income-form": "Thêm khoản thu",
   "income-edit": "Sửa khoản thu",
@@ -157,7 +157,7 @@ function route() {
     return;
   }
   if (parsed.page === "income-edit") {
-    const rec = INCOMES.find((x) => x.id === parsed.id);
+    const rec = INCOMES.find((x) => x.id === parsed.id && isActive(x));
     if (!rec || !canEditOwn(rec, "incomeUpdate")) {
       page = "forbidden";
       location.hash = "#/403";
@@ -166,7 +166,7 @@ function route() {
     }
   }
   if (parsed.page === "expense-edit") {
-    const rec = EXPENSES.find((x) => x.id === parsed.id);
+    const rec = EXPENSES.find((x) => x.id === parsed.id && isActive(x));
     if (!rec || !canEditOwn(rec, "expenseUpdate")) {
       page = "forbidden";
       location.hash = "#/403";
@@ -201,10 +201,10 @@ function renderLogin() {
               <path d="M7 7l10 10M9 5l2 2M5 9l2 2M15 17l2 2M17 15l2 2" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
             </svg>
           </span>
-          <strong>Handmade Finance</strong>
+          <strong>Finance Manager</strong>
         </div>
         <h1>Đăng nhập</h1>
-        <p class="lead">Quản lý thu – chi shop handmade</p>
+        <p class="lead">Mock authentication · quản lý thu – chi shop handmade</p>
         <div id="login-err"></div>
         <div class="login-fields">
           <label class="field"><span>Email</span><input name="email" type="email" autocomplete="username" required /></label>
@@ -300,10 +300,10 @@ function renderApp() {
     dashboard,
     incomes: incomeList,
     "income-form": () => incomeForm(null),
-    "income-edit": () => incomeForm(INCOMES.find((x) => x.id === editId)),
+    "income-edit": () => incomeForm(INCOMES.find((x) => x.id === editId && isActive(x))),
     expenses: expenseList,
     "expense-form": () => expenseForm(null),
-    "expense-edit": () => expenseForm(EXPENSES.find((x) => x.id === editId)),
+    "expense-edit": () => expenseForm(EXPENSES.find((x) => x.id === editId && isActive(x))),
     reports,
     import: importPage,
     audit: auditPage,
@@ -317,19 +317,92 @@ function renderApp() {
   if (page === "reports") drawReports();
 }
 
+function isActive(r) {
+  return r && !r.deletedAt;
+}
+
 function filteredIncomes() {
-  return INCOMES.filter((x) => x.currency === ccy);
+  return INCOMES.filter((x) => x.currency === ccy && isActive(x));
 }
 function filteredExpenses() {
-  return EXPENSES.filter((x) => x.currency === ccy);
+  return EXPENSES.filter((x) => x.currency === ccy && isActive(x));
 }
 
 function sum(list) {
   return list.reduce((a, x) => a + Number(x.amount), 0);
 }
 
+function monthKey(iso) {
+  return (iso || "").slice(0, 7);
+}
+
+function monthLabel(key) {
+  const m = Number(key.slice(5));
+  return Number.isFinite(m) ? `T${m}` : key;
+}
+
+function monthlyFrom(inc, exp) {
+  const map = {};
+  inc.forEach((x) => {
+    const k = monthKey(x.incomeDate);
+    if (!k) return;
+    map[k] = map[k] || { key: k, m: monthLabel(k), income: 0, expense: 0 };
+    map[k].income += Number(x.amount);
+  });
+  exp.forEach((x) => {
+    const k = monthKey(x.expenseDate);
+    if (!k) return;
+    map[k] = map[k] || { key: k, m: monthLabel(k), income: 0, expense: 0 };
+    map[k].expense += Number(x.amount);
+  });
+  return Object.values(map).sort((a, b) => a.key.localeCompare(b.key));
+}
+
 function monthlySeries() {
-  return MONTHLY[ccy] || MONTHLY.USD;
+  return monthlyFrom(filteredIncomes(), filteredExpenses());
+}
+
+function applyCatFilter(inc, exp) {
+  if (!reportCat) return { inc, exp };
+  if (reportCat.startsWith("INCOME:")) {
+    const id = reportCat.slice(7);
+    return { inc: inc.filter((x) => String(x.categoryId) === id), exp: [] };
+  }
+  if (reportCat.startsWith("EXPENSE:")) {
+    const id = reportCat.slice(8);
+    return { inc: [], exp: exp.filter((x) => String(x.categoryId) === id) };
+  }
+  return { inc, exp };
+}
+
+function catFilterOptions() {
+  const opts = [];
+  if (reportKind !== "EXPENSE") {
+    INCOME_CATEGORIES.forEach((c) => opts.push({ v: `INCOME:${c.id}`, n: `Thu · ${c.name}` }));
+  }
+  if (reportKind !== "INCOME") {
+    EXPENSE_CATEGORIES.forEach((c) => opts.push({ v: `EXPENSE:${c.id}`, n: `Chi · ${c.name}` }));
+  }
+  return opts;
+}
+
+function attachField(existing) {
+  const meta = existing
+    ? `${existing.name} · ${existing.type || "file"} · ${existing.size || 0} bytes`
+    : "Chưa chọn file. Chỉ lưu tên / type / size (không tải lên máy chủ).";
+  return `<label class="field span-2"><span>Chứng từ</span>
+    <input type="file" id="attach" name="attach" />
+    <small class="muted" id="attach-meta">${meta}</small>
+  </label>`;
+}
+
+function fileMeta(file, fallback) {
+  if (!file) return fallback || null;
+  return { name: file.name, type: file.type || "", size: file.size || 0 };
+}
+
+function isExcelName(name) {
+  return /\.xlsx?$/i.test(name || "");
 }
 
 function groupByCat(list, cats) {
@@ -349,11 +422,15 @@ function incomeByCat(list = filteredIncomes()) {
 }
 
 function ccySelect() {
+  const series = monthlySeries();
+  const period = series.length
+    ? `${series[0].m}${series.length > 1 ? "–" + series[series.length - 1].m : ""}/${series[0].key.slice(0, 4)}`
+    : "Chưa có dữ liệu";
   return `<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap">
     <label class="pill">Tiền tệ:
       <select id="ccySel"><option value="USD">USD ($)</option><option value="VND">VND (₫)</option></select>
     </label>
-    <span class="pill">Tháng này</span>
+    <span class="pill">${period} · ${ccy}</span>
   </div>`;
 }
 
@@ -365,26 +442,32 @@ function dashboard() {
   const net = tin - tex;
   const tx = inc.length + exp.length;
   const byCat = expenseByCat();
+  const recentIn = [...inc].sort((a, b) => b.incomeDate.localeCompare(a.incomeDate)).slice(0, 3);
+  const recentEx = [...exp].sort((a, b) => b.expenseDate.localeCompare(a.expenseDate)).slice(0, 3);
+  const series = monthlySeries();
+  const chartLabel = series.length
+    ? `Thu - chi theo thời gian (${series[0].m}${series.length > 1 ? "–" + series[series.length - 1].m : ""}/${series[0].key.slice(0, 4)})`
+    : "Thu - chi theo thời gian";
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Tổng quan tài chính</h1><p class="page-sub">Theo dõi tình hình kinh doanh, doanh thu và chi phí thực tế của shop.</p></div>
+      <div><h1 class="page-title">Dashboard</h1><p class="page-sub">Tổng thu, tổng chi và chênh lệch theo một loại tiền tệ. Không cộng USD với VND.</p></div>
       ${ccySelect()}
     </div>
     <div class="kpis">
-      <article class="card kpi"><div class="label">Tổng thu nhập</div><div class="row"><div class="value">${money(tin)}</div><span class="chg up">+12%</span></div></article>
-      <article class="card kpi"><div class="label">Tổng chi phí</div><div class="row"><div class="value">${money(tex)}</div><span class="chg down">-4%</span></div></article>
-      <article class="card kpi"><div class="label">Chênh lệch Thu - Chi</div><div class="row"><div class="value">${money(net)}</div><span class="chg up">+24%</span></div></article>
-      <article class="card kpi"><div class="label">Số giao dịch</div><div class="row"><div class="value">${tx}</div><span class="chg up">+8%</span></div></article>
+      <article class="card kpi"><div class="label">Tổng thu</div><div class="row"><div class="value">${money(tin)}</div></div></article>
+      <article class="card kpi"><div class="label">Tổng chi</div><div class="row"><div class="value">${money(tex)}</div></div></article>
+      <article class="card kpi"><div class="label">Chênh lệch thu - chi</div><div class="row"><div class="value">${money(net)}</div></div></article>
+      <article class="card kpi"><div class="label">Số giao dịch</div><div class="row"><div class="value">${tx}</div></div></article>
     </div>
     <div class="grid-2">
       <article class="card">
-        <div class="card-head"><h3 class="section-title">Biểu đồ Thu nhập vs Chi phí (Tháng 1–6)</h3>
+        <div class="card-head"><h3 class="section-title">${chartLabel}</h3>
           <div class="legend"><span><i class="dot" style="background:#14b8a6"></i>Khoản thu</span><span><i class="dot" style="background:#fb7185"></i>Khoản chi</span></div>
         </div>
         <div class="chart-wrap"><canvas id="barChart"></canvas></div>
       </article>
       <article class="card">
-        <h3 class="section-title">Tỷ lệ chi theo loại</h3>
+        <h3 class="section-title">Chi theo loại</h3>
         ${byCat.length ? `<div class="chart-sm" style="margin-top:12px"><canvas id="pieChart"></canvas></div>
           <div class="donut-legend" style="margin-top:12px">${byCat.map((x) => `<div class="row-item"><span>${x.name}</span><b class="num">${x.pct}%</b></div>`).join("")}</div>` : `<div class="empty">Chưa có khoản chi.</div>`}
       </article>
@@ -392,11 +475,11 @@ function dashboard() {
     <div class="grid-lists">
       <article class="card">
         <div class="card-head"><h3 class="section-title">Khoản thu gần đây</h3><button class="link" data-go="incomes">Xem tất cả</button></div>
-        ${inc.slice().reverse().slice(0, 3).map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${catName(INCOME_CATEGORIES, r.categoryId)}</div></div><div class="plus">+${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản thu nào.</div>`}
+        ${recentIn.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.incomeDate)} · ${catName(INCOME_CATEGORIES, r.categoryId)}</div></div><div class="plus">+${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản thu nào.</div>`}
       </article>
       <article class="card">
         <div class="card-head"><h3 class="section-title">Khoản chi gần đây</h3><button class="link" data-go="expenses">Xem tất cả</button></div>
-        ${exp.slice().reverse().slice(0, 3).map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${catName(EXPENSE_CATEGORIES, r.categoryId)}</div></div><div class="minus">−${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản chi nào.</div>`}
+        ${recentEx.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.expenseDate)} · ${catName(EXPENSE_CATEGORIES, r.categoryId)}</div></div><div class="minus">−${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản chi nào.</div>`}
       </article>
     </div>`;
 }
@@ -423,7 +506,7 @@ function incomeList() {
   return `
     <div class="page-head">
       <div><h1 class="page-title">Danh sách khoản thu</h1><p class="page-sub">Tổng số: <b>${rows.length}</b> khoản (${ccy})</p></div>
-      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Nhập Excel</button>` : ""}${can("incomeCreate") ? `<button class="btn primary" data-go="income-form">+ Thêm khoản thu</button>` : ""}</div>
+      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}${can("incomeCreate") ? `<button class="btn primary" data-go="income-form">+ Thêm khoản thu</button>` : ""}</div>
     </div>
     ${listFilters("income")}
     <article class="card" style="padding:0">
@@ -464,7 +547,7 @@ function expenseList() {
   return `
     <div class="page-head">
       <div><h1 class="page-title">Danh sách khoản chi</h1><p class="page-sub">Tổng số: <b>${rows.length}</b> khoản (${ccy})</p></div>
-      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Nhập Excel</button>` : ""}${can("expenseCreate") ? `<button class="btn primary" data-go="expense-form">+ Thêm khoản chi</button>` : ""}</div>
+      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}${can("expenseCreate") ? `<button class="btn primary" data-go="expense-form">+ Thêm khoản chi</button>` : ""}</div>
     </div>
     ${listFilters("expense")}
     <article class="card" style="padding:0">
@@ -520,7 +603,7 @@ function incomeForm(rec) {
         <label class="field span-2"><span>Nội dung <span class="req">*</span></span><input name="description" required value="${r.description || ""}" /></label>
         <label class="field span-2"><span>Mã tham chiếu</span><input name="referenceCode" value="${r.referenceCode || ""}" /></label>
         <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
-        <label class="field span-2"><span>Chứng từ</span><div class="upload">Chọn file chứng từ (mock, không tải lên máy chủ)</div></label>
+        ${attachField(r.attachment)}
       </div>
       <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="btn secondary" data-go="incomes">Hủy</button>
@@ -549,7 +632,7 @@ function expenseForm(rec) {
         <label class="field span-2"><span>Nội dung <span class="req">*</span></span><input name="description" required value="${r.description || ""}" /></label>
         <label class="field span-2"><span>Người nhận</span><input name="recipient" value="${r.recipient || ""}" /></label>
         <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
-        <label class="field span-2"><span>Chứng từ</span><div class="upload">Chọn file chứng từ (mock)</div></label>
+        ${attachField(r.attachment)}
       </div>
       <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="btn secondary" data-go="expenses">Hủy</button>
@@ -565,18 +648,7 @@ function inRange(date, from, to) {
 }
 
 function reports() {
-  let inc = filteredIncomes().filter((x) => inRange(x.incomeDate, reportFrom, reportTo));
-  let exp = filteredExpenses().filter((x) => inRange(x.expenseDate, reportFrom, reportTo));
-  if (reportSrc) {
-    inc = inc.filter((x) => x.source === reportSrc);
-    exp = exp.filter((x) => x.source === reportSrc);
-  }
-  if (reportCat) {
-    inc = inc.filter((x) => String(x.categoryId) === String(reportCat));
-    exp = exp.filter((x) => String(x.categoryId) === String(reportCat));
-  }
-  if (reportKind === "INCOME") exp = [];
-  if (reportKind === "EXPENSE") inc = [];
+  const { inc, exp } = reportRows();
   const tin = sum(inc);
   const tex = sum(exp);
   const days = {};
@@ -589,28 +661,25 @@ function reports() {
     days[x.expenseDate].expense += x.amount;
   });
   const daily = Object.values(days).sort((a, b) => a.d.localeCompare(b.d));
+  const monthly = monthlyFrom(inc, exp);
   const tabs = [
     ["overview", "Tổng quan"],
     ["daily", "Theo ngày"],
+    ["monthly", "Theo tháng"],
     ["in", "Theo loại thu"],
     ["out", "Theo loại chi"],
   ];
-  const catOpts =
-    reportKind === "EXPENSE"
-      ? EXPENSE_CATEGORIES
-      : reportKind === "INCOME"
-        ? INCOME_CATEGORIES
-        : [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES];
+  const catOpts = catFilterOptions();
   let body = "";
   if (reportTab === "overview") {
     body = `
       <div class="kpis">
         <article class="card kpi"><div class="label">Tổng thu (${ccy})</div><div class="row"><div class="value">${money(tin)}</div></div></article>
         <article class="card kpi"><div class="label">Tổng chi (${ccy})</div><div class="row"><div class="value">${money(tex)}</div></div></article>
-        <article class="card kpi"><div class="label">Chênh lệch</div><div class="row"><div class="value">${money(tin - tex)}</div></div></article>
+        <article class="card kpi"><div class="label">Chênh lệch thu - chi</div><div class="row"><div class="value">${money(tin - tex)}</div></div></article>
         <article class="card kpi"><div class="label">Số giao dịch</div><div class="row"><div class="value">${inc.length + exp.length}</div></div></article>
       </div>
-      <article class="card"><div class="card-head"><h3 class="section-title">Thu – chi theo tháng</h3></div><div class="chart-wrap"><canvas id="rBar"></canvas></div></article>`;
+      <article class="card"><div class="card-head"><h3 class="section-title">Thu - chi theo thời gian (${ccy})</h3></div><div class="chart-wrap"><canvas id="rBar"></canvas></div></article>`;
   } else if (reportTab === "daily") {
     body = `<article class="card" style="padding:0"><div class="table-wrap"><table>
       <thead><tr><th>Ngày</th><th class="amount">Thu</th><th class="amount">Chi</th><th class="amount">Chênh lệch</th></tr></thead>
@@ -619,19 +688,27 @@ function reports() {
           ? daily.map((x) => `<tr><td>${dmy(x.d)}</td><td class="amount plus">${money(x.income)}</td><td class="amount minus">${money(x.expense)}</td><td class="amount">${money(x.income - x.expense)}</td></tr>`).join("")
           : `<tr><td colspan="4"><div class="empty">Không có dữ liệu trong khoảng ngày.</div></td></tr>`
       }</tbody></table></div></article>`;
+  } else if (reportTab === "monthly") {
+    body = `<article class="card" style="padding:0"><div class="table-wrap"><table>
+      <thead><tr><th>Tháng</th><th class="amount">Thu</th><th class="amount">Chi</th><th class="amount">Chênh lệch</th></tr></thead>
+      <tbody>${
+        monthly.length
+          ? monthly.map((x) => `<tr><td>${x.m}/${x.key.slice(0, 4)}</td><td class="amount plus">${money(x.income)}</td><td class="amount minus">${money(x.expense)}</td><td class="amount">${money(x.income - x.expense)}</td></tr>`).join("")
+          : `<tr><td colspan="4"><div class="empty">Không có dữ liệu.</div></td></tr>`
+      }</tbody></table></div></article>`;
   } else if (reportTab === "in") {
     const cats = incomeByCat(inc);
-    body = `<div class="grid-2"><article class="card"><h3 class="section-title">Biểu đồ loại thu</h3><div class="chart-sm"><canvas id="rIn"></canvas></div></article>
+    body = `<div class="grid-2"><article class="card"><h3 class="section-title">Theo loại thu</h3><div class="chart-sm"><canvas id="rIn"></canvas></div></article>
       <article class="card"><h3 class="section-title">Chi tiết</h3>${cats.map((x) => `<div class="row-item"><span>${x.name}</span><b class="num">${money(x.amount)}</b></div>`).join("") || `<div class="empty">Chưa có khoản thu.</div>`}</article></div>`;
   } else {
     const cats = expenseByCat(exp);
-    body = `<div class="grid-2"><article class="card"><h3 class="section-title">Biểu đồ loại chi</h3><div class="chart-sm"><canvas id="rOut"></canvas></div></article>
+    body = `<div class="grid-2"><article class="card"><h3 class="section-title">Theo loại chi</h3><div class="chart-sm"><canvas id="rOut"></canvas></div></article>
       <article class="card"><h3 class="section-title">Chi tiết</h3>${cats.map((x) => `<div class="row-item"><span>${x.name}</span><b class="num">${money(x.amount)}</b></div>`).join("") || `<div class="empty">Chưa có khoản chi.</div>`}</article></div>`;
   }
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Báo cáo</h1><p class="page-sub">Số liệu theo một loại tiền tệ. Có thể xuất hóa đơn tổng hợp (mock in).</p></div>
-      <button class="btn primary" type="button" id="export-invoice">Xuất hóa đơn</button>
+      <div><h1 class="page-title">Báo cáo</h1><p class="page-sub">Một loại tiền tệ mỗi lần. Không cộng USD với VND. Xuất báo cáo = in mock.</p></div>
+      <button class="btn primary" type="button" id="export-report">Xuất báo cáo</button>
     </div>
     <div class="toolbar">
       <select id="ccySel" class="toolbar-ctrl"><option value="USD">USD ($)</option><option value="VND">VND (₫)</option></select>
@@ -647,7 +724,7 @@ function reports() {
       </select>
       <select id="rCat" class="toolbar-ctrl">
         <option value="">Loại: Tất cả</option>
-        ${catOpts.map((c) => `<option value="${c.id}" ${String(reportCat) === String(c.id) ? "selected" : ""}>${c.name}</option>`).join("")}
+        ${catOpts.map((c) => `<option value="${c.v}" ${reportCat === c.v ? "selected" : ""}>${c.n}</option>`).join("")}
       </select>
       <input id="rFrom" class="toolbar-ctrl" type="date" value="${reportFrom}" title="Từ ngày" />
       <input id="rTo" class="toolbar-ctrl" type="date" value="${reportTo}" title="Đến ngày" />
@@ -659,13 +736,13 @@ function reports() {
 function importPage() {
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Nhập Excel</h1><p class="page-sub">Theo dõi từng lần import. Prototype không đọc file thật.</p></div>
+      <div><h1 class="page-title">Import dữ liệu</h1><p class="page-sub">Chỉ nhận Excel (.xlsx / .xls). UI mock — không parse nội dung file.</p></div>
     </div>
     <div class="steps">
       <div class="step"><b>1</b>Chọn loại thu/chi</div>
-      <div class="step"><b>2</b>Tải tệp tin lên</div>
-      <div class="step"><b>3</b>Xem trước dữ liệu</div>
-      <div class="step"><b>4</b>Hoàn tất import</div>
+      <div class="step"><b>2</b>Chọn file Excel</div>
+      <div class="step"><b>3</b>Xem trước (mock)</div>
+      <div class="step"><b>4</b>Hoàn tất (mock)</div>
     </div>
     <div class="grid-2">
       <article class="card">
@@ -675,12 +752,12 @@ function importPage() {
           <label class="choice"><input type="radio" name="itype" value="EXPENSE" /> Khoản chi</label>
         </div>
         <label class="dropzone">
-          <input type="file" id="xlsx" accept=".xlsx,.xls,.csv" />
+          <input type="file" id="xlsx" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
           <b>Chọn hoặc kéo thả file Excel</b>
-          <small>.xlsx / .csv · tối đa 10MB · chỉ mô phỏng</small>
+          <small>.xlsx / .xls · tối đa 10MB · chỉ mô phỏng</small>
           <span class="muted" id="file-name">Chưa chọn tệp</span>
         </label>
-        <p class="muted" style="margin-top:12px">File mẫu để test:
+        <p class="muted" style="margin-top:12px">File mẫu (placeholder):
           <a class="link" href="samples/mau-khoan-thu.xlsx" download>mau-khoan-thu.xlsx</a>
           ·
           <a class="link" href="samples/mau-khoan-chi.xlsx" download>mau-khoan-chi.xlsx</a>
@@ -689,7 +766,7 @@ function importPage() {
         <div id="import-status" style="margin-top:12px"></div>
       </article>
       <article class="card">
-        <h3 class="section-title">Lịch sử nhập gần đây</h3>
+        <h3 class="section-title">Lịch sử import</h3>
         ${IMPORTS.map(
           (b) => `<div class="row-item"><div><b>${b.fileName}</b><div class="muted">${b.type === "INCOME" ? "Khoản thu" : "Khoản chi"} · ${b.createdAt}</div></div>
           <span class="badge ${b.status === "COMPLETED" ? "ok" : "fail"}">${b.status === "COMPLETED" ? "Hoàn thành" : "Thất bại"}</span></div>`
@@ -697,7 +774,7 @@ function importPage() {
       </article>
     </div>
     <article class="card" id="preview-card" style="display:none">
-      <div class="card-head"><h3 class="section-title">Xem trước dữ liệu</h3></div>
+      <div class="card-head"><h3 class="section-title">Xem trước dữ liệu (mock)</h3></div>
       <div class="table-wrap"><table>
         <thead><tr><th>STT</th><th>Ngày</th><th>Nội dung</th><th class="amount">Số tiền</th><th>Trạng thái</th></tr></thead>
         <tbody>
@@ -806,8 +883,9 @@ function drawDash() {
 }
 
 function drawReports() {
+  const { inc, exp } = reportRows();
   if (reportTab === "overview") {
-    const monthly = monthlySeries();
+    const monthly = monthlyFrom(inc, exp);
     const el = document.getElementById("rBar");
     if (!el) return;
     charts.rBar = new Chart(el, {
@@ -831,8 +909,8 @@ function drawReports() {
       options: { plugins: { legend: { display: false } }, cutout: "70%", maintainAspectRatio: false },
     });
   };
-  if (reportTab === "in") doughnut("rIn", incomeByCat(filteredIncomes().filter((x) => inRange(x.incomeDate, reportFrom, reportTo))).map((x) => x.name), incomeByCat(filteredIncomes().filter((x) => inRange(x.incomeDate, reportFrom, reportTo))).map((x) => x.amount));
-  if (reportTab === "out") doughnut("rOut", expenseByCat(filteredExpenses().filter((x) => inRange(x.expenseDate, reportFrom, reportTo))).map((x) => x.name), expenseByCat(filteredExpenses().filter((x) => inRange(x.expenseDate, reportFrom, reportTo))).map((x) => x.amount));
+  if (reportTab === "in") doughnut("rIn", incomeByCat(inc).map((x) => x.name), incomeByCat(inc).map((x) => x.amount));
+  if (reportTab === "out") doughnut("rOut", expenseByCat(exp).map((x) => x.name), expenseByCat(exp).map((x) => x.amount));
 }
 
 function nextId(list) {
@@ -850,21 +928,17 @@ function reportRows() {
     inc = inc.filter((x) => x.source === reportSrc);
     exp = exp.filter((x) => x.source === reportSrc);
   }
-  if (reportCat) {
-    inc = inc.filter((x) => String(x.categoryId) === String(reportCat));
-    exp = exp.filter((x) => String(x.categoryId) === String(reportCat));
-  }
   if (reportKind === "INCOME") exp = [];
   if (reportKind === "EXPENSE") inc = [];
-  return { inc, exp };
+  return applyCatFilter(inc, exp);
 }
 
-function exportInvoice() {
+function exportReport() {
   const { inc, exp } = reportRows();
   const tin = sum(inc);
   const tex = sum(exp);
   const u = currentUser();
-  const no = "HD-" + Date.now().toString().slice(-8);
+  const no = "BC-" + Date.now().toString().slice(-8);
   const incomeRows = inc
     .map(
       (r) =>
@@ -877,7 +951,7 @@ function exportInvoice() {
         `<tr><td>${dmy(r.expenseDate)}</td><td>${r.description}</td><td>${catName(EXPENSE_CATEGORIES, r.categoryId)}</td><td style="text-align:right">${money(r.amount)}</td></tr>`
     )
     .join("");
-  const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Hóa đơn ${no}</title>
+  const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Báo cáo ${no}</title>
     <style>
       body{font-family:Inter,Segoe UI,sans-serif;color:#1e293b;padding:32px;max-width:800px;margin:auto}
       h1{font-size:22px;margin:0} .muted{color:#64748b;font-size:13px}
@@ -888,11 +962,12 @@ function exportInvoice() {
       .mark{width:36px;height:36px;border-radius:10px;background:#14b8a6;color:#fff;display:grid;place-items:center;font-weight:700}
       .tot{margin-top:16px;text-align:right;font-size:14px}
       .tot b{font-size:18px}
+      .amount{font-variant-numeric:tabular-nums}
       @media print {.noprint{display:none}}
     </style></head><body>
     <div class="head">
-      <div style="display:flex;gap:10px;align-items:center"><div class="mark">H</div>
-      <div><h1>Handmade Finance</h1><div class="muted">Hóa đơn tổng hợp thu – chi</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center"><div class="mark">F</div>
+      <div><h1>Finance Manager</h1><div class="muted">Báo cáo thu – chi (mock in)</div></div></div>
       <div class="muted" style="text-align:right">Số: ${no}<br/>Ngày in: ${new Date().toLocaleString("vi-VN")}<br/>Người xuất: ${u.name}</div>
     </div>
     <p class="muted">Kỳ: ${dmy(reportFrom)} – ${dmy(reportTo)} · Tiền tệ: ${ccy} (không cộng USD với VND)</p>
@@ -902,8 +977,8 @@ function exportInvoice() {
     <h3>Khoản chi</h3>
     <table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th style="text-align:right">Số tiền</th></tr></thead>
     <tbody>${expenseRows || `<tr><td colspan="4">Không có khoản chi</td></tr>`}</tbody></table>
-    <div class="tot">Tổng thu: ${money(tin)}<br/>Tổng chi: ${money(tex)}<br/><b>Chênh lệch: ${money(tin - tex)}</b></div>
-    <p class="muted noprint" style="margin-top:24px">Đây là hóa đơn mock để in / lưu PDF. Chưa kết nối máy in thật từ server.</p>
+    <div class="tot">Tổng thu: ${money(tin)}<br/>Tổng chi: ${money(tex)}<br/><b>Chênh lệch thu - chi: ${money(tin - tex)}</b></div>
+    <p class="muted noprint" style="margin-top:24px">Xuất báo cáo mock. Không phải hóa đơn điện tử. Không kết nối máy in từ server.</p>
     </body></html>`;
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) {
@@ -914,7 +989,7 @@ function exportInvoice() {
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 300);
-  toast("Đã mở hóa đơn để in");
+  toast("Đã mở báo cáo để in");
 }
 
 function bindApp() {
@@ -957,13 +1032,33 @@ function bindApp() {
     reportCat = e.target.value;
     renderApp();
   });
-  document.getElementById("export-invoice")?.addEventListener("click", exportInvoice);
+  document.getElementById("export-report")?.addEventListener("click", exportReport);
   document.getElementById("xlsx")?.addEventListener("change", (e) => {
     const f = e.target.files?.[0];
     const name = document.getElementById("file-name");
-    if (name) name.textContent = f ? f.name : "Chưa chọn tệp";
     const preview = document.getElementById("preview-card");
+    const st = document.getElementById("import-status");
+    if (!f) {
+      if (name) name.textContent = "Chưa chọn tệp";
+      if (preview) preview.style.display = "none";
+      return;
+    }
+    if (!isExcelName(f.name)) {
+      e.target.value = "";
+      if (name) name.textContent = "Chưa chọn tệp";
+      if (preview) preview.style.display = "none";
+      if (st) st.innerHTML = `<div class="alert-error">Chỉ nhận file Excel (.xlsx / .xls). CSV không hỗ trợ.</div>`;
+      toast("File không phải Excel");
+      return;
+    }
+    if (name) name.textContent = `${f.name} · ${f.type || "Excel"} · ${f.size} bytes`;
     if (preview) preview.style.display = "block";
+    if (st) st.innerHTML = "";
+  });
+  document.getElementById("attach")?.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    const meta = document.getElementById("attach-meta");
+    if (meta && f) meta.textContent = `${f.name} · ${f.type || "file"} · ${f.size} bytes`;
   });
   bindFilters();
   document.querySelectorAll("[data-edit-in]").forEach((b) => (b.onclick = () => go("income-edit", Number(b.dataset.editIn))));
@@ -972,10 +1067,13 @@ function bindApp() {
     b.onclick = () =>
       openConfirm("Bạn có chắc muốn xóa khoản thu này?", () => {
         const id = Number(b.dataset.delIn);
-        const i = INCOMES.findIndex((x) => x.id === id);
-        if (i >= 0) INCOMES.splice(i, 1);
-        pushAudit("Xóa khoản thu", "Khoản thu", `#${id}`);
-        toast("Đã xóa khoản thu");
+        const rec = INCOMES.find((x) => x.id === id);
+        if (rec) {
+          rec.deletedAt = new Date().toISOString();
+          rec.deletedBy = currentUser().id;
+        }
+        pushAudit("Xóa khoản thu", "Khoản thu", `#${id} (xóa mềm)`);
+        toast("Đã xóa mềm khoản thu");
         renderApp();
       });
   });
@@ -983,10 +1081,13 @@ function bindApp() {
     b.onclick = () =>
       openConfirm("Bạn có chắc muốn xóa khoản chi này?", () => {
         const id = Number(b.dataset.delEx);
-        const i = EXPENSES.findIndex((x) => x.id === id);
-        if (i >= 0) EXPENSES.splice(i, 1);
-        pushAudit("Xóa khoản chi", "Khoản chi", `#${id}`);
-        toast("Đã xóa khoản chi");
+        const rec = EXPENSES.find((x) => x.id === id);
+        if (rec) {
+          rec.deletedAt = new Date().toISOString();
+          rec.deletedBy = currentUser().id;
+        }
+        pushAudit("Xóa khoản chi", "Khoản chi", `#${id} (xóa mềm)`);
+        toast("Đã xóa mềm khoản chi");
         renderApp();
       });
   });
@@ -995,6 +1096,7 @@ function bindApp() {
     form.onsubmit = (e) => {
       e.preventDefault();
       const fd = new FormData(form);
+      const now = new Date().toISOString();
       const rec = {
         incomeDate: fd.get("incomeDate"),
         description: fd.get("description"),
@@ -1004,14 +1106,29 @@ function bindApp() {
         referenceCode: fd.get("referenceCode"),
         source: "MANUAL",
         note: fd.get("note"),
-        createdBy: currentUser().id,
+        attachment: fileMeta(document.getElementById("attach")?.files?.[0], null),
+        updatedAt: now,
       };
       if (page === "income-edit") {
-        Object.assign(INCOMES.find((x) => x.id === editId), rec);
+        const old = INCOMES.find((x) => x.id === editId);
+        Object.assign(old, rec, {
+          createdBy: old.createdBy,
+          createdAt: old.createdAt,
+          deletedAt: old.deletedAt || null,
+          deletedBy: old.deletedBy || null,
+          attachment: rec.attachment || old.attachment || null,
+        });
         pushAudit("Sửa khoản thu", "Khoản thu", rec.description);
         toast("Đã cập nhật khoản thu");
       } else {
-        INCOMES.push({ id: nextId(INCOMES), ...rec });
+        INCOMES.push({
+          id: nextId(INCOMES),
+          ...rec,
+          createdBy: currentUser().id,
+          createdAt: now,
+          deletedAt: null,
+          deletedBy: null,
+        });
         pushAudit("Tạo khoản thu", "Khoản thu", rec.description);
         toast("Đã thêm khoản thu");
       }
@@ -1022,6 +1139,7 @@ function bindApp() {
     form.onsubmit = (e) => {
       e.preventDefault();
       const fd = new FormData(form);
+      const now = new Date().toISOString();
       const rec = {
         expenseDate: fd.get("expenseDate"),
         description: fd.get("description"),
@@ -1031,14 +1149,29 @@ function bindApp() {
         recipient: fd.get("recipient"),
         source: "MANUAL",
         note: fd.get("note"),
-        createdBy: currentUser().id,
+        attachment: fileMeta(document.getElementById("attach")?.files?.[0], null),
+        updatedAt: now,
       };
       if (page === "expense-edit") {
-        Object.assign(EXPENSES.find((x) => x.id === editId), rec);
+        const old = EXPENSES.find((x) => x.id === editId);
+        Object.assign(old, rec, {
+          createdBy: old.createdBy,
+          createdAt: old.createdAt,
+          deletedAt: old.deletedAt || null,
+          deletedBy: old.deletedBy || null,
+          attachment: rec.attachment || old.attachment || null,
+        });
         pushAudit("Sửa khoản chi", "Khoản chi", rec.description);
         toast("Đã cập nhật khoản chi");
       } else {
-        EXPENSES.push({ id: nextId(EXPENSES), ...rec });
+        EXPENSES.push({
+          id: nextId(EXPENSES),
+          ...rec,
+          createdBy: currentUser().id,
+          createdAt: now,
+          deletedAt: null,
+          deletedBy: null,
+        });
         pushAudit("Tạo khoản chi", "Khoản chi", rec.description);
         toast("Đã thêm khoản chi");
       }
@@ -1047,23 +1180,32 @@ function bindApp() {
   }
   document.getElementById("do-import")?.addEventListener("click", () => {
     const st = document.getElementById("import-status");
-    st.innerHTML = `<span class="spin" style="display:inline-block;vertical-align:middle"></span> Đang import...`;
+    const file = document.getElementById("xlsx")?.files?.[0];
+    if (!file) {
+      st.innerHTML = `<div class="alert-error">Hãy chọn file Excel.</div>`;
+      return;
+    }
+    if (!isExcelName(file.name)) {
+      st.innerHTML = `<div class="alert-error">Chỉ nhận .xlsx / .xls.</div>`;
+      return;
+    }
+    st.innerHTML = `<span class="spin" style="display:inline-block;vertical-align:middle"></span> Đang import (mock)...`;
     setTimeout(() => {
       const type = document.querySelector("input[name=itype]:checked").value;
-      const fname = document.getElementById("xlsx")?.files?.[0]?.name || "import-mock.xlsx";
+      const fail = /fail|sai/i.test(file.name);
       IMPORTS.unshift({
         id: nextId(IMPORTS),
-        fileName: fname,
+        fileName: file.name,
         type,
-        status: "COMPLETED",
-        totalRows: 2,
-        successRows: 2,
-        failedRows: 0,
+        status: fail ? "FAILED" : "COMPLETED",
+        totalRows: fail ? 8 : 2,
+        successRows: fail ? 0 : 2,
+        failedRows: fail ? 8 : 0,
         createdBy: currentUser().id,
         createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
       });
-      pushAudit("Import dữ liệu", "Import", type === "INCOME" ? "Khoản thu" : "Khoản chi");
-      toast("Import thành công");
+      pushAudit("Import dữ liệu", "Import", `${file.name} · ${fail ? "thất bại mock" : "thành công mock"}`);
+      toast(fail ? "Import thất bại (mock)" : "Import thành công (mock — không đọc file)");
       renderApp();
     }, 900);
   });

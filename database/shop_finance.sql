@@ -514,9 +514,14 @@ INSERT INTO expense_categories (name, description)
 SELECT v.name, v.description
 FROM (VALUES
     ('Nguyên vật liệu', 'Chi mua nguyên vật liệu làm sản phẩm'),
+    ('Bao bì / đóng gói', 'Chi hộp, túi, tem, đóng gói'),
     ('Vận chuyển', 'Chi phí giao nhận và vận chuyển'),
     ('Quảng cáo', 'Chi phí quảng cáo và marketing'),
     ('Phí dịch vụ', 'Phí nền tảng, thanh toán hoặc dịch vụ liên quan'),
+    ('Lương nhân viên', 'Chi lương (số tiền, không phải module payroll)'),
+    ('Điện / nước / Internet', 'Chi tiện ích cửa hàng'),
+    ('Thuê mặt bằng', 'Chi thuê gian hàng / mặt bằng'),
+    ('Công cụ / thiết bị', 'Chi công cụ, thiết bị làm hàng'),
     ('Chi khác', 'Các khoản chi chưa thuộc nhóm khác')
 ) AS v(name, description)
 WHERE NOT EXISTS (
