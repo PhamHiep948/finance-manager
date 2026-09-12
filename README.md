@@ -104,7 +104,7 @@ finance-manager/
 
 - [Phạm vi](docs/01-scope.md)
 - [Chức năng](docs/02-features.md)
-- [Use case và ma trận quyền](docs/03-use-cases.md)
+- [Use case](docs/03-use-cases.md)
 - [Kiến trúc thông tin](docs/04-information-architecture.md)
 - [Mô hình dữ liệu](docs/05-data-model.md)
 - [Sơ đồ ER](docs/DATABASE.md)

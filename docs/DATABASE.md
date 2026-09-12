@@ -6,23 +6,40 @@ Giao diện dùng **dữ liệu giả** bám đúng mô hình này (bảng, lo�
 
 File thiết kế: [shop_finance.dbml](../database/shop_finance.dbml) · [shop_finance.sql](../database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
 
-Ảnh sơ đồ: [images/er.png](images/er.png)
-
-![Sơ đồ dữ liệu](images/er.png)
-
 ## Quan hệ (bảng)
 
-`app_users` tạo / thao tác các bảng còn lại. Mỗi khoản thu/chi thuộc một loại; chứng từ gắn đúng một khoản thu hoặc một khoản chi; import gắn vào khoản được nhập.
+`app_users` nằm bên trái. Ba nhóm Thu / Chi / Chung tách cột bên phải. Trong Thu và Chi: loại → khoản. `attachments` nằm ở Chung (chứng từ của khoản thu hoặc khoản chi).
 
-```text
-app_users
-  ├── income_categories  →  incomes  ──┐
-  ├── expense_categories →  expenses ─┼─→  attachments
-  ├── import_batches     →  incomes / expenses
-  └── audit_logs
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 30, "rankSpacing": 70, "padding": 12}}}%%
+flowchart LR
+  U[app_users]
+
+  subgraph groups [" "]
+    direction TB
+
+    subgraph thu [Thu]
+      direction LR
+      IC[income_categories] --> IN[incomes]
+    end
+
+    subgraph chi [Chi]
+      direction LR
+      EC[expense_categories] --> EX[expenses]
+    end
+
+    subgraph chung [Chung]
+      direction LR
+      IB[import_batches]
+      AL[audit_logs]
+      AT[attachments]
+    end
+  end
+
+  U --> thu
+  U --> chi
+  U --> chung
 ```
-
-`updated_by` và `deleted_by` cũng trỏ `app_users` — không vẽ thêm.
 
 ## Enum
 
@@ -36,15 +53,106 @@ app_users
 
 ## View (tổng hợp báo cáo)
 
-View không lưu dữ liệu. Đọc thu/chi còn hiệu lực và cộng theo ngày / tháng / loại, tách theo `currency_code`.
+View **không phải bảng lưu**. Dùng để đọc thu/chi còn hiệu lực và cộng theo ngày / tháng / loại, **tách theo `currency_code`**.
 
-| View | Nguồn |
-|---|---|
-| `vw_income_active` | `incomes` (`deleted_at IS NULL`) |
-| `vw_expense_active` | `expenses` (`deleted_at IS NULL`) |
-| `vw_cashflow_daily` | thu + chi theo ngày |
-| `vw_cashflow_monthly` | thu + chi theo tháng |
-| `vw_income_by_category` | thu theo loại |
-| `vw_expense_by_category` | chi theo loại |
+```mermaid
+flowchart LR
+  I[incomes]
+  E[expenses]
+  I --> V1[vw_income_active]
+  E --> V2[vw_expense_active]
+  I --> V3[vw_cashflow_daily]
+  E --> V3
+  I --> V4[vw_cashflow_monthly]
+  E --> V4
+  I --> V5[vw_income_by_category]
+  E --> V6[vw_expense_by_category]
+```
 
-Cột chi tiết: [shop_finance.sql](../database/shop_finance.sql), [05-data-model.md](05-data-model.md).
+## ER chi tiết (cột chính)
+
+```mermaid
+erDiagram
+  app_users {
+    bigint id PK
+    varchar email
+    varchar full_name
+    user_role role
+    timestamptz deleted_at
+  }
+
+  income_categories {
+    bigint id PK
+    varchar name
+    bigint created_by FK
+  }
+
+  incomes {
+    bigint id PK
+    date income_date
+    bigint income_category_id FK
+    numeric amount
+    varchar currency_code
+    data_source source
+    bigint import_batch_id FK
+    bigint created_by FK
+    timestamptz deleted_at
+  }
+
+  expense_categories {
+    bigint id PK
+    varchar name
+    bigint created_by FK
+  }
+
+  expenses {
+    bigint id PK
+    date expense_date
+    bigint expense_category_id FK
+    numeric amount
+    varchar currency_code
+    varchar payee
+    data_source source
+    bigint import_batch_id FK
+    bigint created_by FK
+    timestamptz deleted_at
+  }
+
+  import_batches {
+    bigint id PK
+    import_type import_type
+    varchar original_file_name
+    import_status status
+    bigint imported_by FK
+  }
+
+  attachments {
+    bigint id PK
+    bigint income_id FK
+    bigint expense_id FK
+    varchar original_name
+    bigint uploaded_by FK
+  }
+
+  audit_logs {
+    bigint id PK
+    bigint actor_user_id FK
+    audit_action action
+    varchar table_name
+  }
+
+  app_users ||--o{ income_categories : created_by
+  app_users ||--o{ expense_categories : created_by
+  app_users ||--o{ incomes : created_by
+  app_users ||--o{ expenses : created_by
+  app_users ||--o{ import_batches : imported_by
+  app_users ||--o{ attachments : uploaded_by
+  app_users ||--o{ audit_logs : actor
+
+  income_categories ||--o{ incomes : category
+  expense_categories ||--o{ expenses : category
+  import_batches ||--o{ incomes : batch
+  import_batches ||--o{ expenses : batch
+  incomes ||--o| attachments : file
+  expenses ||--o| attachments : file
+```
