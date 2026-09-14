@@ -2,7 +2,9 @@
 
 HandmadeFinance được cấu thành từ những application / data store cấp cao nào?
 
-Sơ đồ dưới đây là **Target Architecture**. Go Backend **chưa có trong source**.
+Luồng C4: [C1 System Context](01-system-context.md) → **C2** → [C3 Component](03-component.md)
+
+Đây là bước 2: zoom vào Software System trên C1. Sơ đồ là **Target Architecture**. Go Backend **chưa có trong source**.
 
 ![C2 Container — HandmadeFinance](c2-container.jpg)
 
@@ -16,7 +18,7 @@ Ba hình bên trong boundary là **Container**:
 
 | Container | Type | Technology | Status |
 | --------- | ---- | ---------- | ------ |
-| Web Frontend | Web Application | HTML, CSS, JavaScript | Existing |
+| Web Frontend | Web Application | React.js | Target |
 | Go Backend | Backend Application | Go | Planned |
 | PostgreSQL Database | Database | PostgreSQL | Designed (schema) |
 
@@ -41,9 +43,9 @@ Bốn vai trò lấy từ `frontend/js/auth.js`. Trên sơ đồ, cả bốn ng�
 |---|---|
 | **Name** | Web Frontend |
 | **Type** | Container: Web Application |
-| **Technology** | HTML / CSS / JavaScript |
-| **Status** | Existing |
-| **Description** | Giao diện để quản lý thu - chi, danh mục, import dữ liệu và xem báo cáo. |
+| **Technology** | React.js |
+| **Status** | Target |
+| **Description** | Giao diện người dùng HandmadeFinance (thu, chi, dashboard, báo cáo, import, người dùng, hồ sơ). |
 
 ### Go Backend
 
@@ -81,13 +83,17 @@ Frontend **không** truy cập PostgreSQL trực tiếp ở Target Architecture.
 
 ## Current State
 
-Đã xác minh source: frontend không gọi API; dữ liệu nằm trong JavaScript trên trình duyệt. Postgres schema tồn tại để thiết kế và có thể chạy độc lập qua Docker; app mock không dùng nó.
+Đã xác minh source: frontend mock chưa phải React; dữ liệu nằm trong JavaScript trên trình duyệt. C4 ghi **React.js** là công nghệ giao diện đích. Postgres schema tồn tại để thiết kế và có thể chạy độc lập qua Docker; app mock không dùng nó.
 
 ```text
 Người dùng → Web Frontend ↔ mock JS (data.js, auth.js)
 PostgreSQL: schema only, chưa nối app
 Go Backend: chưa có
 ```
+
+## Bước tiếp theo
+
+Zoom vào Go Backend để xem các Component: [C3 — Component](03-component.md).
 
 ## Source of Truth
 

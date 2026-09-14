@@ -2,7 +2,7 @@
 
 Web quản lý thu – chi cho shop handmade: ghi nhận tiền vào, tiền ra, theo dõi tổng doanh thu, tổng chi phí và lợi nhuận ròng theo thời gian và theo loại. Số liệu lưu USD; trên giao diện đổi sang EUR lúc xem.
 
-Giao diện HTML/CSS/JS tĩnh (**HandmadeFinance**), dữ liệu chạy trên trình duyệt. Repository có thiết kế PostgreSQL cho cùng mô hình.
+Giao diện **React.js** (**HandmadeFinance**), backend đích **Go**, dữ liệu **PostgreSQL**. Bản mock trong repo vẫn chạy trên trình duyệt (chưa nối API).
 
 ![Dashboard](docs/images/admin/01-dashboard.png)
 
@@ -282,4 +282,4 @@ finance-manager/
 - [Sơ đồ ER](docs/DATABASE.md)
 - [Tiêu chí chấp nhận](docs/06-acceptance-criteria.md)
 - [Mind map](docs/mindmap.png)
-- [C4 kiến trúc (C1–C2)](docs/architecture/c4/README.md)
+- [C4 kiến trúc (C1 → C2 → C3)](docs/architecture/c4/README.md)

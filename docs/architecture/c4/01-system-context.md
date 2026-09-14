@@ -2,6 +2,10 @@
 
 HandmadeFinance nằm trong bối cảnh nào, ai sử dụng nó, và ranh giới hệ thống ở đâu?
 
+Luồng C4: **C1** → [C2 Container](02-container.md) → [C3 Component](03-component.md)
+
+Đây là bước 1: nhìn hệ thống từ bên ngoài, chưa nói công nghệ.
+
 ![C1 System Context — HandmadeFinance](c1-system-context.jpg)
 
 File ảnh: [c1-system-context.jpg](c1-system-context.jpg)
@@ -40,6 +44,10 @@ Bốn vai trò lấy từ `frontend/js/auth.js` (`ADMIN`, `SHOP_OWNER`, `EMPLOYE
 No external software systems are currently required at the System Context level.
 
 Requirement V1 không dùng cổng thanh toán hay API sàn.
+
+## Bước tiếp theo
+
+Zoom vào HandmadeFinance để xem các Container: [C2 — Container](02-container.md).
 
 ## Source of Truth
 
