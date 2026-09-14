@@ -282,3 +282,4 @@ finance-manager/
 - [Sơ đồ ER](docs/DATABASE.md)
 - [Tiêu chí chấp nhận](docs/06-acceptance-criteria.md)
 - [Mind map](docs/mindmap.png)
+- [C4 kiến trúc (C1–C2)](docs/architecture/c4/README.md)
