@@ -1,42 +1,47 @@
 # Scope V1
 
+Tên sản phẩm trên giao diện: **HandmadeFinance**.
+
 ## Problem
 
 Shop handmade cần một nơi đơn giản để:
 
 - ghi nhận tiền vào;
 - ghi nhận tiền ra;
-- biết thu bao nhiêu;
-- biết chi bao nhiêu;
-- biết chênh lệch;
+- biết tổng doanh thu, tổng chi phí, lợi nhuận ròng;
 - xem dữ liệu theo thời gian;
 - xem theo loại thu / loại chi.
 
-Không phải ERP, không phải kế toán đầy đủ, không quản lý sản phẩm.
+Không phải ERP, không phải kế toán đầy đủ, không quản lý kho / SKU.
+
+Khoản thu: tên sản phẩm, mã đơn, khu vực bán (trong EU / ngoài EU), số lượng, đơn giá, phí đơn (Item, Discount, Subtotal, Shipping, Tax), số tiền **trước thuế** và **sau thuế**, kênh bán (Etsy / website / Instagram / hội chợ / sỉ), trạng thái hồ sơ (nháp / chờ xử lý / hoàn thành).
+
+Khoản chi: nội dung, người nhận, phạm vi nội địa / quốc tế, phương thức thanh toán, % thuế, trước thuế / sau thuế, trạng thái hồ sơ.
+
+Người dùng: họ tên, email, số điện thoại, ảnh đại diện, vai trò, đang hoạt động / ngừng kích hoạt.
 
 ## Goals
 
 V1 hỗ trợ:
 
-- Đăng nhập mock.
-- Dashboard.
-- Quản lý khoản thu.
-- Quản lý khoản chi.
-- Báo cáo (tách theo tiền tệ).
-- Import Excel ở mức mock.
-- Chứng từ (metadata mock).
+- Đăng nhập mock (layout 2 cột HandmadeFinance).
+- Dashboard (KPI, biểu đồ thu–chi, doanh thu theo loại, giao dịch gần đây).
+- Quản lý khoản thu (bảng đủ cột, modal thêm/sửa, modal chi tiết).
+- Quản lý khoản chi (cùng mô hình).
+- Báo cáo & phân tích (một bộ số USD; đổi EUR lúc xem).
+- Import dữ liệu Excel (mock).
+- Chứng từ (metadata mock trên modal chi tiết).
 - Nhật ký hoạt động (mock).
-- Quản lý người dùng mock.
-- Hồ sơ cá nhân.
+- Quản lý người dùng (Admin).
+- Hồ sơ: tài khoản, đổi mật khẩu mock, ma trận quyền.
 - Role / permission mock.
-- PostgreSQL **data model / schema design**.
+- PostgreSQL **data model / schema design** bám UI.
 
 ## Non-goals
 
 V1 **không** làm:
 
-- Quản lý sản phẩm, kho, CRM, đơn hàng chi tiết.
-- Item total, discount, shipping, tax, coupon.
+- Quản lý kho, CRM, đơn hàng nhiều dòng SKU.
 - Payroll chi tiết, BHXH, kế toán kép.
 - Hóa đơn điện tử, payment gateway, Etsy API.
 - AI, chatbot.

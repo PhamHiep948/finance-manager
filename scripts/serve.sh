@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${PORT:-8766}"
 
 cd "$ROOT/frontend"
-echo "Finance Manager (mock frontend)"
+echo "HandmadeFinance (mock frontend)"
 echo "http://127.0.0.1:${PORT}/"
 echo "Không kết nối database. Dữ liệu là MOCK trong js/data.js"
 python -m http.server "$PORT"

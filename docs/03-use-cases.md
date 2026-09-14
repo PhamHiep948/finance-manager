@@ -1,12 +1,12 @@
 # Actors, roles, use cases
 
-Tên sản phẩm: **Finance Manager**.
+Tên sản phẩm: **HandmadeFinance**.
 
 ## Actors / roles
 
-| Role | Tên hiển thị |
+| Role | Tên hiển thị trên UI |
 |---|---|
-| `ADMIN` | Admin |
+| `ADMIN` | Quản trị viên |
 | `SHOP_OWNER` | Chủ shop |
 | `EMPLOYEE` | Nhân viên |
 | `VIEWER` | Người xem |
@@ -26,36 +26,55 @@ Không thêm role khác.
 | Thêm khoản chi | ✓ | ✓ | ✓ | |
 | Sửa khoản chi | ✓ | ✓ | của mình | |
 | Xóa mềm khoản chi | ✓ | ✓ | | |
-| Import dữ liệu | ✓ | ✓ | ✓ | |
+| Import dữ liệu Excel | ✓ | ✓ | ✓ | |
 | Xem báo cáo | ✓ | ✓ | | ✓ |
 | Xuất báo cáo | ✓ | ✓ | | ✓ |
 | Nhật ký hoạt động | ✓ | ✓ | | |
 | Người dùng | ✓ | | | |
 | Hồ sơ cá nhân | ✓ | ✓ | ✓ | ✓ |
 
-Menu / nút **không hiển thị** nếu không có quyền.
+Menu / nút **không hiển thị** nếu không có quyền. Truy cập URL không đủ quyền → `#/403`.
 
-## Sơ đồ tổng
+## Sơ đồ use case (17 UC, một hình)
+
+Gom theo quyền. Không vẽ 17 sơ đồ riêng.
 
 ```mermaid
 flowchart TB
-  Admin((Admin))
-  Owner((Chủ shop))
-  Staff((Nhân viên))
-  Viewer((Người xem))
-
-  Full["Thu/chi đầy đủ, import, báo cáo, nhật ký, user"]
-  Biz["Thu/chi đầy đủ, import, báo cáo, nhật ký"]
-  Input["Nhập thu/chi, import; sửa bản mình; không xóa / báo cáo / nhật ký / user"]
-  Read["Chỉ đọc dashboard, list thu/chi, báo cáo"]
-
-  Admin --> Full
-  Owner --> Biz
-  Staff --> Input
-  Viewer --> Read
+  subgraph FM ["HandmadeFinance — UC01 … UC17"]
+    subgraph moi ["Mọi role"]
+      UC01[UC01 Đăng nhập]
+      UC02[UC02 Đăng xuất]
+      UC03[UC03 Dashboard]
+      UC04[UC04 Xem khoản thu]
+      UC08[UC08 Xem khoản chi]
+      UC17[UC17 Hồ sơ]
+    end
+    subgraph nhap ["Admin, Chủ shop, Nhân viên"]
+      UC05[UC05 Thêm thu]
+      UC06[UC06 Sửa thu]
+      UC09[UC09 Thêm chi]
+      UC10[UC10 Sửa chi]
+      UC12[UC12 Import]
+    end
+    subgraph bc ["Admin, Chủ shop, Người xem"]
+      UC13[UC13 Xem báo cáo]
+      UC14[UC14 Xuất báo cáo]
+    end
+    subgraph xoa ["Admin, Chủ shop"]
+      UC07[UC07 Xóa mềm thu]
+      UC11[UC11 Xóa mềm chi]
+      UC15[UC15 Nhật ký]
+    end
+    subgraph ad ["Chỉ Admin"]
+      UC16[UC16 Người dùng]
+    end
+  end
 ```
 
-Cả bốn: đăng nhập, đăng xuất, dashboard, hồ sơ.
+Nhân viên sửa thu/chi: chỉ bản mình tạo. Nhân viên không xóa.
+
+Cả bốn: đăng nhập, đăng xuất, dashboard, xem thu/chi, hồ sơ.
 
 ## Use cases
 
@@ -80,28 +99,28 @@ Cả bốn: đăng nhập, đăng xuất, dashboard, hồ sơ.
 
 - **Actor:** tất cả
 - **Preconditions:** đã login
-- **Main flow:** chọn tiền tệ → KPI + biểu đồ + giao dịch gần đây (bản ghi chưa xóa mềm)
+- **Main flow:** chọn đổi tiền USD/EUR + khoảng ngày → KPI + biểu đồ + theo loại + giao dịch gần đây (bản ghi chưa xóa mềm)
 - **Permission:** `dashboard`
-- **Result:** số liệu một currency
+- **Result:** cùng một bộ dữ liệu; EUR chỉ là quy đổi hiển thị
 
 ### UC04 Xem khoản thu
 
 - **Actor:** tất cả
-- **Main flow:** list `deletedAt == null` + lọc
+- **Main flow:** list `deletedAt == null` + lọc + cột hiển thị + modal chi tiết
 - **Permission:** `incomeRead`
-- **Result:** Viewer không cột thao tác
+- **Result:** Viewer không nút thêm / sửa / xóa
 
 ### UC05 Thêm khoản thu
 
 - **Actor:** Admin, Chủ shop, Nhân viên
-- **Main flow:** form → validate → thêm mock, `source = MANUAL`, audit mock
+- **Main flow:** modal form → validate → thêm mock, `source = MANUAL`, audit mock. Tên sản phẩm, trước thuế / % thuế / sau thuế; chi tiết đơn (mã, EU, SL, đơn giá, phí).
 - **Permission:** `incomeCreate`
 - **Result:** xuất hiện trên list
 
 ### UC06 Sửa khoản thu
 
 - **Actor:** Admin, Chủ shop; Nhân viên nếu `createdBy` = mình
-- **Main flow:** form → cập nhật; nguồn vẫn MANUAL
+- **Main flow:** modal form → cập nhật
 - **Permission:** `incomeUpdate` (+ own cho employee)
 - **Result:** list/audit cập nhật
 
@@ -114,7 +133,7 @@ Cả bốn: đăng nhập, đăng xuất, dashboard, hồ sơ.
 
 ### UC08–UC11 Khoản chi
 
-Cùng mô hình UC04–UC07. Thêm người nhận. Permission `expense*`.
+Cùng mô hình UC04–UC07. Thêm người nhận, phạm vi nội địa/quốc tế, phương thức thanh toán, % thuế, tiền sau thuế. Permission `expense*`.
 
 ### UC12 Import dữ liệu
 
@@ -126,9 +145,9 @@ Cùng mô hình UC04–UC07. Thêm người nhận. Permission `expense*`.
 ### UC13 Xem báo cáo
 
 - **Actor:** Admin, Chủ shop, Người xem
-- **Main flow:** lọc currency, khoảng ngày, loại (prefix `INCOME:` / `EXPENSE:`)
+- **Main flow:** đổi tiền USD/EUR, khoảng ngày, loại (prefix `INCOME:` / `EXPENSE:`)
 - **Permission:** `reportRead`
-- **Result:** không cộng USD+VND. Employee → 403
+- **Result:** tổng trên toàn bộ bản ghi (lưu USD). Employee → 403
 
 ### UC14 Xuất báo cáo
 
@@ -145,11 +164,11 @@ Cùng mô hình UC04–UC07. Thêm người nhận. Permission `expense*`.
 ### UC16 Quản lý người dùng
 
 - **Actor:** Admin
-- **Main flow:** list, popup thêm (tên, email, mật khẩu, role), đổi role, bật/tắt
+- **Main flow:** list, thêm/sửa (tên, email, mật khẩu, SĐT trên hồ sơ, role, trạng thái), bật/tắt
 - **Permission:** `userManagement`
 
 ### UC17 Hồ sơ cá nhân
 
 - **Actor:** tất cả
-- **Main flow:** xem; sửa tên/avatar mock
+- **Main flow:** tab tài khoản (tên, SĐT, avatar), bảo mật (đổi mật khẩu mock), vai trò (chỉ xem)
 - **Permission:** authenticated

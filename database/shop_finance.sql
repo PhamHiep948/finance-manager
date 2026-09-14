@@ -1,10 +1,15 @@
 -- ============================================================
--- PostgreSQL schema — shop_finance (BẢN THU/CHI CƠ BẢN)
+-- PostgreSQL schema — shop_finance (HandmadeFinance)
 -- Web quản lý thu - chi shop handmade
 -- PostgreSQL 15+
 --
--- Mục tiêu: quản lý tiền vào / tiền ra ở mức cơ bản.
--- Không quản lý chi tiết sản phẩm, discount, shipping, tax...
+-- Bám giao diện hiện tại:
+-- Người dùng: SĐT, avatar, múi giờ, trạng thái hoạt động.
+-- Khoản thu: amount = số tiền trước thuế; sau thuế; kênh bán; trạng thái hồ sơ;
+--            mã đơn, khu vực EU, SL, đơn giá, Item/Discount/Subtotal/Shipping/Tax.
+-- Khoản chi: người nhận, nội địa/quốc tế, phương thức TT, % thuế, sau thuế, trạng thái.
+-- Số tiền lưu USD. Giao diện đổi sang EUR lúc xem (không tách 2 bộ dữ liệu).
+-- Không quản lý kho SKU hay đơn nhiều dòng sản phẩm riêng.
 --
 -- Sơ đồ: docs/DATABASE.md · DBML: database/shop_finance.dbml
 -- LƯU Ý: File này dùng để khởi tạo database mới.
@@ -24,7 +29,18 @@ CREATE TYPE user_role AS ENUM ('ADMIN', 'SHOP_OWNER', 'EMPLOYEE', 'VIEWER');
 CREATE TYPE data_source AS ENUM ('MANUAL', 'EXCEL_IMPORT');
 CREATE TYPE import_type AS ENUM ('INCOME', 'EXPENSE');
 CREATE TYPE import_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
-CREATE TYPE audit_action AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+CREATE TYPE audit_action AS ENUM ('INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'EXPORT', 'IMPORT');
+CREATE TYPE sale_region AS ENUM ('IN_EU', 'OUTSIDE_EU');
+CREATE TYPE origin_scope AS ENUM ('DOMESTIC', 'INTERNATIONAL');
+CREATE TYPE sales_channel AS ENUM (
+    'ETSY_STORE',
+    'WEBSITE_DIRECT',
+    'INSTAGRAM_SHOP',
+    'LOCAL_MARKET',
+    'B2B_WHOLESALE'
+);
+CREATE TYPE payment_method AS ENUM ('CREDIT_CARD', 'BANK_TRANSFER', 'CASH', 'PAYPAL');
+CREATE TYPE record_status AS ENUM ('DRAFT', 'PENDING', 'COMPLETED');
 
 -- ============================================================
 -- 2. USERS
@@ -35,6 +51,9 @@ CREATE TABLE app_users (
     email           VARCHAR(255),
     password_hash   TEXT NOT NULL,
     full_name       VARCHAR(255) NOT NULL,
+    phone           VARCHAR(30),
+    avatar_url      TEXT,
+    timezone        VARCHAR(64) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
     role            user_role NOT NULL DEFAULT 'EMPLOYEE',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at   TIMESTAMPTZ,
@@ -93,8 +112,8 @@ CREATE UNIQUE INDEX uq_income_categories_name_active
 -- ============================================================
 -- 5. INCOMES
 -- Mỗi bản ghi là một khoản tiền vào.
--- Ví dụ đơn hàng có Order total = 22.10 USD thì amount = 22.10.
--- Không lưu item_total / discount / subtotal / shipping / tax.
+-- amount = số tiền trước thuế trên list/form.
+-- Item − Discount = Subtotal; Subtotal + Shipping + Tax = amount.
 -- ============================================================
 CREATE TABLE incomes (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -102,9 +121,24 @@ CREATE TABLE incomes (
     description         TEXT NOT NULL,
     income_category_id  BIGINT NOT NULL REFERENCES income_categories(id),
     amount              NUMERIC(18,2) NOT NULL CHECK (amount > 0),
-    currency_code       VARCHAR(3) NOT NULL
-                        CHECK (currency_code ~ '^[A-Z]{3}$'),
+    currency_code       VARCHAR(3) NOT NULL DEFAULT 'USD'
+                        CHECK (currency_code = 'USD'),
     reference_code      VARCHAR(150),
+    order_code          VARCHAR(150),
+    sale_region         sale_region,
+    sales_channel       sales_channel,
+    record_status       record_status NOT NULL DEFAULT 'COMPLETED',
+    product_qty         INTEGER CHECK (product_qty IS NULL OR product_qty > 0),
+    unit_price          NUMERIC(18,2) CHECK (unit_price IS NULL OR unit_price >= 0),
+    item_total          NUMERIC(18,2) CHECK (item_total IS NULL OR item_total >= 0),
+    discount_amount     NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    discount_code       VARCHAR(80),
+    subtotal            NUMERIC(18,2) CHECK (subtotal IS NULL OR subtotal >= 0),
+    shipping_amount     NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (shipping_amount >= 0),
+    tax_amount          NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (tax_amount >= 0),
+    tax_percent         NUMERIC(6,2) NOT NULL DEFAULT 0
+                        CHECK (tax_percent >= 0 AND tax_percent <= 100),
+    amount_after_tax    NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (amount_after_tax >= 0),
 
     source              data_source NOT NULL DEFAULT 'MANUAL',
     import_batch_id     BIGINT REFERENCES import_batches(id) ON DELETE SET NULL,
@@ -139,6 +173,22 @@ CREATE INDEX idx_incomes_reference_active
     ON incomes(reference_code)
     WHERE reference_code IS NOT NULL AND deleted_at IS NULL;
 
+CREATE INDEX idx_incomes_order_code_active
+    ON incomes(order_code)
+    WHERE order_code IS NOT NULL AND deleted_at IS NULL;
+
+CREATE INDEX idx_incomes_sale_region_active
+    ON incomes(sale_region)
+    WHERE sale_region IS NOT NULL AND deleted_at IS NULL;
+
+CREATE INDEX idx_incomes_sales_channel_active
+    ON incomes(sales_channel)
+    WHERE sales_channel IS NOT NULL AND deleted_at IS NULL;
+
+CREATE INDEX idx_incomes_record_status_active
+    ON incomes(record_status)
+    WHERE deleted_at IS NULL;
+
 CREATE INDEX idx_incomes_import_batch
     ON incomes(import_batch_id)
     WHERE import_batch_id IS NOT NULL;
@@ -163,7 +213,7 @@ CREATE UNIQUE INDEX uq_expense_categories_name_active
 
 -- ============================================================
 -- 7. EXPENSES
--- Mỗi bản ghi là một khoản tiền ra.
+-- Mỗi bản ghi là một khoản tiền ra. amount = số tiền trước thuế.
 -- ============================================================
 CREATE TABLE expenses (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -171,9 +221,15 @@ CREATE TABLE expenses (
     description         TEXT NOT NULL,
     expense_category_id BIGINT NOT NULL REFERENCES expense_categories(id),
     amount              NUMERIC(18,2) NOT NULL CHECK (amount > 0),
-    currency_code       VARCHAR(3) NOT NULL
-                        CHECK (currency_code ~ '^[A-Z]{3}$'),
+    currency_code       VARCHAR(3) NOT NULL DEFAULT 'USD'
+                        CHECK (currency_code = 'USD'),
     payee               VARCHAR(255),
+    origin_scope        origin_scope NOT NULL DEFAULT 'DOMESTIC',
+    payment_method      payment_method,
+    record_status       record_status NOT NULL DEFAULT 'COMPLETED',
+    tax_percent         NUMERIC(6,2) NOT NULL DEFAULT 0
+                        CHECK (tax_percent >= 0 AND tax_percent <= 100),
+    amount_after_tax    NUMERIC(18,2) NOT NULL CHECK (amount_after_tax > 0),
 
     source              data_source NOT NULL DEFAULT 'MANUAL',
     import_batch_id     BIGINT REFERENCES import_batches(id) ON DELETE SET NULL,
@@ -207,6 +263,18 @@ CREATE INDEX idx_expenses_currency_active
 CREATE INDEX idx_expenses_payee_active
     ON expenses(LOWER(payee))
     WHERE payee IS NOT NULL AND deleted_at IS NULL;
+
+CREATE INDEX idx_expenses_origin_scope_active
+    ON expenses(origin_scope)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_expenses_payment_method_active
+    ON expenses(payment_method)
+    WHERE payment_method IS NOT NULL AND deleted_at IS NULL;
+
+CREATE INDEX idx_expenses_record_status_active
+    ON expenses(record_status)
+    WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_expenses_import_batch
     ON expenses(import_batch_id)
@@ -246,9 +314,11 @@ CREATE INDEX idx_attachments_expense
 -- ============================================================
 CREATE TABLE audit_logs (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    table_name      VARCHAR(100) NOT NULL,
+    table_name      VARCHAR(100),
     record_id       BIGINT,
     action          audit_action NOT NULL,
+    module          VARCHAR(100),
+    detail          TEXT,
     actor_user_id   BIGINT REFERENCES app_users(id) ON DELETE SET NULL,
     old_data        JSONB,
     new_data        JSONB,
@@ -370,8 +440,8 @@ FOR EACH ROW EXECUTE FUNCTION audit_row_changes();
 
 -- ============================================================
 -- 13. REPORTING VIEWS
--- Dashboard/Báo cáo đọc trực tiếp từ dữ liệu thật.
--- Không cộng các loại tiền tệ khác nhau vào cùng một tổng.
+-- Dashboard/Báo cáo đọc trực tiếp từ dữ liệu thật (amount USD).
+-- Đổi EUR chỉ trên UI. Cột currency_code giữ 'USD'.
 -- ============================================================
 CREATE OR REPLACE VIEW vw_income_active AS
 SELECT
@@ -383,6 +453,20 @@ SELECT
     i.amount,
     i.currency_code,
     i.reference_code,
+    i.order_code,
+    i.sale_region,
+    i.sales_channel,
+    i.record_status,
+    i.product_qty,
+    i.unit_price,
+    i.item_total,
+    i.discount_amount,
+    i.discount_code,
+    i.subtotal,
+    i.shipping_amount,
+    i.tax_amount,
+    i.tax_percent,
+    i.amount_after_tax,
     i.source,
     i.note,
     i.created_at,
@@ -401,6 +485,11 @@ SELECT
     e.amount,
     e.currency_code,
     e.payee,
+    e.origin_scope,
+    e.payment_method,
+    e.record_status,
+    e.tax_percent,
+    e.amount_after_tax,
     e.source,
     e.note,
     e.created_at,
@@ -529,6 +618,20 @@ WHERE NOT EXISTS (
     FROM expense_categories e
     WHERE LOWER(e.name) = LOWER(v.name)
       AND e.deleted_at IS NULL
+);
+
+-- Tài khoản demo (UI: admin@demo.local …). password_hash chỉ placeholder — auth V1 là mock JS.
+INSERT INTO app_users (username, email, password_hash, full_name, phone, avatar_url, role, is_active)
+SELECT v.username, v.email, 'mock-hash-123456', v.full_name, v.phone, v.avatar_url, v.role::user_role, v.is_active
+FROM (VALUES
+    ('admin', 'admin@demo.local', 'Admin', '090 123 4567', 'https://i.pravatar.cc/64?img=33', 'ADMIN', TRUE),
+    ('owner', 'owner@demo.local', 'Chủ shop', '090 222 3333', 'https://i.pravatar.cc/64?img=12', 'SHOP_OWNER', TRUE),
+    ('staff', 'staff@demo.local', 'Nhân viên', '090 333 4444', 'https://i.pravatar.cc/64?img=11', 'EMPLOYEE', TRUE),
+    ('viewer', 'viewer@demo.local', 'Người xem', '090 555 6666', 'https://i.pravatar.cc/64?img=5', 'VIEWER', TRUE)
+) AS v(username, email, full_name, phone, avatar_url, role, is_active)
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_users u
+    WHERE LOWER(u.email) = LOWER(v.email) AND u.deleted_at IS NULL
 );
 
 COMMIT;

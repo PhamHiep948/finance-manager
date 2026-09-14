@@ -1,8 +1,8 @@
 # Sơ đồ dữ liệu
 
-Schema PostgreSQL `shop_finance` cho **Finance Manager**.
+Schema PostgreSQL `shop_finance` cho **HandmadeFinance**.
 
-Giao diện dùng **dữ liệu giả** bám đúng mô hình này (bảng, loại thu/chi, tiền tệ, xóa mềm). Giao diện **không kết nối** PostgreSQL.
+Giao diện dùng **dữ liệu giả** bám đúng mô hình này (bảng, loại thu/chi, tiền tệ, xóa mềm, kênh bán, phương thức thanh toán, trạng thái hồ sơ). Giao diện **không kết nối** PostgreSQL.
 
 File thiết kế: [shop_finance.dbml](../database/shop_finance.dbml) · [shop_finance.sql](../database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
 
@@ -43,17 +43,22 @@ flowchart LR
 
 ## Enum
 
-| Enum | Giá trị |
-|---|---|
-| `user_role` | ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER |
-| `data_source` | MANUAL, EXCEL_IMPORT |
-| `import_type` | INCOME, EXPENSE |
-| `import_status` | PENDING, PROCESSING, COMPLETED, FAILED |
-| `audit_action` | INSERT, UPDATE, DELETE |
+| Enum | Giá trị | UI |
+|---|---|---|
+| `user_role` | ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER | Quản trị viên, Chủ shop, Nhân viên, Người xem |
+| `data_source` | MANUAL, EXCEL_IMPORT | Nhập tay / Excel |
+| `import_type` | INCOME, EXPENSE | Khoản thu / khoản chi |
+| `import_status` | PENDING, PROCESSING, COMPLETED, FAILED | Trạng thái đợt import |
+| `audit_action` | INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT | Nhật ký |
+| `sale_region` | IN_EU, OUTSIDE_EU | Trong EU / Ngoài EU |
+| `origin_scope` | DOMESTIC, INTERNATIONAL | Nội địa / Quốc tế |
+| `sales_channel` | ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE | Kênh bán trên modal chi tiết thu |
+| `payment_method` | CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL | Phương thức trên modal chi tiết chi |
+| `record_status` | DRAFT, PENDING, COMPLETED | Bản nháp / Chờ xử lý / Hoàn thành |
 
 ## View (tổng hợp báo cáo)
 
-View **không phải bảng lưu**. Dùng để đọc thu/chi còn hiệu lực và cộng theo ngày / tháng / loại, **tách theo `currency_code`**.
+View **không phải bảng lưu**. Dùng để đọc thu/chi còn hiệu lực và cộng theo ngày / tháng / loại. `currency_code` V1 luôn `USD`; đổi EUR trên UI.
 
 ```mermaid
 flowchart LR
@@ -77,7 +82,10 @@ erDiagram
     bigint id PK
     varchar email
     varchar full_name
+    varchar phone
+    text avatar_url
     user_role role
+    boolean is_active
     timestamptz deleted_at
   }
 
@@ -93,6 +101,13 @@ erDiagram
     bigint income_category_id FK
     numeric amount
     varchar currency_code
+    varchar order_code
+    sale_region sale_region
+    sales_channel sales_channel
+    record_status record_status
+    integer product_qty
+    numeric tax_percent
+    numeric amount_after_tax
     data_source source
     bigint import_batch_id FK
     bigint created_by FK
@@ -112,6 +127,11 @@ erDiagram
     numeric amount
     varchar currency_code
     varchar payee
+    origin_scope origin_scope
+    payment_method payment_method
+    record_status record_status
+    numeric tax_percent
+    numeric amount_after_tax
     data_source source
     bigint import_batch_id FK
     bigint created_by FK
@@ -138,6 +158,8 @@ erDiagram
     bigint id PK
     bigint actor_user_id FK
     audit_action action
+    varchar module
+    text detail
     varchar table_name
   }
 

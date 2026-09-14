@@ -1,12 +1,20 @@
 let page = "dashboard";
 let editId = null;
+let editingUserId = null;
 let ccy = "USD";
 let reportTab = "overview";
 let reportFrom = "2026-07-01";
 let reportTo = "2026-09-30";
+let dashFrom = "2026-07-01";
+let dashTo = "2026-09-30";
 let reportSrc = "";
 let reportKind = "ALL";
 let reportCat = "";
+const PAGE_SIZE = 10;
+let incomePage = 1;
+let expensePage = 1;
+const listFilter = { q: "", cat: "", src: "", region: "", origin: "", from: "", to: "" };
+let colsModalKind = null;
 const charts = {};
 let confirmCb = null;
 
@@ -50,14 +58,197 @@ const TITLES = {
   forbidden: "Không có quyền truy cập",
 };
 
-function money(n, currency = ccy) {
-  if (currency === "VND") return new Intl.NumberFormat("vi-VN").format(n) + " ₫";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+function toDisplay(n) {
+  const v = Number(n) || 0;
+  return ccy === "EUR" ? round2(v * FX_USD_TO_EUR) : v;
+}
+function fromDisplay(n) {
+  if (n === "" || n == null) return null;
+  const v = Number(n);
+  if (!Number.isFinite(v)) return null;
+  return ccy === "EUR" ? round2(v / FX_USD_TO_EUR) : round2(v);
+}
+function fromDisplayNum(n, fallback = 0) {
+  const v = fromDisplay(n);
+  return v == null ? fallback : v;
+}
+function money(n) {
+  const v = toDisplay(n);
+  if (ccy === "EUR") return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+}
+function ccyOptions() {
+  return `<option value="USD" ${ccy === "USD" ? "selected" : ""}>USD ($)</option><option value="EUR" ${ccy === "EUR" ? "selected" : ""}>EUR (€)</option>`;
+}
+function ccyHint() {
+  return `Dữ liệu một bộ (USD). Đổi tiền xem: 1 USD = ${FX_USD_TO_EUR} EUR (mock).`;
+}
+const pctLabel = (n) => `${Number(n) || 0}%`;
+function afterTax(amount, pct) {
+  return Math.round((Number(amount) || 0) * (1 + (Number(pct) || 0) / 100) * 100) / 100;
+}
+function afterTaxOf(r) {
+  return afterTax(r.amount, r.taxPercent);
+}
+
+const INCOME_COLS = [
+  { id: "date", label: "Ngày", def: true },
+  { id: "product", label: "Sản phẩm", def: true, lock: true },
+  { id: "category", label: "Loại thu", def: true },
+  { id: "order", label: "Mã đơn", def: true },
+  { id: "region", label: "Khu vực", def: true },
+  { id: "qty", label: "SL", def: true },
+  { id: "item", label: "Item", def: true },
+  { id: "discount", label: "Giảm giá", def: true },
+  { id: "ship", label: "Ship", def: true },
+  { id: "tax", label: "Thuế (tiền)", def: true },
+  { id: "amount", label: "Order total", def: true },
+  { id: "taxPercent", label: "% thuế", def: true },
+  { id: "afterTax", label: "Sau thuế", def: true },
+  { id: "source", label: "Nguồn", def: true },
+  { id: "creator", label: "Người tạo", def: true },
+];
+const EXPENSE_COLS = [
+  { id: "date", label: "Ngày", def: true },
+  { id: "product", label: "Nội dung", def: true, lock: true },
+  { id: "category", label: "Loại chi", def: true },
+  { id: "payee", label: "Người nhận", def: true },
+  { id: "origin", label: "Phạm vi", def: true },
+  { id: "amount", label: "Số tiền", def: true },
+  { id: "taxPercent", label: "% thuế", def: true },
+  { id: "afterTax", label: "Sau thuế", def: true },
+  { id: "source", label: "Nguồn", def: true },
+  { id: "creator", label: "Người tạo", def: true },
+];
+function colDefs(kind) {
+  return kind === "expense" ? EXPENSE_COLS : INCOME_COLS;
+}
+function defaultColMap(kind) {
+  return Object.fromEntries(colDefs(kind).map((c) => [c.id, Boolean(c.def)]));
+}
+function loadCols(kind) {
+  const defs = colDefs(kind);
+  const base = defaultColMap(kind);
+  try {
+    const saved = JSON.parse(localStorage.getItem("fm_cols_v2_" + kind) || "null");
+    if (!saved || typeof saved !== "object") return base;
+    defs.forEach((c) => {
+      if (c.lock) base[c.id] = true;
+      else if (saved[c.id] != null) base[c.id] = Boolean(saved[c.id]);
+    });
+  } catch (_) {}
+  return base;
+}
+function saveCols(kind, map) {
+  localStorage.setItem("fm_cols_v2_" + kind, JSON.stringify(map));
+}
+function colOn(kind, id) {
+  return Boolean(loadCols(kind)[id]);
+}
+function thCol(kind, id, label, cls) {
+  if (!colOn(kind, id)) return "";
+  return `<th${cls ? ` class="${cls}"` : ""}>${label}</th>`;
+}
+function tdCol(kind, id, html, cls) {
+  if (!colOn(kind, id)) return "";
+  return `<td${cls ? ` class="${cls}"` : ""}>${html}</td>`;
+}
+function openColsModal(kind) {
+  colsModalKind = kind;
+  const vis = loadCols(kind);
+  const box = document.getElementById("cols-modal-list");
+  if (box) {
+    box.innerHTML = colDefs(kind)
+      .map(
+        (c) => `<label class="col-pick${c.lock ? " is-lock" : ""}">
+        <input type="checkbox" value="${c.id}" ${vis[c.id] ? "checked" : ""} ${c.lock ? "disabled" : ""} />
+        <span>${c.label}${c.lock ? " · luôn hiện" : ""}</span>
+      </label>`
+      )
+      .join("");
+  }
+  document.getElementById("cols-modal-title").textContent = kind === "expense" ? "Cột danh sách khoản chi" : "Cột danh sách khoản thu";
+  document.getElementById("cols-modal")?.classList.add("open");
+}
+function closeColsModal() {
+  colsModalKind = null;
+  document.getElementById("cols-modal")?.classList.remove("open");
+}
+function applyColsModal() {
+  if (!colsModalKind) return;
+  const map = defaultColMap(colsModalKind);
+  document.querySelectorAll("#cols-modal-list input[type=checkbox]").forEach((inp) => {
+    map[inp.value] = inp.checked || Boolean(colDefs(colsModalKind).find((c) => c.id === inp.value)?.lock);
+  });
+  colDefs(colsModalKind).forEach((c) => {
+    if (c.lock) map[c.id] = true;
+  });
+  if (!Object.values(map).some(Boolean)) {
+    toast("Chọn ít nhất một cột");
+    return;
+  }
+  saveCols(colsModalKind, map);
+  closeColsModal();
+  renderApp();
+}
+
+function formSectionPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem("fm_form_sections") || "{}") || {};
+  } catch (_) {
+    return {};
+  }
+}
+function sectionIsOpen(id, fallback) {
+  const p = formSectionPrefs();
+  return p[id] == null ? fallback : Boolean(p[id]);
+}
+function formSection(id, title, sub, inner, defaultOpen) {
+  const open = sectionIsOpen(id, defaultOpen);
+  return `<div class="form-section${open ? "" : " is-collapsed"}" data-section="${id}">
+    <div class="form-section-head">
+      <div>
+        <h3 class="form-section-title">${title}</h3>
+        <p class="muted form-section-sub">${sub}</p>
+      </div>
+      <button type="button" class="btn ghost section-toggle" data-toggle-section="${id}">${open ? "Ẩn bớt" : "Hiện thêm"}</button>
+    </div>
+    <div class="form-section-body">${inner}</div>
+  </div>`;
+}
+function round2(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+function incomeOrderTotal(r) {
+  const item = Number(r.itemTotal) || 0;
+  const disc = Number(r.discountAmount) || 0;
+  const ship = Number(r.shippingAmount) || 0;
+  const tax = Number(r.taxAmount) || 0;
+  if (!item && !disc && !ship && !tax) return Number(r.amount) || 0;
+  return round2(item - disc + ship + tax);
+}
+function feeLine(r) {
+  if (!(Number(r.itemTotal) || Number(r.discountAmount) || Number(r.shippingAmount) || Number(r.taxAmount))) return "";
+  const parts = [`Item ${money(r.itemTotal || 0)}`];
+  if (Number(r.discountAmount)) parts.push(`giảm ${money(r.discountAmount)}${r.discountCode ? " " + r.discountCode : ""}`);
+  parts.push(`subtotal ${money(r.subtotal != null ? r.subtotal : round2((r.itemTotal || 0) - (r.discountAmount || 0)))}`);
+  parts.push(`ship ${money(r.shippingAmount || 0)}`);
+  parts.push(`thuế ${money(r.taxAmount || 0)}`);
+  return parts.join(" · ");
+}
+function valNum(v) {
+  return v === 0 || v ? v : "";
 }
 const dmy = (iso) => (iso || "").split("-").reverse().join("/");
 const srcLabel = (s) => (s === "EXCEL_IMPORT" ? "Excel" : "Nhập tay");
 const srcBadge = (s) =>
   s === "EXCEL_IMPORT" ? `<span class="badge mint">Excel</span>` : `<span class="badge">Nhập tay</span>`;
+const saleRegionLabel = (v) => (v === "IN_EU" ? "Trong EU" : v === "OUTSIDE_EU" ? "Ngoài EU" : "—");
+const originScopeLabel = (v) => (v === "INTERNATIONAL" ? "Quốc tế" : v === "DOMESTIC" ? "Nội địa" : "—");
+const originBadge = (v) =>
+  v === "INTERNATIONAL" ? `<span class="badge pink">Quốc tế</span>` : v === "DOMESTIC" ? `<span class="badge mint">Nội địa</span>` : "—";
+const saleRegionBadge = (v) =>
+  v === "IN_EU" ? `<span class="badge mint">Trong EU</span>` : v === "OUTSIDE_EU" ? `<span class="badge">Ngoài EU</span>` : "—";
 const catName = (list, id) => list.find((c) => c.id === id)?.name || "—";
 const userName = (id) => USERS.find((u) => u.id === id)?.name || "—";
 const initials = (name) =>
@@ -80,6 +271,51 @@ function openConfirm(text, onOk) {
   confirmCb = onOk;
   document.getElementById("modal-text").textContent = text;
   document.getElementById("modal-back").classList.add("open");
+}
+
+function closeUserModal() {
+  editingUserId = null;
+  document.getElementById("user-modal")?.classList.remove("open");
+}
+
+function openUserModal(id) {
+  const form = document.getElementById("add-user-form");
+  const modal = document.getElementById("user-modal");
+  const pw = document.getElementById("new-user-pw");
+  if (!form || !modal) return;
+  form.reset();
+  editingUserId = id ? Number(id) : null;
+  const rec = editingUserId ? USERS.find((x) => x.id === editingUserId) : null;
+  const kicker = document.getElementById("user-modal-kicker");
+  if (kicker) kicker.innerHTML = rec ? "Cập nhật tài khoản" : "Tài khoản mới";
+  document.getElementById("user-modal-title").textContent = rec ? "Sửa người dùng" : "Thêm người dùng";
+  document.getElementById("user-modal-sub").textContent = rec
+    ? "Chỉnh sửa tên, tài khoản (email) và mật khẩu."
+    : "Tạo tài khoản mới với tên, email và mật khẩu.";
+  document.getElementById("user-modal-submit").textContent = rec ? "Cập nhật" : "Thêm người dùng";
+  const pwReq = document.getElementById("user-pw-req");
+  const pwHint = document.getElementById("user-pw-hint");
+  if (rec) {
+    form.elements.name.value = rec.name;
+    form.elements.email.value = rec.email;
+    form.elements.role.value = rec.role;
+    form.elements.status.value = rec.status === "active" ? "active" : "disabled";
+    pw.required = false;
+    pw.placeholder = "Để trống nếu giữ mật khẩu hiện tại";
+    if (pwReq) pwReq.style.display = "none";
+    if (pwHint) pwHint.textContent = "Để trống nếu không đổi mật khẩu.";
+  } else {
+    form.elements.status.value = "active";
+    pw.required = true;
+    pw.placeholder = "Nhập mật khẩu";
+    if (pwReq) pwReq.style.display = "";
+    if (pwHint) pwHint.textContent = "Tối thiểu 4 ký tự.";
+  }
+  pw.type = "password";
+  const tog = document.getElementById("new-user-pw-toggle");
+  if (tog) tog.textContent = "Hiện";
+  modal.classList.add("open");
+  if (window.lucide) lucide.createIcons({ attrs: { width: 16, height: 16, "stroke-width": 1.75 } });
 }
 
 function closeModal() {
@@ -322,10 +558,10 @@ function isActive(r) {
 }
 
 function filteredIncomes() {
-  return INCOMES.filter((x) => x.currency === ccy && isActive(x));
+  return INCOMES.filter(isActive);
 }
 function filteredExpenses() {
-  return EXPENSES.filter((x) => x.currency === ccy && isActive(x));
+  return EXPENSES.filter(isActive);
 }
 
 function sum(list) {
@@ -336,6 +572,11 @@ function monthKey(iso) {
   return (iso || "").slice(0, 7);
 }
 
+function lastDayOfMonth(ym) {
+  const [y, m] = String(ym).split("-").map(Number);
+  const d = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
 function monthLabel(key) {
   const m = Number(key.slice(5));
   return Number.isFinite(m) ? `T${m}` : key;
@@ -402,7 +643,7 @@ function fileMeta(file, fallback) {
 }
 
 function isExcelName(name) {
-  return /\.xlsx?$/i.test(name || "");
+  return /\.(xlsx?|csv)$/i.test(name || "");
 }
 
 function groupByCat(list, cats) {
@@ -426,11 +667,11 @@ function ccySelect() {
   const period = series.length
     ? `${series[0].m}${series.length > 1 ? "–" + series[series.length - 1].m : ""}/${series[0].key.slice(0, 4)}`
     : "Chưa có dữ liệu";
-  return `<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap">
-    <label class="pill">Tiền tệ:
-      <select id="ccySel"><option value="USD">USD ($)</option><option value="VND">VND (₫)</option></select>
+  return `<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <label class="pill">Đổi tiền:
+      <select id="ccySel">${ccyOptions()}</select>
     </label>
-    <span class="pill">${period} · ${ccy}</span>
+    <span class="pill">${period} · xem ${ccy}</span>
   </div>`;
 }
 
@@ -450,7 +691,7 @@ function dashboard() {
     : "Thu - chi theo thời gian";
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Dashboard</h1><p class="page-sub">Tổng thu, tổng chi và chênh lệch theo một loại tiền tệ. Không cộng USD với VND.</p></div>
+      <div><h1 class="page-title">Dashboard</h1><p class="page-sub">${ccyHint()}</p></div>
       ${ccySelect()}
     </div>
     <div class="kpis">
@@ -475,51 +716,134 @@ function dashboard() {
     <div class="grid-lists">
       <article class="card">
         <div class="card-head"><h3 class="section-title">Khoản thu gần đây</h3><button class="link" data-go="incomes">Xem tất cả</button></div>
-        ${recentIn.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.incomeDate)} · ${catName(INCOME_CATEGORIES, r.categoryId)}</div></div><div class="plus">+${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản thu nào.</div>`}
+        ${recentIn.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.incomeDate)} · ${catName(INCOME_CATEGORIES, r.categoryId)}${r.orderCode ? ` · ${r.orderCode}` : ""}${r.productQty ? ` · SL ${r.productQty}` : ""}${feeLine(r) ? " · " + feeLine(r) : ""}</div></div><div class="plus">+${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản thu nào.</div>`}
       </article>
       <article class="card">
         <div class="card-head"><h3 class="section-title">Khoản chi gần đây</h3><button class="link" data-go="expenses">Xem tất cả</button></div>
-        ${recentEx.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.expenseDate)} · ${catName(EXPENSE_CATEGORIES, r.categoryId)}</div></div><div class="minus">−${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản chi nào.</div>`}
+        ${recentEx.map((r) => `<div class="row-item"><div><b>${r.description}</b><div class="muted">${dmy(r.expenseDate)} · ${catName(EXPENSE_CATEGORIES, r.categoryId)} · ${originScopeLabel(r.originScope)} · thuế ${pctLabel(r.taxPercent)} · sau thuế ${money(afterTaxOf(r))}</div></div><div class="minus">−${money(r.amount)}</div></div>`).join("") || `<div class="empty">Chưa có khoản chi nào.</div>`}
       </article>
     </div>`;
+}
+
+function escAttr(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+function listedIncomes() {
+  const q = listFilter.q.toLowerCase();
+  return filteredIncomes()
+    .filter((r) => {
+      const text = `${r.description} ${r.referenceCode || ""} ${r.orderCode || ""}`.toLowerCase();
+      return (
+        (!q || text.includes(q)) &&
+        (!listFilter.cat || String(r.categoryId) === listFilter.cat) &&
+        (!listFilter.src || r.source === listFilter.src) &&
+        (!listFilter.region || r.saleRegion === listFilter.region) &&
+        (!listFilter.from || r.incomeDate >= listFilter.from) &&
+        (!listFilter.to || r.incomeDate <= listFilter.to)
+      );
+    })
+    .sort((a, b) => b.incomeDate.localeCompare(a.incomeDate) || b.id - a.id);
+}
+
+function listedExpenses() {
+  const q = listFilter.q.toLowerCase();
+  return filteredExpenses()
+    .filter((r) => {
+      const text = `${r.description} ${r.recipient || ""}`.toLowerCase();
+      return (
+        (!q || text.includes(q)) &&
+        (!listFilter.cat || String(r.categoryId) === listFilter.cat) &&
+        (!listFilter.src || r.source === listFilter.src) &&
+        (!listFilter.origin || r.originScope === listFilter.origin) &&
+        (!listFilter.from || r.expenseDate >= listFilter.from) &&
+        (!listFilter.to || r.expenseDate <= listFilter.to)
+      );
+    })
+    .sort((a, b) => b.expenseDate.localeCompare(a.expenseDate) || b.id - a.id);
+}
+
+function pageSlice(rows, pageNo) {
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const p = Math.min(Math.max(1, pageNo), pages);
+  return { rows: rows.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE), p, pages, total: rows.length };
+}
+
+function pagerBar(_kind, p, pages, total) {
+  if (!total) return "";
+  const from = (p - 1) * PAGE_SIZE + 1;
+  const to = Math.min(p * PAGE_SIZE, total);
+  const btns = [];
+  btns.push(`<button type="button" class="btn ghost pager-btn" data-list-page="${p - 1}" ${p <= 1 ? "disabled" : ""}>Trước</button>`);
+  const windowStart = Math.max(1, p - 2);
+  const windowEnd = Math.min(pages, windowStart + 4);
+  for (let i = windowStart; i <= windowEnd; i++) {
+    btns.push(`<button type="button" class="btn ${i === p ? "primary" : "ghost"} pager-btn" data-list-page="${i}">${i}</button>`);
+  }
+  btns.push(`<button type="button" class="btn ghost pager-btn" data-list-page="${p + 1}" ${p >= pages ? "disabled" : ""}>Sau</button>`);
+  return `<div class="pager"><span class="muted">${from}–${to} / ${total} khoản · ${PAGE_SIZE}/trang</span><div class="pager-pages">${btns.join("")}</div></div>`;
 }
 
 function listFilters(kind) {
   const cats = kind === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const catLabel = kind === "income" ? "Loại thu" : "Loại chi";
-  const ph = kind === "income" ? "Tìm nội dung, mã tham chiếu..." : "Tìm nội dung, người nhận...";
+  const ph = kind === "income" ? "Tìm tên sản phẩm, mã đơn..." : "Tìm nội dung, người nhận...";
+  const extra =
+    kind === "income"
+      ? `<select id="fRegion" class="toolbar-ctrl"><option value="">Khu vực: Tất cả</option><option value="IN_EU" ${listFilter.region === "IN_EU" ? "selected" : ""}>Trong EU</option><option value="OUTSIDE_EU" ${listFilter.region === "OUTSIDE_EU" ? "selected" : ""}>Ngoài EU</option></select>`
+      : `<select id="fOrigin" class="toolbar-ctrl"><option value="">Phạm vi: Tất cả</option><option value="DOMESTIC" ${listFilter.origin === "DOMESTIC" ? "selected" : ""}>Nội địa</option><option value="INTERNATIONAL" ${listFilter.origin === "INTERNATIONAL" ? "selected" : ""}>Quốc tế</option></select>`;
   return `
     <div class="toolbar">
-      <input id="q" class="toolbar-search" type="search" placeholder="${ph}" />
-      <select id="fCat" class="toolbar-ctrl"><option value="">${catLabel}: Tất cả</option>${cats.map((c) => `<option value="${c.id}">${c.name}</option>`).join("")}</select>
-      <select id="fSrc" class="toolbar-ctrl"><option value="">Nguồn: Tất cả</option><option value="MANUAL">Nhập tay</option><option value="EXCEL_IMPORT">Excel</option></select>
-      <select id="fCcy" class="toolbar-ctrl"><option value="USD">USD ($)</option><option value="VND">VND (₫)</option></select>
-      <input id="fFrom" class="toolbar-ctrl" type="date" title="Từ ngày" />
-      <input id="fTo" class="toolbar-ctrl" type="date" title="Đến ngày" />
+      <input id="q" class="toolbar-search" type="search" placeholder="${ph}" value="${escAttr(listFilter.q)}" />
+      <select id="fCat" class="toolbar-ctrl"><option value="">${catLabel}: Tất cả</option>${cats.map((c) => `<option value="${c.id}" ${listFilter.cat === String(c.id) ? "selected" : ""}>${c.name}</option>`).join("")}</select>
+      <select id="fSrc" class="toolbar-ctrl"><option value="">Nguồn: Tất cả</option><option value="MANUAL" ${listFilter.src === "MANUAL" ? "selected" : ""}>Nhập tay</option><option value="EXCEL_IMPORT" ${listFilter.src === "EXCEL_IMPORT" ? "selected" : ""}>Excel</option></select>
+      ${extra}
+      <select id="fCcy" class="toolbar-ctrl" title="Đổi tiền">${ccyOptions()}</select>
+      <input id="fFrom" class="toolbar-ctrl" type="date" title="Từ ngày" value="${listFilter.from}" />
+      <input id="fTo" class="toolbar-ctrl" type="date" title="Đến ngày" value="${listFilter.to}" />
       <button class="btn ghost" type="button" id="clearF">Xóa bộ lọc</button>
     </div>`;
 }
 
 function incomeList() {
-  const rows = filteredIncomes();
+  const all = listedIncomes();
+  const { rows, p, pages, total } = pageSlice(all, incomePage);
+  incomePage = p;
   const showAct = can("incomeUpdate") || can("incomeDelete");
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Danh sách khoản thu</h1><p class="page-sub">Tổng số: <b>${rows.length}</b> khoản (${ccy})</p></div>
-      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}${can("incomeCreate") ? `<button class="btn primary" data-go="income-form">+ Thêm khoản thu</button>` : ""}</div>
+      <div><h1 class="page-title">Danh sách khoản thu</h1><p class="page-sub">Tổng số: <b>${total}</b> khoản (${ccy}) · 10 dòng / trang</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}<button class="btn ghost" type="button" id="open-cols-modal">Ẩn / hiện cột</button>${can("incomeCreate") ? `<button class="btn primary" data-go="income-form">+ Thêm khoản thu</button>` : ""}</div>
     </div>
     ${listFilters("income")}
     <article class="card" style="padding:0">
       <div class="table-wrap">
-      <table>
+      <table class="data-table">
         <thead><tr>
-          <th>Ngày</th><th>Nội dung</th><th>Loại thu</th><th class="amount">Số tiền</th><th>Tiền tệ</th><th>Nguồn</th><th>Người tạo</th>
+          ${thCol("income", "date", "Ngày")}
+          ${thCol("income", "product", "Sản phẩm")}
+          ${thCol("income", "category", "Loại thu")}
+          ${thCol("income", "order", "Mã đơn")}
+          ${thCol("income", "region", "Khu vực")}
+          ${thCol("income", "qty", "SL", "amount")}
+          ${thCol("income", "item", "Item", "amount")}
+          ${thCol("income", "discount", "Giảm giá", "amount")}
+          ${thCol("income", "ship", "Ship", "amount")}
+          ${thCol("income", "tax", "Thuế", "amount")}
+          ${thCol("income", "amount", "Order total", "amount")}
+          ${thCol("income", "taxPercent", "% thuế", "amount")}
+          ${thCol("income", "afterTax", "Sau thuế", "amount")}
+          ${thCol("income", "source", "Nguồn")}
+          ${thCol("income", "creator", "Người tạo")}
           ${showAct ? "<th>Thao tác</th>" : ""}
         </tr></thead>
         <tbody id="rows">${incomeRows(rows, showAct)}</tbody>
       </table>
       </div>
-      ${rows.length ? "" : `<div class="empty"><strong>Chưa có khoản thu nào.</strong>Thử đổi bộ lọc hoặc thêm khoản mới.</div>`}
+      ${total ? pagerBar("income", p, pages, total) : `<div class="empty"><strong>Chưa có khoản thu nào.</strong>Thử đổi bộ lọc hoặc thêm khoản mới.</div>`}
     </article>`;
 }
 
@@ -532,35 +856,58 @@ function incomeRows(rows, showAct) {
       const acts = showAct
         ? `<td><div class="row-actions">${edit ? `<button class="icon-btn" data-edit-in="${r.id}" title="Sửa">${ICON_EDIT}</button>` : ""}${del ? `<button class="icon-btn danger" data-del-in="${r.id}" title="Xóa">${ICON_DEL}</button>` : ""}</div></td>`
         : "";
-      return `<tr data-cat="${r.categoryId}" data-src="${r.source}" data-date="${r.incomeDate}" data-text="${(r.description + (r.referenceCode || "")).toLowerCase()}">
-        <td>${dmy(r.incomeDate)}</td><td><b>${r.description}</b></td>
-        <td><span class="badge mint">${catName(INCOME_CATEGORIES, r.categoryId)}</span></td>
-        <td class="amount plus">${money(r.amount, r.currency)}</td><td>${r.currency}</td>
-        <td>${srcBadge(r.source)}</td><td>${userName(r.createdBy)}</td>${acts}</tr>`;
+      return `<tr data-cat="${r.categoryId}" data-src="${r.source}" data-region="${r.saleRegion || ""}" data-date="${r.incomeDate}" data-text="${(r.description + (r.referenceCode || "") + (r.orderCode || "")).toLowerCase()}">
+        ${tdCol("income", "date", dmy(r.incomeDate))}
+        ${tdCol("income", "product", `<b>${r.description}</b>`, "cell-product")}
+        ${tdCol("income", "category", `<span class="badge mint">${catName(INCOME_CATEGORIES, r.categoryId)}</span>`)}
+        ${tdCol("income", "order", r.orderCode || "—")}
+        ${tdCol("income", "region", saleRegionBadge(r.saleRegion))}
+        ${tdCol("income", "qty", r.productQty || "—", "amount")}
+        ${tdCol("income", "item", r.itemTotal ? money(r.itemTotal) : "—", "amount")}
+        ${tdCol("income", "discount", Number(r.discountAmount) ? "−" + money(r.discountAmount) : "—", "amount")}
+        ${tdCol("income", "ship", Number(r.shippingAmount) ? money(r.shippingAmount) : "—", "amount")}
+        ${tdCol("income", "tax", money(Number(r.taxAmount) || 0), "amount")}
+        ${tdCol("income", "amount", money(r.amount), "amount plus")}
+        ${tdCol("income", "taxPercent", pctLabel(r.taxPercent), "amount")}
+        ${tdCol("income", "afterTax", money(afterTaxOf(r)), "amount plus")}
+        ${tdCol("income", "source", srcBadge(r.source))}
+        ${tdCol("income", "creator", userName(r.createdBy))}
+        ${acts}</tr>`;
     })
     .join("");
 }
 
 function expenseList() {
-  const rows = filteredExpenses();
+  const all = listedExpenses();
+  const { rows, p, pages, total } = pageSlice(all, expensePage);
+  expensePage = p;
   const showAct = can("expenseUpdate") || can("expenseDelete");
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Danh sách khoản chi</h1><p class="page-sub">Tổng số: <b>${rows.length}</b> khoản (${ccy})</p></div>
-      <div style="display:flex;gap:10px">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}${can("expenseCreate") ? `<button class="btn primary" data-go="expense-form">+ Thêm khoản chi</button>` : ""}</div>
+      <div><h1 class="page-title">Danh sách khoản chi</h1><p class="page-sub">Tổng số: <b>${total}</b> khoản (${ccy}) · 10 dòng / trang</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${can("importData") ? `<button class="btn ghost" data-go="import">Import dữ liệu</button>` : ""}<button class="btn ghost" type="button" id="open-cols-modal">Ẩn / hiện cột</button>${can("expenseCreate") ? `<button class="btn primary" data-go="expense-form">+ Thêm khoản chi</button>` : ""}</div>
     </div>
     ${listFilters("expense")}
     <article class="card" style="padding:0">
       <div class="table-wrap">
-      <table>
+      <table class="data-table">
         <thead><tr>
-          <th>Ngày</th><th>Nội dung</th><th>Loại chi</th><th>Người nhận</th><th class="amount">Số tiền</th><th>Tiền tệ</th><th>Nguồn</th><th>Người tạo</th>
+          ${thCol("expense", "date", "Ngày")}
+          ${thCol("expense", "product", "Nội dung")}
+          ${thCol("expense", "category", "Loại chi")}
+          ${thCol("expense", "payee", "Người nhận")}
+          ${thCol("expense", "origin", "Phạm vi")}
+          ${thCol("expense", "amount", "Số tiền", "amount")}
+          ${thCol("expense", "taxPercent", "% thuế", "amount")}
+          ${thCol("expense", "afterTax", "Sau thuế", "amount")}
+          ${thCol("expense", "source", "Nguồn")}
+          ${thCol("expense", "creator", "Người tạo")}
           ${showAct ? "<th>Thao tác</th>" : ""}
         </tr></thead>
         <tbody id="rows">${expenseRows(rows, showAct)}</tbody>
       </table>
       </div>
-      ${rows.length ? "" : `<div class="empty"><strong>Chưa có khoản chi nào.</strong></div>`}
+      ${total ? pagerBar("expense", p, pages, total) : `<div class="empty"><strong>Chưa có khoản chi nào.</strong></div>`}
     </article>`;
 }
 
@@ -573,21 +920,30 @@ function expenseRows(rows, showAct) {
       const acts = showAct
         ? `<td><div class="row-actions">${edit ? `<button class="icon-btn" data-edit-ex="${r.id}" title="Sửa">${ICON_EDIT}</button>` : ""}${del ? `<button class="icon-btn danger" data-del-ex="${r.id}" title="Xóa">${ICON_DEL}</button>` : ""}</div></td>`
         : "";
-      return `<tr data-cat="${r.categoryId}" data-src="${r.source}" data-date="${r.expenseDate}" data-text="${(r.description + (r.recipient || "")).toLowerCase()}">
-        <td>${dmy(r.expenseDate)}</td><td><b>${r.description}</b></td>
-        <td><span class="badge pink">${catName(EXPENSE_CATEGORIES, r.categoryId)}</span></td>
-        <td>${r.recipient || "—"}</td>
-        <td class="amount minus">${money(r.amount, r.currency)}</td><td>${r.currency}</td>
-        <td>${srcBadge(r.source)}</td><td>${userName(r.createdBy)}</td>${acts}</tr>`;
+      return `<tr data-cat="${r.categoryId}" data-src="${r.source}" data-origin="${r.originScope || ""}" data-date="${r.expenseDate}" data-text="${(r.description + (r.recipient || "")).toLowerCase()}">
+        ${tdCol("expense", "date", dmy(r.expenseDate))}
+        ${tdCol("expense", "product", `<b>${r.description}</b>`, "cell-product")}
+        ${tdCol("expense", "category", `<span class="badge pink">${catName(EXPENSE_CATEGORIES, r.categoryId)}</span>`)}
+        ${tdCol("expense", "payee", r.recipient || "—")}
+        ${tdCol("expense", "origin", originBadge(r.originScope))}
+        ${tdCol("expense", "amount", money(r.amount), "amount minus")}
+        ${tdCol("expense", "taxPercent", pctLabel(r.taxPercent), "amount")}
+        ${tdCol("expense", "afterTax", money(afterTaxOf(r)), "amount minus")}
+        ${tdCol("expense", "source", srcBadge(r.source))}
+        ${tdCol("expense", "creator", userName(r.createdBy))}
+        ${acts}</tr>`;
     })
     .join("");
 }
 
 function incomeForm(rec) {
-  const r = rec || { incomeDate: "2026-09-11", description: "", categoryId: 1, amount: "", currency: "USD", referenceCode: "", source: "MANUAL", note: "" };
+  const r = rec || { incomeDate: "2026-09-13", description: "", categoryId: 1, amount: "", currency: "USD", referenceCode: "", orderCode: "", saleRegion: "", productQty: "", unitPrice: "", itemTotal: "", discountAmount: "", discountCode: "", subtotal: "", shippingAmount: "", taxAmount: "", taxPercent: "", amountAfterTax: "", source: "MANUAL", note: "" };
+  const openSource = !!(r.orderCode || r.saleRegion || r.productQty || r.unitPrice);
+  const openFees = !!(r.itemTotal || r.discountAmount || r.discountCode || r.subtotal || r.shippingAmount || r.taxAmount);
+  const openExtra = !!(r.referenceCode || r.note || r.attachment);
   return `
     <div class="page-head">
-      <div><h1 class="page-title">${rec ? "Sửa khoản thu" : "Thêm khoản thu"}</h1></div>
+      <div><h1 class="page-title">${rec ? "Sửa khoản thu" : "Thêm khoản thu"}</h1><p class="page-sub">${ccyHint()}</p></div>
       <button class="btn secondary" data-go="incomes">Quay lại</button>
     </div>
     <form class="card" id="rec-form">
@@ -596,16 +952,58 @@ function incomeForm(rec) {
         <label class="field"><span>Loại thu <span class="req">*</span></span>
           <select name="categoryId">${INCOME_CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === r.categoryId ? "selected" : ""}>${c.name}</option>`).join("")}</select>
         </label>
-        <label class="field"><span>Số tiền <span class="req">*</span></span><input name="amount" type="number" step="0.01" required value="${r.amount}" /></label>
-        <label class="field"><span>Tiền tệ <span class="req">*</span></span>
-          <select name="currency"><option ${r.currency === "USD" ? "selected" : ""}>USD</option><option ${r.currency === "VND" ? "selected" : ""}>VND</option></select>
+        <label class="field span-2"><span>Tên sản phẩm <span class="req">*</span></span><input name="description" required value="${r.description || ""}" placeholder="Lily Flower" /></label>
+        <label class="field"><span>Số tiền trước thuế (${ccy}) <span class="req">*</span></span><input name="amount" type="number" step="0.01" required value="${valNum(r.amount === "" ? "" : toDisplay(r.amount))}" /></label>
+        <label class="field"><span>% thuế</span><input name="taxPercent" type="number" step="0.01" min="0" max="100" value="${valNum(r.taxPercent)}" placeholder="0" /></label>
+        <label class="field"><span>Tiền sau thuế (${ccy})</span>
+          <input name="amountAfterTax" type="number" step="0.01" readonly tabindex="-1" class="is-computed" value="${r.amount === "" ? "" : toDisplay(afterTax(r.amount, r.taxPercent))}" />
+          <small class="muted">Tự tính từ số tiền trước thuế và % thuế, không nhập tay.</small>
         </label>
-        <label class="field span-2"><span>Nội dung <span class="req">*</span></span><input name="description" required value="${r.description || ""}" /></label>
-        <label class="field span-2"><span>Mã tham chiếu</span><input name="referenceCode" value="${r.referenceCode || ""}" /></label>
-        <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
-        ${attachField(r.attachment)}
       </div>
-      <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
+      ${formSection(
+        "income-source",
+        "Chi tiết nguồn thu",
+        "Mã đơn, khu vực bán, số lượng, đơn giá",
+        `<div class="form-grid">
+          <label class="field"><span>Mã đơn hàng</span><input name="orderCode" value="${r.orderCode || ""}" placeholder="VD: 4154185113" /></label>
+          <label class="field"><span>Bán đi đâu</span>
+            <select name="saleRegion">
+              <option value="" ${!r.saleRegion ? "selected" : ""}>—</option>
+              <option value="IN_EU" ${r.saleRegion === "IN_EU" ? "selected" : ""}>Trong EU</option>
+              <option value="OUTSIDE_EU" ${r.saleRegion === "OUTSIDE_EU" ? "selected" : ""}>Ngoài EU</option>
+            </select>
+          </label>
+          <label class="field"><span>Số lượng sản phẩm</span><input name="productQty" type="number" min="1" step="1" value="${r.productQty || ""}" /></label>
+          <label class="field"><span>Đơn giá (${ccy})</span><input name="unitPrice" type="number" step="0.01" min="0" value="${r.unitPrice === 0 || r.unitPrice ? toDisplay(r.unitPrice) : ""}" placeholder="5.49" /></label>
+        </div>`,
+        openSource
+      )}
+      ${formSection(
+        "income-fees",
+        "Chi tiết phí — Order total",
+        "Item − Discount = Subtotal; Subtotal + Shipping + Tax = Số tiền",
+        `<div class="form-grid">
+          <label class="field"><span>Item total (${ccy})</span><input name="itemTotal" type="number" step="0.01" min="0" value="${r.itemTotal === 0 || r.itemTotal ? toDisplay(r.itemTotal) : ""}" /></label>
+          <label class="field"><span>Discount (${ccy})</span><input name="discountAmount" type="number" step="0.01" min="0" value="${r.discountAmount === 0 || r.discountAmount ? toDisplay(r.discountAmount) : ""}" /></label>
+          <label class="field"><span>Mã giảm giá</span><input name="discountCode" value="${r.discountCode || ""}" placeholder="AGSALE43" /></label>
+          <label class="field"><span>Subtotal (${ccy})</span><input name="subtotal" type="number" step="0.01" min="0" value="${r.subtotal === 0 || r.subtotal ? toDisplay(r.subtotal) : ""}" /></label>
+          <label class="field"><span>Shipping (${ccy})</span><input name="shippingAmount" type="number" step="0.01" min="0" value="${r.shippingAmount === 0 || r.shippingAmount ? toDisplay(r.shippingAmount) : ""}" /></label>
+          <label class="field"><span>Tax (${ccy})</span><input name="taxAmount" type="number" step="0.01" min="0" value="${r.taxAmount === 0 || r.taxAmount ? toDisplay(r.taxAmount) : ""}" /></label>
+        </div>`,
+        openFees
+      )}
+      ${formSection(
+        "income-extra",
+        "Ghi chú & chứng từ",
+        "Mã tham chiếu, ghi chú, file đính kèm",
+        `<div class="form-grid">
+          <label class="field span-2"><span>Mã tham chiếu</span><input name="referenceCode" value="${r.referenceCode || ""}" /></label>
+          <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
+          ${attachField(r.attachment)}
+        </div>`,
+        openExtra
+      )}
+      <div class="form-actions">
         <button type="button" class="btn secondary" data-go="incomes">Hủy</button>
         <button class="btn primary" type="submit">${rec ? "Cập nhật" : "Lưu khoản thu"}</button>
       </div>
@@ -613,10 +1011,11 @@ function incomeForm(rec) {
 }
 
 function expenseForm(rec) {
-  const r = rec || { expenseDate: "2026-09-11", description: "", categoryId: 1, amount: "", currency: "USD", recipient: "", source: "MANUAL", note: "" };
+  const r = rec || { expenseDate: "2026-09-11", description: "", categoryId: 1, amount: "", currency: "USD", recipient: "", originScope: "DOMESTIC", taxPercent: "", amountAfterTax: "", source: "MANUAL", note: "" };
+  const openExtra = !!(r.note || r.attachment);
   return `
     <div class="page-head">
-      <div><h1 class="page-title">${rec ? "Sửa khoản chi" : "Thêm khoản chi"}</h1></div>
+      <div><h1 class="page-title">${rec ? "Sửa khoản chi" : "Thêm khoản chi"}</h1><p class="page-sub">${ccyHint()}</p></div>
       <button class="btn secondary" data-go="expenses">Quay lại</button>
     </div>
     <form class="card" id="rec-form">
@@ -625,16 +1024,40 @@ function expenseForm(rec) {
         <label class="field"><span>Loại chi <span class="req">*</span></span>
           <select name="categoryId">${EXPENSE_CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === r.categoryId ? "selected" : ""}>${c.name}</option>`).join("")}</select>
         </label>
-        <label class="field"><span>Số tiền <span class="req">*</span></span><input name="amount" type="number" step="0.01" required value="${r.amount}" /></label>
-        <label class="field"><span>Tiền tệ <span class="req">*</span></span>
-          <select name="currency"><option ${r.currency === "USD" ? "selected" : ""}>USD</option><option ${r.currency === "VND" ? "selected" : ""}>VND</option></select>
-        </label>
         <label class="field span-2"><span>Nội dung <span class="req">*</span></span><input name="description" required value="${r.description || ""}" /></label>
-        <label class="field span-2"><span>Người nhận</span><input name="recipient" value="${r.recipient || ""}" /></label>
-        <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
-        ${attachField(r.attachment)}
+        <label class="field"><span>Số tiền trước thuế (${ccy}) <span class="req">*</span></span><input name="amount" type="number" step="0.01" required value="${valNum(r.amount === "" ? "" : toDisplay(r.amount))}" /></label>
+        <label class="field"><span>Người nhận</span><input name="recipient" value="${r.recipient || ""}" /></label>
+        <label class="field"><span>% thuế</span><input name="taxPercent" type="number" step="0.01" min="0" max="100" value="${r.taxPercent === 0 || r.taxPercent ? r.taxPercent : ""}" placeholder="0" /></label>
+        <label class="field"><span>Tiền sau thuế (${ccy})</span>
+          <input name="amountAfterTax" type="number" step="0.01" readonly tabindex="-1" class="is-computed" value="${r.amount === "" ? "" : toDisplay(afterTax(r.amount, r.taxPercent))}" />
+          <small class="muted">Tự tính từ số tiền trước thuế và % thuế, không nhập tay.</small>
+        </label>
       </div>
-      <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
+      ${formSection(
+        "expense-detail",
+        "Phạm vi nguồn",
+        "Nội địa hoặc quốc tế",
+        `<div class="form-grid">
+          <label class="field"><span>Phạm vi nguồn <span class="req">*</span></span>
+            <select name="originScope">
+              <option value="DOMESTIC" ${r.originScope !== "INTERNATIONAL" ? "selected" : ""}>Nội địa</option>
+              <option value="INTERNATIONAL" ${r.originScope === "INTERNATIONAL" ? "selected" : ""}>Quốc tế</option>
+            </select>
+          </label>
+        </div>`,
+        !!(r.originScope)
+      )}
+      ${formSection(
+        "expense-extra",
+        "Ghi chú & chứng từ",
+        "Ghi chú và file đính kèm",
+        `<div class="form-grid">
+          <label class="field span-2"><span>Ghi chú</span><textarea name="note">${r.note || ""}</textarea></label>
+          ${attachField(r.attachment)}
+        </div>`,
+        openExtra
+      )}
+      <div class="form-actions">
         <button type="button" class="btn secondary" data-go="expenses">Hủy</button>
         <button class="btn primary" type="submit">${rec ? "Cập nhật" : "Lưu khoản chi"}</button>
       </div>
@@ -707,11 +1130,11 @@ function reports() {
   }
   return `
     <div class="page-head">
-      <div><h1 class="page-title">Báo cáo</h1><p class="page-sub">Một loại tiền tệ mỗi lần. Không cộng USD với VND. Xuất báo cáo = in mock.</p></div>
+      <div><h1 class="page-title">Báo cáo</h1><p class="page-sub">${ccyHint()} Xuất báo cáo = in mock.</p></div>
       <button class="btn primary" type="button" id="export-report">Xuất báo cáo</button>
     </div>
     <div class="toolbar">
-      <select id="ccySel" class="toolbar-ctrl"><option value="USD">USD ($)</option><option value="VND">VND (₫)</option></select>
+      <select id="ccySel" class="toolbar-ctrl" title="Đổi tiền">${ccyOptions()}</select>
       <select id="rKind" class="toolbar-ctrl">
         <option value="ALL" ${reportKind === "ALL" ? "selected" : ""}>Loại: Tất cả</option>
         <option value="INCOME" ${reportKind === "INCOME" ? "selected" : ""}>Chỉ khoản thu</option>
@@ -776,10 +1199,10 @@ function importPage() {
     <article class="card" id="preview-card" style="display:none">
       <div class="card-head"><h3 class="section-title">Xem trước dữ liệu (mock)</h3></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>STT</th><th>Ngày</th><th>Nội dung</th><th class="amount">Số tiền</th><th>Trạng thái</th></tr></thead>
+        <thead><tr><th>STT</th><th>Ngày</th><th>Nội dung</th><th>Mã đơn</th><th>SL</th><th class="amount">Item</th><th class="amount">Giảm</th><th class="amount">Ship</th><th class="amount">Thuế</th><th class="amount">Order total</th><th>Trạng thái</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td>11/09/2026</td><td>Dòng mẫu 1</td><td class="amount plus">85.00</td><td><span class="badge ok">Hợp lệ</span></td></tr>
-          <tr><td>2</td><td>10/09/2026</td><td>Dòng mẫu 2</td><td class="amount plus">120.00</td><td><span class="badge ok">Hợp lệ</span></td></tr>
+          <tr><td>1</td><td>13/09/2026</td><td>Lily Flower</td><td>4154185113</td><td class="amount">5</td><td class="amount">27.45</td><td class="amount">−12.35</td><td class="amount">7.00</td><td class="amount">0.00</td><td class="amount plus">22.10</td><td><span class="badge ok">Hợp lệ</span></td></tr>
+          <tr><td>2</td><td>10/09/2026</td><td>Dòng mẫu 2</td><td>—</td><td class="amount">—</td><td class="amount">—</td><td class="amount">—</td><td class="amount">—</td><td class="amount">—</td><td class="amount plus">120.00</td><td><span class="badge ok">Hợp lệ</span></td></tr>
         </tbody>
       </table></div>
     </article>`;
@@ -861,8 +1284,8 @@ function drawDash() {
     data: {
       labels: monthly.map((x) => x.m),
       datasets: [
-        { label: "Thu", data: monthly.map((x) => x.income), backgroundColor: "#14b8a6", borderRadius: 4, barPercentage: 0.7 },
-        { label: "Chi", data: monthly.map((x) => x.expense), backgroundColor: "#fb7185", borderRadius: 4, barPercentage: 0.7 },
+        { label: "Thu", data: monthly.map((x) => toDisplay(x.income)), backgroundColor: "#14b8a6", borderRadius: 4, barPercentage: 0.7 },
+        { label: "Chi", data: monthly.map((x) => toDisplay(x.expense)), backgroundColor: "#fb7185", borderRadius: 4, barPercentage: 0.7 },
       ],
     },
     options: {
@@ -876,7 +1299,7 @@ function drawDash() {
   if (pie && cats.length) {
     charts.pie = new Chart(pie, {
       type: "doughnut",
-      data: { labels: cats.map((x) => x.name), datasets: [{ data: cats.map((x) => x.amount), backgroundColor: ["#14b8a6", "#38bdf8", "#34d399", "#fbbf24", "#f87171", "#a78bfa"], borderWidth: 0 }] },
+      data: { labels: cats.map((x) => x.name), datasets: [{ data: cats.map((x) => toDisplay(x.amount)), backgroundColor: ["#14b8a6", "#38bdf8", "#34d399", "#fbbf24", "#f87171", "#a78bfa"], borderWidth: 0 }] },
       options: { plugins: { legend: { display: false } }, cutout: "68%", maintainAspectRatio: false },
     });
   }
@@ -893,8 +1316,8 @@ function drawReports() {
       data: {
         labels: monthly.map((x) => x.m),
         datasets: [
-          { data: monthly.map((x) => x.income), backgroundColor: "#14b8a6", borderRadius: 4 },
-          { data: monthly.map((x) => x.expense), backgroundColor: "#fb7185", borderRadius: 4 },
+          { data: monthly.map((x) => toDisplay(x.income)), backgroundColor: "#14b8a6", borderRadius: 4 },
+          { data: monthly.map((x) => toDisplay(x.expense)), backgroundColor: "#fb7185", borderRadius: 4 },
         ],
       },
       options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false },
@@ -909,8 +1332,8 @@ function drawReports() {
       options: { plugins: { legend: { display: false } }, cutout: "70%", maintainAspectRatio: false },
     });
   };
-  if (reportTab === "in") doughnut("rIn", incomeByCat(inc).map((x) => x.name), incomeByCat(inc).map((x) => x.amount));
-  if (reportTab === "out") doughnut("rOut", expenseByCat(exp).map((x) => x.name), expenseByCat(exp).map((x) => x.amount));
+  if (reportTab === "in") doughnut("rIn", incomeByCat(inc).map((x) => x.name), incomeByCat(inc).map((x) => toDisplay(x.amount)));
+  if (reportTab === "out") doughnut("rOut", expenseByCat(exp).map((x) => x.name), expenseByCat(exp).map((x) => toDisplay(x.amount)));
 }
 
 function nextId(list) {
@@ -942,13 +1365,13 @@ function exportReport() {
   const incomeRows = inc
     .map(
       (r) =>
-        `<tr><td>${dmy(r.incomeDate)}</td><td>${r.description}</td><td>${catName(INCOME_CATEGORIES, r.categoryId)}</td><td style="text-align:right">${money(r.amount)}</td></tr>`
+        `<tr><td>${dmy(r.incomeDate)}</td><td>${r.description}</td><td>${r.orderCode || "—"}</td><td>${r.productQty || "—"}</td><td style="text-align:right">${money(r.amount)}</td><td style="text-align:right">${pctLabel(r.taxPercent)}</td><td style="text-align:right">${money(afterTaxOf(r))}</td></tr>`
     )
     .join("");
   const expenseRows = exp
     .map(
       (r) =>
-        `<tr><td>${dmy(r.expenseDate)}</td><td>${r.description}</td><td>${catName(EXPENSE_CATEGORIES, r.categoryId)}</td><td style="text-align:right">${money(r.amount)}</td></tr>`
+        `<tr><td>${dmy(r.expenseDate)}</td><td>${r.description}</td><td>${catName(EXPENSE_CATEGORIES, r.categoryId)}</td><td>${originScopeLabel(r.originScope)}</td><td style="text-align:right">${money(r.amount)}</td><td style="text-align:right">${pctLabel(r.taxPercent)}</td><td style="text-align:right">${money(afterTaxOf(r))}</td></tr>`
     )
     .join("");
   const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Báo cáo ${no}</title>
@@ -970,13 +1393,13 @@ function exportReport() {
       <div><h1>Finance Manager</h1><div class="muted">Báo cáo thu – chi (mock in)</div></div></div>
       <div class="muted" style="text-align:right">Số: ${no}<br/>Ngày in: ${new Date().toLocaleString("vi-VN")}<br/>Người xuất: ${u.name}</div>
     </div>
-    <p class="muted">Kỳ: ${dmy(reportFrom)} – ${dmy(reportTo)} · Tiền tệ: ${ccy} (không cộng USD với VND)</p>
+    <p class="muted">Kỳ: ${dmy(reportFrom)} – ${dmy(reportTo)} · Hiển thị: ${ccy} · ${ccyHint()}</p>
     <h3>Khoản thu</h3>
-    <table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th style="text-align:right">Số tiền</th></tr></thead>
-    <tbody>${incomeRows || `<tr><td colspan="4">Không có khoản thu</td></tr>`}</tbody></table>
+    <table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Mã đơn</th><th>SL</th><th style="text-align:right">Số tiền</th><th style="text-align:right">% thuế</th><th style="text-align:right">Sau thuế</th></tr></thead>
+    <tbody>${incomeRows || `<tr><td colspan="7">Không có khoản thu</td></tr>`}</tbody></table>
     <h3>Khoản chi</h3>
-    <table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th style="text-align:right">Số tiền</th></tr></thead>
-    <tbody>${expenseRows || `<tr><td colspan="4">Không có khoản chi</td></tr>`}</tbody></table>
+    <table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Phạm vi</th><th style="text-align:right">Số tiền</th><th style="text-align:right">% thuế</th><th style="text-align:right">Sau thuế</th></tr></thead>
+    <tbody>${expenseRows || `<tr><td colspan="7">Không có khoản chi</td></tr>`}</tbody></table>
     <div class="tot">Tổng thu: ${money(tin)}<br/>Tổng chi: ${money(tex)}<br/><b>Chênh lệch thu - chi: ${money(tin - tex)}</b></div>
     <p class="muted noprint" style="margin-top:24px">Xuất báo cáo mock. Không phải hóa đơn điện tử. Không kết nối máy in từ server.</p>
     </body></html>`;
@@ -997,6 +1420,35 @@ function bindApp() {
     el.onclick = () => go(el.dataset.go);
   });
   document.getElementById("logout-nav")?.addEventListener("click", logout);
+  document.querySelectorAll("[data-list-page]").forEach((btn) => {
+    btn.onclick = () => {
+      if (btn.disabled) return;
+      const n = Number(btn.dataset.listPage);
+      if (!Number.isFinite(n) || n < 1) return;
+      if (page === "incomes") incomePage = n;
+      else if (page === "expenses") expensePage = n;
+      renderApp();
+    };
+  });
+  document.getElementById("dashFrom")?.addEventListener("change", (e) => {
+    dashFrom = e.target.value;
+    renderApp();
+  });
+  document.getElementById("dashTo")?.addEventListener("change", (e) => {
+    dashTo = e.target.value;
+    renderApp();
+  });
+  document.getElementById("rpt-month")?.addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (v === "all") {
+      reportFrom = "2026-07-01";
+      reportTo = "2026-09-30";
+    } else {
+      reportFrom = `${v}-01`;
+      reportTo = lastDayOfMonth(v);
+    }
+    renderApp();
+  });
   const ccySel = document.getElementById("ccySel") || document.getElementById("fCcy");
   if (ccySel) {
     ccySel.value = ccy;
@@ -1047,7 +1499,7 @@ function bindApp() {
       e.target.value = "";
       if (name) name.textContent = "Chưa chọn tệp";
       if (preview) preview.style.display = "none";
-      if (st) st.innerHTML = `<div class="alert-error">Chỉ nhận file Excel (.xlsx / .xls). CSV không hỗ trợ.</div>`;
+      if (st) st.innerHTML = `<div class="alert-error">Chỉ nhận .xlsx, .xls hoặc .csv.</div>`;
       toast("File không phải Excel");
       return;
     }
@@ -1061,6 +1513,12 @@ function bindApp() {
     if (meta && f) meta.textContent = `${f.name} · ${f.type || "file"} · ${f.size} bytes`;
   });
   bindFilters();
+  bindExpenseTax();
+  bindIncomeFees();
+  bindFormSections();
+  document.getElementById("open-cols-modal")?.addEventListener("click", () => {
+    openColsModal(page === "expenses" ? "expense" : "income");
+  });
   document.querySelectorAll("[data-edit-in]").forEach((b) => (b.onclick = () => go("income-edit", Number(b.dataset.editIn))));
   document.querySelectorAll("[data-edit-ex]").forEach((b) => (b.onclick = () => go("expense-edit", Number(b.dataset.editEx))));
   document.querySelectorAll("[data-del-in]").forEach((b) => {
@@ -1092,7 +1550,7 @@ function bindApp() {
       });
   });
   const form = document.getElementById("rec-form");
-  if (form && page.startsWith("income")) {
+  if (form && (page === "income-form" || page === "income-edit")) {
     form.onsubmit = (e) => {
       e.preventDefault();
       const fd = new FormData(form);
@@ -1101,9 +1559,21 @@ function bindApp() {
         incomeDate: fd.get("incomeDate"),
         description: fd.get("description"),
         categoryId: Number(fd.get("categoryId")),
-        amount: Number(fd.get("amount")),
-        currency: fd.get("currency"),
+        amount: fromDisplayNum(fd.get("amount")),
+        currency: "USD",
         referenceCode: fd.get("referenceCode"),
+        orderCode: String(fd.get("orderCode") || "").trim(),
+        saleRegion: String(fd.get("saleRegion") || ""),
+        productQty: fd.get("productQty") ? Number(fd.get("productQty")) : null,
+        unitPrice: fromDisplay(fd.get("unitPrice")),
+        itemTotal: fromDisplay(fd.get("itemTotal")),
+        discountAmount: fromDisplayNum(fd.get("discountAmount")),
+        discountCode: String(fd.get("discountCode") || "").trim(),
+        subtotal: fromDisplay(fd.get("subtotal")),
+        shippingAmount: fromDisplayNum(fd.get("shippingAmount")),
+        taxAmount: fromDisplayNum(fd.get("taxAmount")),
+        taxPercent: Number(fd.get("taxPercent") || 0),
+        amountAfterTax: afterTax(fromDisplayNum(fd.get("amount")), fd.get("taxPercent")),
         source: "MANUAL",
         note: fd.get("note"),
         attachment: fileMeta(document.getElementById("attach")?.files?.[0], null),
@@ -1135,7 +1605,7 @@ function bindApp() {
       go("incomes");
     };
   }
-  if (form && page.startsWith("expense")) {
+  if (form && (page === "expense-form" || page === "expense-edit")) {
     form.onsubmit = (e) => {
       e.preventDefault();
       const fd = new FormData(form);
@@ -1144,9 +1614,12 @@ function bindApp() {
         expenseDate: fd.get("expenseDate"),
         description: fd.get("description"),
         categoryId: Number(fd.get("categoryId")),
-        amount: Number(fd.get("amount")),
-        currency: fd.get("currency"),
+        amount: fromDisplayNum(fd.get("amount")),
+        currency: "USD",
         recipient: fd.get("recipient"),
+        originScope: String(fd.get("originScope") || "DOMESTIC"),
+        taxPercent: Number(fd.get("taxPercent") || 0),
+        amountAfterTax: afterTax(fromDisplayNum(fd.get("amount")), fd.get("taxPercent")),
         source: "MANUAL",
         note: fd.get("note"),
         attachment: fileMeta(document.getElementById("attach")?.files?.[0], null),
@@ -1186,7 +1659,7 @@ function bindApp() {
       return;
     }
     if (!isExcelName(file.name)) {
-      st.innerHTML = `<div class="alert-error">Chỉ nhận .xlsx / .xls.</div>`;
+      st.innerHTML = `<div class="alert-error">Chỉ nhận .xlsx, .xls hoặc .csv.</div>`;
       return;
     }
     st.innerHTML = `<span class="spin" style="display:inline-block;vertical-align:middle"></span> Đang import (mock)...`;
@@ -1209,27 +1682,21 @@ function bindApp() {
       renderApp();
     }, 900);
   });
-  document.getElementById("open-user-modal")?.addEventListener("click", () => {
-    document.getElementById("add-user-form").reset();
-    document.getElementById("user-modal").classList.add("open");
-  });
+  document.getElementById("open-user-modal")?.addEventListener("click", () => openUserModal());
   document.querySelectorAll("[data-toggle]").forEach((b) => {
     b.onclick = () => {
       const u = USERS.find((x) => x.id === Number(b.dataset.toggle));
+      if (!u) return;
       u.status = u.status === "active" ? "disabled" : "active";
-      toast("Đã cập nhật trạng thái");
+      toast(u.status === "active" ? "Đã kích hoạt tài khoản" : "Đã ngừng kích hoạt");
       renderApp();
     };
   });
+  document.querySelectorAll("[data-edit-user]").forEach((b) => {
+    b.onclick = () => openUserModal(Number(b.dataset.editUser));
+  });
   document.querySelectorAll("[data-rename]").forEach((b) => {
-    b.onclick = () => {
-      const u = USERS.find((x) => x.id === Number(b.dataset.rename));
-      const n = prompt("Tên mới", u.name);
-      if (!n) return;
-      u.name = n;
-      toast("Đã cập nhật user");
-      renderApp();
-    };
+    b.onclick = () => openUserModal(Number(b.dataset.rename));
   });
   document.querySelectorAll("[data-role]").forEach((s) => {
     s.onchange = () => {
@@ -1244,6 +1711,7 @@ function bindApp() {
     const full = USERS.find((x) => x.id === u.id);
     full.name = String(fd.get("name"));
     full.avatar = String(fd.get("avatar") || "");
+    full.phone = String(fd.get("phone") || "");
     const { password, ...safe } = full;
     const remember = Boolean(localStorage.getItem("fm_user"));
     saveSession(safe, remember);
@@ -1253,10 +1721,49 @@ function bindApp() {
 }
 
 function bindFilters() {
+  const onList = page === "incomes" || page === "expenses";
+  if (onList) {
+    const apply = (resetPage, keepSearchFocus) => {
+      const qEl = document.getElementById("q");
+      const caret = qEl ? qEl.selectionStart : null;
+      listFilter.q = qEl?.value || "";
+      listFilter.cat = document.getElementById("fCat")?.value || "";
+      listFilter.src = document.getElementById("fSrc")?.value || "";
+      listFilter.region = document.getElementById("fRegion")?.value || "";
+      listFilter.origin = document.getElementById("fOrigin")?.value || "";
+      listFilter.from = document.getElementById("fFrom")?.value || "";
+      listFilter.to = document.getElementById("fTo")?.value || "";
+      if (resetPage) {
+        if (page === "incomes") incomePage = 1;
+        else expensePage = 1;
+      }
+      renderApp();
+      const n = document.getElementById("q");
+      if (keepSearchFocus && n && caret != null) {
+        n.focus();
+        try {
+          n.setSelectionRange(caret, caret);
+        } catch (_) {}
+      }
+    };
+    document.getElementById("q")?.addEventListener("input", () => apply(true, true));
+    ["fCat", "fSrc", "fRegion", "fOrigin", "fFrom", "fTo"].forEach((id) =>
+      document.getElementById(id)?.addEventListener("change", () => apply(true, false))
+    );
+    document.getElementById("clearF")?.addEventListener("click", () => {
+      Object.assign(listFilter, { q: "", cat: "", src: "", region: "", origin: "", from: "", to: "" });
+      if (page === "incomes") incomePage = 1;
+      else expensePage = 1;
+      renderApp();
+    });
+    return;
+  }
   const apply = () => {
     const q = (document.getElementById("q")?.value || "").toLowerCase();
     const cat = document.getElementById("fCat")?.value || "";
     const src = document.getElementById("fSrc")?.value || "";
+    const region = document.getElementById("fRegion")?.value || "";
+    const origin = document.getElementById("fOrigin")?.value || "";
     const from = document.getElementById("fFrom")?.value || "";
     const to = document.getElementById("fTo")?.value || "";
     const user = document.getElementById("fUser")?.value || "";
@@ -1266,6 +1773,8 @@ function bindFilters() {
         (!q || (tr.dataset.text || "").includes(q)) &&
         (!cat || tr.dataset.cat === cat) &&
         (!src || tr.dataset.src === src) &&
+        (!region || tr.dataset.region === region) &&
+        (!origin || tr.dataset.origin === origin) &&
         (!from || !tr.dataset.date || tr.dataset.date >= from) &&
         (!to || !tr.dataset.date || tr.dataset.date <= to) &&
         (!user || tr.dataset.user === user) &&
@@ -1273,11 +1782,11 @@ function bindFilters() {
       tr.style.display = ok ? "" : "none";
     });
   };
-  ["q", "fCat", "fSrc", "fFrom", "fTo", "fUser", "fAct"].forEach((id) =>
+  ["q", "fCat", "fSrc", "fRegion", "fOrigin", "fFrom", "fTo", "fUser", "fAct"].forEach((id) =>
     document.getElementById(id)?.addEventListener(id === "q" ? "input" : "change", apply)
   );
   document.getElementById("clearF")?.addEventListener("click", () => {
-    ["q", "fCat", "fSrc", "fFrom", "fTo", "fUser", "fAct"].forEach((id) => {
+    ["q", "fCat", "fSrc", "fRegion", "fOrigin", "fFrom", "fTo", "fUser", "fAct"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -1285,13 +1794,98 @@ function bindFilters() {
   });
 }
 
+function bindExpenseTax() {
+  const form = document.getElementById("rec-form");
+  if (!form || !form.querySelector('[name="taxPercent"]')) return;
+  const amountEl = form.querySelector('[name="amount"]');
+  const taxEl = form.querySelector('[name="taxPercent"]');
+  const afterEl = form.querySelector('[name="amountAfterTax"]');
+  if (!afterEl) return;
+  const sync = () => {
+    afterEl.value = amountEl?.value === "" ? "" : String(afterTax(amountEl?.value, taxEl?.value));
+  };
+  amountEl?.addEventListener("input", sync);
+  taxEl?.addEventListener("input", sync);
+  sync();
+}
+
+function bindFormSections() {
+  document.querySelectorAll("[data-toggle-section]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.toggleSection;
+      const box = btn.closest(".form-section");
+      if (!box) return;
+      const willOpen = box.classList.contains("is-collapsed");
+      box.classList.toggle("is-collapsed", !willOpen);
+      btn.textContent = willOpen ? "Ẩn bớt" : "Hiện thêm";
+      const p = formSectionPrefs();
+      p[id] = willOpen;
+      localStorage.setItem("fm_form_sections", JSON.stringify(p));
+    });
+  });
+}
+
+function bindIncomeFees() {
+  const form = document.getElementById("rec-form");
+  if (!form || !form.querySelector('[name="itemTotal"]')) return;
+  const g = (n) => form.querySelector(`[name="${n}"]`);
+  const n = (el) => Number(el?.value) || 0;
+  const mark = (el) => {
+    el?.addEventListener("input", () => {
+      el.dataset.manual = "1";
+    });
+  };
+  mark(g("itemTotal"));
+  mark(g("subtotal"));
+  mark(g("amount"));
+  const sync = () => {
+    const qty = n(g("productQty"));
+    const unit = n(g("unitPrice"));
+    const itemEl = g("itemTotal");
+    if (qty && unit && itemEl && !itemEl.dataset.manual) itemEl.value = String(round2(qty * unit));
+    const item = n(itemEl);
+    const disc = n(g("discountAmount"));
+    const subEl = g("subtotal");
+    if (subEl && !subEl.dataset.manual) subEl.value = String(round2(item - disc));
+    const amt = g("amount");
+    if (amt && !amt.dataset.manual) amt.value = String(round2(n(subEl) + n(g("shippingAmount")) + n(g("taxAmount"))));
+    const afterEl = g("amountAfterTax");
+    if (afterEl) afterEl.value = amt?.value === "" ? "" : String(afterTax(n(amt), n(g("taxPercent"))));
+  };
+  ["productQty", "unitPrice", "itemTotal", "discountAmount", "subtotal", "shippingAmount", "taxAmount", "taxPercent", "amount"].forEach((name) => {
+    g(name)?.addEventListener("input", sync);
+  });
+}
+
+document.getElementById("cols-cancel").onclick = closeColsModal;
+document.getElementById("cols-apply").onclick = applyColsModal;
+document.getElementById("cols-reset").onclick = () => {
+  if (!colsModalKind) return;
+  localStorage.removeItem("fm_cols_v2_" + colsModalKind);
+  closeColsModal();
+  renderApp();
+};
+document.getElementById("cols-all").onclick = () => {
+  document.querySelectorAll("#cols-modal-list input[type=checkbox]").forEach((inp) => {
+    inp.checked = true;
+  });
+};
+document.getElementById("cols-none").onclick = () => {
+  document.querySelectorAll("#cols-modal-list input[type=checkbox]").forEach((inp) => {
+    if (!inp.disabled) inp.checked = false;
+  });
+};
+document.getElementById("cols-modal").addEventListener("click", (e) => {
+  if (e.target.id === "cols-modal") closeColsModal();
+});
 document.getElementById("modal-cancel").onclick = closeModal;
 document.getElementById("modal-ok").onclick = () => {
   const fn = confirmCb;
   closeModal();
   fn?.();
 };
-document.getElementById("user-modal-cancel").onclick = () => document.getElementById("user-modal").classList.remove("open");
+document.getElementById("user-modal-cancel").onclick = closeUserModal;
+document.getElementById("user-modal-close")?.addEventListener("click", closeUserModal);
 document.getElementById("new-user-pw-toggle").onclick = () => {
   const inp = document.getElementById("new-user-pw");
   const show = inp.type === "password";
@@ -1299,22 +1893,56 @@ document.getElementById("new-user-pw-toggle").onclick = () => {
   document.getElementById("new-user-pw-toggle").textContent = show ? "Ẩn" : "Hiện";
 };
 document.getElementById("user-modal").addEventListener("click", (e) => {
-  if (e.target.id === "user-modal") document.getElementById("user-modal").classList.remove("open");
+  if (e.target.id === "user-modal") closeUserModal();
 });
 document.getElementById("add-user-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  USERS.push({
-    id: nextId(USERS),
-    name: String(fd.get("name")),
-    email: String(fd.get("email")),
-    password: String(fd.get("password") || "123456"),
-    role: String(fd.get("role")),
-    status: "active",
-    avatar: "",
-  });
-  document.getElementById("user-modal").classList.remove("open");
-  toast("Đã thêm user");
+  const name = String(fd.get("name") || "").trim();
+  const email = String(fd.get("email") || "").trim();
+  const password = String(fd.get("password") || "");
+  const role = String(fd.get("role") || "VIEWER");
+  const status = String(fd.get("status") || "active") === "active" ? "active" : "disabled";
+  if (!name || !email) {
+    toast("Nhập tên và tài khoản");
+    return;
+  }
+  const rec = editingUserId ? USERS.find((x) => x.id === editingUserId) : null;
+  if (USERS.some((u) => u.email.toLowerCase() === email.toLowerCase() && u.id !== rec?.id)) {
+    toast("Email đã được dùng");
+    return;
+  }
+  if (rec) {
+    rec.name = name;
+    rec.email = email;
+    rec.role = role;
+    rec.status = status;
+    if (password) rec.password = password;
+    const me = currentUser();
+    if (me && me.id === rec.id) {
+      const { password: _pw, ...safe } = rec;
+      saveSession(safe, Boolean(localStorage.getItem("fm_user")));
+    }
+    pushAudit("Sửa người dùng", "Người dùng", rec.email);
+    toast("Đã cập nhật người dùng");
+  } else {
+    if (!password || password.length < 4) {
+      toast("Mật khẩu tối thiểu 4 ký tự");
+      return;
+    }
+    USERS.push({
+      id: nextId(USERS),
+      name,
+      email,
+      password,
+      role,
+      status,
+      avatar: "",
+    });
+    pushAudit("Tạo người dùng", "Người dùng", email);
+    toast("Đã thêm người dùng");
+  }
+  closeUserModal();
   if (page === "users") renderApp();
 });
 document.getElementById("modal-ok").onclick = () => {
