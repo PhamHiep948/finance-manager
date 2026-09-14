@@ -1,116 +1,116 @@
 # C3 — Component
 
-Go Backend được chia thành những **Component** nào?
+Which **Components** make up the Go Backend?
 
-Level này **zoom vào Container Go Backend** trên [C2](02-container.md). Web Frontend và PostgreSQL vẫn là Container (không tách component).
+This level **zooms into the Go Backend Container** from [C2](02-container.md). Web Frontend and PostgreSQL remain Containers (they are not decomposed into components here).
 
-**Architecture status: Target.** Các component dưới đây là module Go dự kiến. Source hiện chưa có backend.
+**Architecture status: Target.** The components below are planned Go modules. The current source does not yet contain a backend.
 
 ![C3 Component — Go Backend](c3-component.png)
 
-File ảnh: [c3-component.png](c3-component.png)
+Image file: [c3-component.png](c3-component.png)
 
-Luồng C4: [C1](01-system-context.md) → [C2](02-container.md) → **C3**
+C4 flow: [C1](01-system-context.md) → [C2](02-container.md) → **C3**
 
-## Cách đọc sơ đồ
+## How to read the diagram
 
-Đường nét đứt tím = **Go Backend**. Bên trái: Web Frontend gọi HTTPS / REST / JSON. Bên phải: PostgreSQL nhận SQL.
+The purple dashed boundary = **Go Backend**. On the left, Web Frontend calls HTTPS / REST / JSON. On the right, PostgreSQL receives SQL.
 
-Luồng request điển hình:
+Typical request flow:
 
 ```text
 Web Frontend
     → HTTP API & Routing
         → Identity & Access
-        → module nghiệp vụ (User, Category, Income, Expense, Import, Dashboard)
+        → business module (User, Category, Income, Expense, Import, Dashboard)
             → Persistence / Data Access
                 → PostgreSQL
 ```
 
-Một số module còn gọi Category, Dashboard & Reporting, Audit Log (không đi tắt ra database).
+Some modules also call Category, Dashboard & Reporting, and Audit Log rather than bypassing them to access the database directly.
 
-## Neighbors (từ C2)
+## Neighbors (from C2)
 
-| Name | Type | Vai trò trên C3 |
-| ---- | ---- | ---------------- |
-| Web Frontend | Container: Web Application (React.js) | Gọi REST API |
-| PostgreSQL Database | Container: Database | Lưu dữ liệu bền vững |
+| Name | Type | Role on C3 |
+| ---- | ---- | ---------- |
+| Web Frontend | Container: Web Application (React.js) | Calls REST API |
+| PostgreSQL Database | Container: Database | Stores persistent data |
 
-## Components (trong Go Backend)
+## Components (inside Go Backend)
 
-| Component | Type | Description trên sơ đồ |
+| Component | Type | Description on diagram |
 | --------- | ---- | ---------------------- |
-| HTTP API & Routing | Go | Nhận REST/JSON request, route endpoint và chuyển đến component nghiệp vụ |
-| Identity & Access | Go | Xác thực người dùng và kiểm tra role / quyền truy cập |
-| User & Profile Management | Go | Quản lý tài khoản, trạng thái và hồ sơ người dùng |
-| Category Management | Go | Quản lý danh mục thu và chi dùng trong giao dịch |
-| Income Management | Go | Quản lý vòng đời khoản thu và các quy tắc nghiệp vụ liên quan |
-| Expense Management | Go | Quản lý vòng đời khoản chi và các quy tắc nghiệp vụ liên quan |
-| Excel Import | Go | Kiểm tra, preview và tạo giao dịch từ dữ liệu Excel hợp lệ |
-| Dashboard & Reporting | Go | Tổng hợp số liệu và cung cấp dữ liệu cho dashboard, báo cáo |
-| Audit Log | Go | Ghi nhận các thao tác quan trọng để phục vụ truy vết |
-| Persistence / Data Access | Go / SQL | Đóng gói truy vấn SQL, transaction và truy cập PostgreSQL |
+| HTTP API & Routing | Go | Receives REST/JSON requests, routes endpoints, and dispatches to business components |
+| Identity & Access | Go | Authenticates users and checks roles / access permissions |
+| User & Profile Management | Go | Manages accounts, user status, and user profiles |
+| Category Management | Go | Manages income and expense categories used by transactions |
+| Income Management | Go | Manages the income lifecycle and related business rules |
+| Expense Management | Go | Manages the expense lifecycle and related business rules |
+| Excel Import | Go | Validates, previews, and creates transactions from valid Excel data |
+| Dashboard & Reporting | Go | Aggregates metrics and provides data for dashboards and reports |
+| Audit Log | Go | Records important actions for traceability |
+| Persistence / Data Access | Go / SQL | Encapsulates SQL queries, transactions, and PostgreSQL access |
 
-Ánh xạ UI hiện tại (frontend) → component đích:
+Mapping from current UI (frontend) → target component:
 
-| Màn hình / module UI | Component C3 |
-| -------------------- | ------------ |
-| Đăng nhập, phân quyền nút | Identity & Access |
-| Người dùng, hồ sơ | User & Profile Management |
-| Loại thu / loại chi | Category Management |
-| Quản lý khoản thu | Income Management |
-| Quản lý khoản chi | Expense Management |
-| Import Excel | Excel Import |
-| Dashboard, báo cáo | Dashboard & Reporting |
-| Nhật ký hoạt động | Audit Log |
+| UI screen / module | C3 Component |
+| ------------------ | ------------ |
+| Login, button-level authorization | Identity & Access |
+| Users, profile | User & Profile Management |
+| Income / expense categories | Category Management |
+| Income Management | Income Management |
+| Expense Management | Expense Management |
+| Excel Import | Excel Import |
+| Dashboard, reports | Dashboard & Reporting |
+| Activity Log | Audit Log |
 
 ## Relationships
 
-### Vào / ra Container
+### Into / out of the Container
 
 | Source | Destination | Relationship |
 | ------ | ----------- | ------------ |
 | Web Frontend | HTTP API & Routing | HTTPS / REST / JSON |
 | Persistence / Data Access | PostgreSQL Database | SQL / PostgreSQL Protocol |
 
-### HTTP API tới nghiệp vụ
+### HTTP API to business components
 
 | Source | Destination | Relationship |
 | ------ | ----------- | ------------ |
-| HTTP API & Routing | Identity & Access | Xác thực / phân quyền |
-| HTTP API & Routing | User & Profile Management | Người dùng / hồ sơ |
-| HTTP API & Routing | Income Management | Nghiệp vụ thu |
-| HTTP API & Routing | Expense Management | Nghiệp vụ chi |
-| HTTP API & Routing | Excel Import | Import Excel |
-| HTTP API & Routing | Category Management | Danh mục |
-| HTTP API & Routing | Dashboard & Reporting | Dashboard / báo cáo |
+| HTTP API & Routing | Identity & Access | Authentication / authorization |
+| HTTP API & Routing | User & Profile Management | Users / profile |
+| HTTP API & Routing | Income Management | Income operations |
+| HTTP API & Routing | Expense Management | Expense operations |
+| HTTP API & Routing | Excel Import | Excel import |
+| HTTP API & Routing | Category Management | Categories |
+| HTTP API & Routing | Dashboard & Reporting | Dashboard / reports |
 
-### Nghiệp vụ tới nhau
+### Business-component relationships
 
 | Source | Destination | Relationship |
 | ------ | ----------- | ------------ |
-| Income Management | Category Management | Dùng danh mục thu |
-| Expense Management | Category Management | Dùng danh mục chi |
-| Excel Import | Income Management | Tạo khoản thu |
-| Excel Import | Expense Management | Ghi thao tác |
-| Income Management | Dashboard & Reporting | Ghi thao tác |
-| Expense Management | Dashboard & Reporting | Ghi thao tác |
-| Excel Import | Dashboard & Reporting | Gửi kết quả import |
-| User & Profile Management | Audit Log | Ghi thao tác quản trị |
-| Income / Expense / Excel Import | Audit Log | Ghi thao tác |
+| Income Management | Category Management | Uses income categories |
+| Expense Management | Category Management | Uses expense categories |
+| Excel Import | Income Management | Creates income records |
+| Excel Import | Expense Management | Creates expense records |
+| Income Management | Dashboard & Reporting | Sends transaction changes / aggregation impact |
+| Expense Management | Dashboard & Reporting | Sends transaction changes / aggregation impact |
+| Excel Import | Dashboard & Reporting | Sends import results |
+| User & Profile Management | Audit Log | Records administrative actions |
+| Income / Expense / Excel Import | Audit Log | Records actions |
 
-### Tới Persistence
+### To Persistence
 
-Identity, User & Profile, Category, Income, Expense, Excel Import, Dashboard & Reporting, Audit Log đều đi **Persistence / Data Access** (đọc tài khoản/quyền, đọc/ghi giao dịch, đọc dữ liệu tổng hợp, lưu audit log). Không component nghiệp vụ nào nối thẳng PostgreSQL.
+Identity, User & Profile, Category, Income, Expense, Excel Import, Dashboard & Reporting, and Audit Log all use **Persistence / Data Access** (read accounts/permissions, read/write transactions, read aggregate data, store audit logs). No business component connects directly to PostgreSQL.
 
 ## Current State
 
-Trong source, logic tương ứng nằm ở JavaScript trình duyệt (`frontend/js/auth.js`, `frontend/js/data.js`, `frontend/js/views.js`). C3 mô tả chỗ các trách nhiệm đó sẽ ngồi khi có Go Backend.
+In the current source, equivalent logic lives in browser JavaScript (`frontend/js/auth.js`, `frontend/js/data.js`, `frontend/js/views.js`). C3 describes where those responsibilities will live once the Go Backend exists.
 
 ## Source of Truth
 
-- Sơ đồ: `c3-component.png`
-- Level trước: [02-container.md](02-container.md)
+- Diagram: `c3-component.png`
+- Previous level: [02-container.md](02-container.md)
 - `frontend/js/auth.js`, `frontend/js/data.js`, `frontend/js/views.js`
 - `docs/02-features.md`, `docs/03-use-cases.md`
 - `database/shop_finance.sql`

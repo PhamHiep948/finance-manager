@@ -1,14 +1,14 @@
-# Sơ đồ dữ liệu
+# Data Diagram
 
-Schema PostgreSQL `shop_finance` cho **HandmadeFinance**.
+PostgreSQL schema `shop_finance` for **HandmadeFinance**.
 
-Giao diện dùng **dữ liệu giả** bám đúng mô hình này (bảng, loại thu/chi, tiền tệ, xóa mềm, kênh bán, phương thức thanh toán, trạng thái hồ sơ). Giao diện **không kết nối** PostgreSQL.
+The interface uses **mock data** aligned with this model (tables, income/expense categories, currency, soft delete, sales channel, payment method, record status). The interface **does not connect** to PostgreSQL.
 
-File thiết kế: [shop_finance.dbml](../database/shop_finance.dbml) · [shop_finance.sql](../database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
+Design files: [shop_finance.dbml](../database/shop_finance.dbml) · [shop_finance.sql](../database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
 
-## Quan hệ (bảng)
+## Relationships (tables)
 
-`app_users` nằm bên trái. Ba nhóm Thu / Chi / Chung tách cột bên phải. Trong Thu và Chi: loại → khoản. `attachments` nằm ở Chung (chứng từ của khoản thu hoặc khoản chi).
+`app_users` is on the left. The three Income / Expense / Shared groups are arranged on the right. Within Income and Expense: category → record. `attachments` is in Shared (an attachment belongs to either an income record or an expense record).
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 30, "rankSpacing": 70, "padding": 12}}}%%
@@ -18,17 +18,17 @@ flowchart LR
   subgraph groups [" "]
     direction TB
 
-    subgraph thu [Thu]
+    subgraph income [Income]
       direction LR
       IC[income_categories] --> IN[incomes]
     end
 
-    subgraph chi [Chi]
+    subgraph expense [Expense]
       direction LR
       EC[expense_categories] --> EX[expenses]
     end
 
-    subgraph chung [Chung]
+    subgraph shared [Shared]
       direction LR
       IB[import_batches]
       AL[audit_logs]
@@ -36,29 +36,29 @@ flowchart LR
     end
   end
 
-  U --> thu
-  U --> chi
-  U --> chung
+  U --> income
+  U --> expense
+  U --> shared
 ```
 
-## Enum
+## Enums
 
-| Enum | Giá trị | UI |
+| Enum | Values | UI |
 |---|---|---|
-| `user_role` | ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER | Quản trị viên, Chủ shop, Nhân viên, Người xem |
-| `data_source` | MANUAL, EXCEL_IMPORT | Nhập tay / Excel |
-| `import_type` | INCOME, EXPENSE | Khoản thu / khoản chi |
-| `import_status` | PENDING, PROCESSING, COMPLETED, FAILED | Trạng thái đợt import |
-| `audit_action` | INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT | Nhật ký |
-| `sale_region` | IN_EU, OUTSIDE_EU | Trong EU / Ngoài EU |
-| `origin_scope` | DOMESTIC, INTERNATIONAL | Nội địa / Quốc tế |
-| `sales_channel` | ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE | Kênh bán trên modal chi tiết thu |
-| `payment_method` | CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL | Phương thức trên modal chi tiết chi |
-| `record_status` | DRAFT, PENDING, COMPLETED | Bản nháp / Chờ xử lý / Hoàn thành |
+| `user_role` | ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER | Administrator, Shop Owner, Employee, Viewer |
+| `data_source` | MANUAL, EXCEL_IMPORT | Manual / Excel |
+| `import_type` | INCOME, EXPENSE | Income / expense |
+| `import_status` | PENDING, PROCESSING, COMPLETED, FAILED | Import-batch status |
+| `audit_action` | INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT | Audit log |
+| `sale_region` | IN_EU, OUTSIDE_EU | Inside EU / Outside EU |
+| `origin_scope` | DOMESTIC, INTERNATIONAL | Domestic / International |
+| `sales_channel` | ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE | Sales channel in income detail modal |
+| `payment_method` | CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL | Payment method in expense detail modal |
+| `record_status` | DRAFT, PENDING, COMPLETED | Draft / Pending / Completed |
 
-## View (tổng hợp báo cáo)
+## Views (report aggregates)
 
-View **không phải bảng lưu**. Dùng để đọc thu/chi còn hiệu lực và cộng theo ngày / tháng / loại. `currency_code` V1 luôn `USD`; đổi EUR trên UI.
+Views are **not stored tables**. They read active income/expense records and aggregate by day / month / category. In V1, `currency_code` is always `USD`; EUR conversion happens in the UI.
 
 ```mermaid
 flowchart LR
@@ -74,7 +74,7 @@ flowchart LR
   E --> V6[vw_expense_by_category]
 ```
 
-## ER chi tiết (cột chính)
+## Detailed ER diagram (main columns)
 
 ```mermaid
 erDiagram

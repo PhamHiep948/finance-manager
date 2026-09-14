@@ -1,66 +1,66 @@
 # C4 Model — HandmadeFinance
 
-Tài liệu này đọc **từ ngoài vào trong**. Mỗi level zoom vào một khối của level trước.
+Read this documentation **from outside to inside**. Each level zooms into one building block from the previous level.
 
 ```text
 C1  System Context
-    Người dùng  →  HandmadeFinance
-         │
-         │  zoom vào Software System
-         ▼
+    Users  →  HandmadeFinance
+      │
+      │  zoom into Software System
+      ▼
 C2  Container
-    Người dùng  →  Web Frontend  →  Go Backend  →  PostgreSQL
-         │
-         │  zoom vào Go Backend
-         ▼
+    Users  →  Web Frontend  →  Go Backend  →  PostgreSQL
+      │
+      │  zoom into Go Backend
+      ▼
 C3  Component
-    Web Frontend  →  HTTP API  →  Identity / nghiệp vụ  →  Persistence  →  PostgreSQL
+    Web Frontend  →  HTTP API  →  Identity / business modules  →  Persistence  →  PostgreSQL
 ```
 
-Chưa có Level 4 Code.
+Level 4 Code is not documented yet.
 
-## Luồng đọc
+## Reading flow
 
-| Bước | Level | Câu hỏi | Zoom từ | Zoom vào |
-| ---- | ----- | ------- | ------- | -------- |
-| 1 | [C1 System Context](01-system-context.md) | Ai dùng hệ thống? Ranh giới ở đâu? | Bối cảnh shop | HandmadeFinance |
-| 2 | [C2 Container](02-container.md) | Hệ thống gồm những khối chạy nào? | HandmadeFinance | Frontend, Go Backend, PostgreSQL |
-| 3 | [C3 Component](03-component.md) | Go Backend chia module thế nào? | Go Backend | HTTP API, Identity, thu/chi, import, báo cáo, audit, persistence |
+| Step | Level | Question | Zoom from | Zoom into |
+| ---- | ----- | -------- | --------- | --------- |
+| 1 | [C1 System Context](01-system-context.md) | Who uses the system? Where is the boundary? | Shop context | HandmadeFinance |
+| 2 | [C2 Container](02-container.md) | Which runtime building blocks make up the system? | HandmadeFinance | Frontend, Go Backend, PostgreSQL |
+| 3 | [C3 Component](03-component.md) | How is the Go Backend divided into modules? | Go Backend | HTTP API, Identity, income/expense, import, reporting, audit, persistence |
 
 ## C1 — System Context
 
 ![C1 System Context](c1-system-context.jpg)
 
-Bốn **Person** dùng một **Software System**. Không có hệ thống bên ngoài.
+Four **Persons** use one **Software System**. There are no external systems.
 
-→ Tiếp: [C2 Container](02-container.md)
+→ Next: [C2 Container](02-container.md)
 
 ## C2 — Container
 
 ![C2 Container](c2-container.jpg)
 
-Zoom C1: bên trong HandmadeFinance là Web Frontend (React.js) → REST/HTTPS/JSON → Go Backend → SQL → PostgreSQL.
+Zoom from C1: inside HandmadeFinance are Web Frontend (React.js) → REST/HTTPS/JSON → Go Backend → SQL → PostgreSQL.
 
-→ Trước: [C1](01-system-context.md) · Tiếp: [C3 Component](03-component.md)
+→ Previous: [C1](01-system-context.md) · Next: [C3 Component](03-component.md)
 
 ## C3 — Component
 
 ![C3 Component](c3-component.png)
 
-Zoom C2: bên trong **Go Backend** (Planned). Frontend và PostgreSQL giữ nguyên vai Container. Request đi HTTP API → xác thực → module nghiệp vụ → Persistence → database.
+Zoom from C2: inside the **Go Backend** (Planned). Frontend and PostgreSQL remain Containers. Requests flow HTTP API → authentication → business modules → Persistence → database.
 
-→ Trước: [C2](02-container.md)
+→ Previous: [C2](02-container.md)
 
 ## Architecture status
 
-| Level | Status | Ghi chú |
-| ----- | ------ | ------- |
-| C1 | Defined | Bốn vai trò; không External System |
-| C2 | Target | Frontend React.js; Go Backend Planned; schema PostgreSQL đã thiết kế |
-| C3 | Target | Component là module logic của Go Backend, chưa có mã Go |
+| Level | Status | Notes |
+| ----- | ------ | ----- |
+| C1 | Defined | Four roles; no External System |
+| C2 | Target | React.js frontend; Go Backend Planned; PostgreSQL schema designed |
+| C3 | Target | Components are logical modules of the Go Backend; no Go code yet |
 | C4 Code | Not documented | |
 
-Current State: frontend mock (`frontend/js/data.js`, `frontend/js/auth.js`). Không `fetch` API. Postgres chạy độc lập qua Docker, app không nối.
+Current State: mock frontend (`frontend/js/data.js`, `frontend/js/auth.js`). No API `fetch`. PostgreSQL runs independently through Docker; the app is not connected to it.
 
 ## Current Architecture Decisions
 
@@ -68,6 +68,6 @@ Current State: frontend mock (`frontend/js/data.js`, `frontend/js/auth.js`). Kh�
 2. Backend target technology is Go (modular monolith).
 3. PostgreSQL is the primary relational database.
 4. Frontend must not connect directly to PostgreSQL.
-5. Mọi request nghiệp vụ đi qua HTTP API rồi Identity & Access trước khi vào module domain.
-6. Persistence / Data Access là chỗ duy nhất nói chuyện SQL với PostgreSQL.
+5. Every business request goes through HTTP API and then Identity & Access before entering a domain module.
+6. Persistence / Data Access is the only layer that communicates with PostgreSQL through SQL.
 7. C4 documentation currently stops at Level 3.

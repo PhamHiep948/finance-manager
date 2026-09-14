@@ -1,17 +1,17 @@
 # Feature Catalog
 
-Status chỉ dùng: `Implemented Mock` | `Designed` | `Partial` | `Not Started`.
+Status values are limited to: `Implemented Mock` | `Designed` | `Partial` | `Not Started`.
 
-Sản phẩm UI: **HandmadeFinance**.
+UI product: **HandmadeFinance**.
 
-| ID | Tên | V1 | Status |
+| ID | Name | V1 | Status |
 |---|---|---|---|
 | F01 | Authentication | Yes | Implemented Mock |
 | F02 | Dashboard | Yes | Implemented Mock |
 | F03 | Income Management | Yes | Implemented Mock |
 | F04 | Expense Management | Yes | Implemented Mock |
 | F05 | Reports | Yes | Implemented Mock |
-| F06 | Excel Import | Yes | Partial (UI/mock; không parse file) |
+| F06 | Excel Import | Yes | Partial (UI/mock; file is not parsed) |
 | F07 | Attachments | Yes | Implemented Mock |
 | F08 | Audit Log | Yes | Implemented Mock |
 | F09 | User Management | Yes | Implemented Mock |
@@ -19,53 +19,53 @@ Sản phẩm UI: **HandmadeFinance**.
 
 ## F01 Authentication
 
-Mock login, không JWT / OAuth. Màn hình 2 cột: giới thiệu HandmadeFinance + form.
+Mock login, no JWT / OAuth. Two-column screen: HandmadeFinance introduction + form.
 
-- F01.1 Login (email, mật khẩu, ghi nhớ thiết bị)
+- F01.1 Login (email, password, remember device)
 - F01.2 Logout
-- F01.3 Session mock (`sessionStorage`; Remember me → `localStorage`)
+- F01.3 Mock session (`sessionStorage`; Remember me → `localStorage`)
 - F01.4 Route guard
 - F01.5 Role guard
-- F01.6 Quên mật khẩu / đăng ký: toast hướng dẫn (không luồng thật)
+- F01.6 Forgot password / sign up: instructional toast only (no real workflow)
 
 ## F02 Dashboard
 
-Tổng doanh thu, tổng chi phí, lợi nhuận ròng, số giao dịch. Biểu đồ thu–chi theo thời gian (lọc khoảng ngày). Doanh thu theo loại thu. Giao dịch gần đây. Đổi tiền xem USD / EUR trên cùng một bộ dữ liệu.
+Total revenue, total expenses, net profit, and transaction count. Income-expense chart over time (date-range filter). Revenue by income category. Recent transactions. Display currency can switch between USD / EUR over the same dataset.
 
 ## F03 Income Management
 
-Danh sách đủ cột (có thể ẩn/hiện cột), KPI tháng, lọc, phân trang, xóa mềm.
+Full-column list (columns can be shown/hidden), monthly KPIs, filters, pagination, and soft delete.
 
-Thêm / sửa bằng **modal**. Xem chi tiết bằng **modal** (kênh bán, trạng thái, chứng từ, breakdown phí).
+Add / edit using a **modal**. View details using a **modal** (sales channel, status, attachments, fee breakdown).
 
-Trường: ngày, tên sản phẩm, loại thu, số tiền trước thuế (lưu USD), % thuế, tiền sau thuế, mã tham chiếu, mã đơn hàng, bán đi đâu, kênh bán, trạng thái hồ sơ, số lượng, đơn giá, Item total, Discount, Subtotal, Shipping, Tax, nguồn nhập (tay / Excel), ghi chú, chứng từ.
+Fields: date, product name, income category, pre-tax amount (stored in USD), tax rate, post-tax amount, reference code, order code, sales destination, sales channel, record status, quantity, unit price, Item total, Discount, Subtotal, Shipping, Tax, input source (manual / Excel), notes, attachments.
 
-Mock mẫu: đơn Etsy `4154185113` (Lily Flower, 5 món, Đức / trong EU, 22.10 USD trước thuế).
+Mock sample: Etsy order `4154185113` (Lily Flower, 5 items, Germany / inside EU, 22.10 USD before tax).
 
 ## F04 Expense Management
 
-Như F03. Thêm người nhận, phạm vi nguồn (nội địa / quốc tế), phương thức thanh toán, % thuế, tiền sau thuế (mặc định = số tiền × (1 + % thuế)).
+Same as F03. Adds payee, source scope (domestic / international), payment method, tax rate, and post-tax amount (default = amount × (1 + tax rate)).
 
 ## F05 Reports
 
-Tổng quan, theo ngày, theo tháng, theo loại thu, theo loại chi. Đổi tiền USD/EUR lúc xem. **Xuất báo cáo** (in mock). Không gọi “xuất hóa đơn”.
+Overview, by day, by month, by income category, by expense category. Switch USD/EUR for display. **Export report** (mock print). Do not call this “invoice export”.
 
 ## F06 Excel Import
 
-Import khoản thu hoặc khoản chi. File `.xlsx` / `.xls`. Preview mock, lịch sử import, success/error mock. **Không parse Excel thật.**
+Import income or expense data. Files `.xlsx` / `.xls`. Mock preview, import history, mock success/error. **No real Excel parsing.**
 
 ## F07 Attachment
 
-`<input type="file">` trên form. Modal chi tiết hiện tên file / ảnh minh họa. Không Base64, không server.
+`<input type="file">` on the form. Detail modal shows file name / illustrative image. No Base64, no server upload.
 
 ## F08 Audit
 
-Mock: tạo, sửa, xóa mềm, import, đăng nhập (hiển thị trên bảng nhật ký). Cột: người dùng, hành động, module, chi tiết, thời gian.
+Mock: create, update, soft delete, import, login (shown in the audit-log table). Columns: user, action, module, details, time.
 
 ## F09 User Management
 
-Chỉ Admin. KPI số người / quản trị / hoạt động / ngừng kích hoạt. Danh sách, thêm, sửa (tên, email, mật khẩu, vai trò, trạng thái), bật/tắt.
+Admin only. KPIs for total users / administrators / active / disabled. List, add, edit (name, email, password, role, status), enable/disable.
 
 ## F10 Profile
 
-Tab **Tài khoản** (họ tên, SĐT, avatar, email/chức vụ chỉ đọc), **Bảo mật** (đổi mật khẩu mock), **Vai trò & quyền hạn** (ma trận quyền, không tự đổi role).
+**Account** tab (full name, phone number, avatar, read-only email/title), **Security** (mock password change), **Roles & Permissions** (permission matrix; users cannot change their own role).

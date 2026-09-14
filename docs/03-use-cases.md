@@ -1,174 +1,174 @@
 # Actors, roles, use cases
 
-Tên sản phẩm: **HandmadeFinance**.
+Product name: **HandmadeFinance**.
 
 ## Actors / roles
 
-| Role | Tên hiển thị trên UI |
+| Role | Display name in UI |
 |---|---|
-| `ADMIN` | Quản trị viên |
-| `SHOP_OWNER` | Chủ shop |
-| `EMPLOYEE` | Nhân viên |
-| `VIEWER` | Người xem |
+| `ADMIN` | Administrator |
+| `SHOP_OWNER` | Shop Owner |
+| `EMPLOYEE` | Employee |
+| `VIEWER` | Viewer |
 
-Không thêm role khác.
+Do not add any other roles.
 
 ## Role × feature matrix
 
-| Chức năng | Admin | Chủ shop | Nhân viên | Người xem |
+| Feature | Admin | Shop Owner | Employee | Viewer |
 |---|---|---|---|---|
 | Dashboard | ✓ | ✓ | ✓ | ✓ |
-| Xem khoản thu | ✓ | ✓ | ✓ | ✓ |
-| Thêm khoản thu | ✓ | ✓ | ✓ | |
-| Sửa khoản thu | ✓ | ✓ | của mình | |
-| Xóa mềm khoản thu | ✓ | ✓ | | |
-| Xem khoản chi | ✓ | ✓ | ✓ | ✓ |
-| Thêm khoản chi | ✓ | ✓ | ✓ | |
-| Sửa khoản chi | ✓ | ✓ | của mình | |
-| Xóa mềm khoản chi | ✓ | ✓ | | |
-| Import dữ liệu Excel | ✓ | ✓ | ✓ | |
-| Xem báo cáo | ✓ | ✓ | | ✓ |
-| Xuất báo cáo | ✓ | ✓ | | ✓ |
-| Nhật ký hoạt động | ✓ | ✓ | | |
-| Người dùng | ✓ | | | |
-| Hồ sơ cá nhân | ✓ | ✓ | ✓ | ✓ |
+| View income | ✓ | ✓ | ✓ | ✓ |
+| Add income | ✓ | ✓ | ✓ | |
+| Edit income | ✓ | ✓ | Own records | |
+| Soft-delete income | ✓ | ✓ | | |
+| View expenses | ✓ | ✓ | ✓ | ✓ |
+| Add expense | ✓ | ✓ | ✓ | |
+| Edit expense | ✓ | ✓ | Own records | |
+| Soft-delete expense | ✓ | ✓ | | |
+| Import Excel data | ✓ | ✓ | ✓ | |
+| View reports | ✓ | ✓ | | ✓ |
+| Export reports | ✓ | ✓ | | ✓ |
+| Activity log | ✓ | ✓ | | |
+| Users | ✓ | | | |
+| Personal profile | ✓ | ✓ | ✓ | ✓ |
 
-Menu / nút **không hiển thị** nếu không có quyền. Truy cập URL không đủ quyền → `#/403`.
+Menus / buttons are **not displayed** when the user lacks permission. Unauthorized URL access → `#/403`.
 
-## Sơ đồ use case (17 UC, một hình)
+## Use-case diagram (17 UCs, one diagram)
 
-Gom theo quyền. Không vẽ 17 sơ đồ riêng.
+Grouped by permission. Do not draw 17 separate diagrams.
 
 ```mermaid
 flowchart TB
   subgraph FM ["HandmadeFinance — UC01 … UC17"]
-    subgraph moi ["Mọi role"]
-      UC01[UC01 Đăng nhập]
-      UC02[UC02 Đăng xuất]
+    subgraph all ["All roles"]
+      UC01[UC01 Login]
+      UC02[UC02 Logout]
       UC03[UC03 Dashboard]
-      UC04[UC04 Xem khoản thu]
-      UC08[UC08 Xem khoản chi]
-      UC17[UC17 Hồ sơ]
+      UC04[UC04 View income]
+      UC08[UC08 View expenses]
+      UC17[UC17 Profile]
     end
-    subgraph nhap ["Admin, Chủ shop, Nhân viên"]
-      UC05[UC05 Thêm thu]
-      UC06[UC06 Sửa thu]
-      UC09[UC09 Thêm chi]
-      UC10[UC10 Sửa chi]
+    subgraph entry ["Admin, Shop Owner, Employee"]
+      UC05[UC05 Add income]
+      UC06[UC06 Edit income]
+      UC09[UC09 Add expense]
+      UC10[UC10 Edit expense]
       UC12[UC12 Import]
     end
-    subgraph bc ["Admin, Chủ shop, Người xem"]
-      UC13[UC13 Xem báo cáo]
-      UC14[UC14 Xuất báo cáo]
+    subgraph reports ["Admin, Shop Owner, Viewer"]
+      UC13[UC13 View reports]
+      UC14[UC14 Export reports]
     end
-    subgraph xoa ["Admin, Chủ shop"]
-      UC07[UC07 Xóa mềm thu]
-      UC11[UC11 Xóa mềm chi]
-      UC15[UC15 Nhật ký]
+    subgraph deleteGroup ["Admin, Shop Owner"]
+      UC07[UC07 Soft-delete income]
+      UC11[UC11 Soft-delete expense]
+      UC15[UC15 Audit log]
     end
-    subgraph ad ["Chỉ Admin"]
-      UC16[UC16 Người dùng]
+    subgraph adminOnly ["Admin only"]
+      UC16[UC16 Users]
     end
   end
 ```
 
-Nhân viên sửa thu/chi: chỉ bản mình tạo. Nhân viên không xóa.
+Employees may edit income/expense records only if they created them. Employees cannot delete records.
 
-Cả bốn: đăng nhập, đăng xuất, dashboard, xem thu/chi, hồ sơ.
+All four roles: login, logout, dashboard, view income/expenses, profile.
 
 ## Use cases
 
-### UC01 Đăng nhập
+### UC01 Login
 
-- **Actor:** tất cả
-- **Preconditions:** có tài khoản mock active
-- **Main flow:** nhập email/mật khẩu → khớp mock user → lưu session → Dashboard
-- **Alternative:** sai thông tin → báo lỗi, ở lại login
+- **Actor:** all roles
+- **Preconditions:** an active mock account exists
+- **Main flow:** enter email/password → match mock user → store session → Dashboard
+- **Alternative:** invalid credentials → show error and remain on login screen
 - **Permission:** public
 - **Result:** mock session
 
-### UC02 Đăng xuất
+### UC02 Logout
 
-- **Actor:** tất cả
-- **Preconditions:** đã login
-- **Main flow:** xóa session → login
+- **Actor:** all roles
+- **Preconditions:** user is logged in
+- **Main flow:** clear session → login
 - **Permission:** authenticated
-- **Result:** không còn vào trang nội bộ
+- **Result:** internal pages are no longer accessible
 
-### UC03 Xem Dashboard
+### UC03 View Dashboard
 
-- **Actor:** tất cả
-- **Preconditions:** đã login
-- **Main flow:** chọn đổi tiền USD/EUR + khoảng ngày → KPI + biểu đồ + theo loại + giao dịch gần đây (bản ghi chưa xóa mềm)
+- **Actor:** all roles
+- **Preconditions:** user is logged in
+- **Main flow:** choose USD/EUR display + date range → KPIs + charts + category breakdown + recent transactions (records not soft-deleted)
 - **Permission:** `dashboard`
-- **Result:** cùng một bộ dữ liệu; EUR chỉ là quy đổi hiển thị
+- **Result:** one dataset; EUR is display-only conversion
 
-### UC04 Xem khoản thu
+### UC04 View income
 
-- **Actor:** tất cả
-- **Main flow:** list `deletedAt == null` + lọc + cột hiển thị + modal chi tiết
+- **Actor:** all roles
+- **Main flow:** list `deletedAt == null` + filters + visible columns + detail modal
 - **Permission:** `incomeRead`
-- **Result:** Viewer không nút thêm / sửa / xóa
+- **Result:** Viewer has no add / edit / delete buttons
 
-### UC05 Thêm khoản thu
+### UC05 Add income
 
-- **Actor:** Admin, Chủ shop, Nhân viên
-- **Main flow:** modal form → validate → thêm mock, `source = MANUAL`, audit mock. Tên sản phẩm, trước thuế / % thuế / sau thuế; chi tiết đơn (mã, EU, SL, đơn giá, phí).
+- **Actor:** Admin, Shop Owner, Employee
+- **Main flow:** modal form → validate → add mock record, `source = MANUAL`, create mock audit entry. Product name, pre-tax amount / tax rate / post-tax amount; order details (code, EU region, quantity, unit price, fees).
 - **Permission:** `incomeCreate`
-- **Result:** xuất hiện trên list
+- **Result:** appears in the list
 
-### UC06 Sửa khoản thu
+### UC06 Edit income
 
-- **Actor:** Admin, Chủ shop; Nhân viên nếu `createdBy` = mình
-- **Main flow:** modal form → cập nhật
-- **Permission:** `incomeUpdate` (+ own cho employee)
-- **Result:** list/audit cập nhật
+- **Actor:** Admin, Shop Owner; Employee if `createdBy` = current user
+- **Main flow:** modal form → update
+- **Permission:** `incomeUpdate` (+ own-record restriction for employee)
+- **Result:** list/audit is updated
 
-### UC07 Xóa mềm khoản thu
+### UC07 Soft-delete income
 
-- **Actor:** Admin, Chủ shop
-- **Main flow:** confirm → `deletedAt`, `deletedBy`; không `splice`
+- **Actor:** Admin, Shop Owner
+- **Main flow:** confirm → set `deletedAt`, `deletedBy`; do not `splice`
 - **Permission:** `incomeDelete`
-- **Result:** biến mất list active; audit còn
+- **Result:** disappears from active list; audit remains
 
-### UC08–UC11 Khoản chi
+### UC08–UC11 Expenses
 
-Cùng mô hình UC04–UC07. Thêm người nhận, phạm vi nội địa/quốc tế, phương thức thanh toán, % thuế, tiền sau thuế. Permission `expense*`.
+Same model as UC04–UC07. Adds payee, domestic/international scope, payment method, tax rate, and post-tax amount. Permission `expense*`.
 
-### UC12 Import dữ liệu
+### UC12 Import data
 
-- **Actor:** Admin, Chủ shop, Nhân viên
-- **Main flow:** chọn thu/chi → chọn `.xlsx`/`.xls` → preview mock → Import → loading → success/error mock + lịch sử
+- **Actor:** Admin, Shop Owner, Employee
+- **Main flow:** choose income/expense → choose `.xlsx`/`.xls` → mock preview → Import → loading → mock success/error + history
 - **Permission:** `importData`
-- **Result:** không đọc nội dung Excel thật
+- **Result:** actual Excel contents are not read
 
-### UC13 Xem báo cáo
+### UC13 View reports
 
-- **Actor:** Admin, Chủ shop, Người xem
-- **Main flow:** đổi tiền USD/EUR, khoảng ngày, loại (prefix `INCOME:` / `EXPENSE:`)
+- **Actor:** Admin, Shop Owner, Viewer
+- **Main flow:** switch USD/EUR display, choose date range, choose category (prefix `INCOME:` / `EXPENSE:`)
 - **Permission:** `reportRead`
-- **Result:** tổng trên toàn bộ bản ghi (lưu USD). Employee → 403
+- **Result:** aggregates all records (stored in USD). Employee → 403
 
-### UC14 Xuất báo cáo
+### UC14 Export reports
 
-- **Actor:** Admin, Chủ shop, Người xem
-- **Main flow:** in cửa sổ báo cáo theo bộ lọc hiện tại (mock)
+- **Actor:** Admin, Shop Owner, Viewer
+- **Main flow:** print the report window using the current filters (mock)
 - **Permission:** `reportRead`
-- **Result:** không phải hóa đơn điện tử
+- **Result:** this is not an electronic invoice
 
-### UC15 Xem nhật ký
+### UC15 View audit log
 
-- **Actor:** Admin, Chủ shop
+- **Actor:** Admin, Shop Owner
 - **Permission:** `auditRead`
 
-### UC16 Quản lý người dùng
+### UC16 Manage users
 
 - **Actor:** Admin
-- **Main flow:** list, thêm/sửa (tên, email, mật khẩu, SĐT trên hồ sơ, role, trạng thái), bật/tắt
+- **Main flow:** list, add/edit (name, email, password, phone in profile, role, status), enable/disable
 - **Permission:** `userManagement`
 
-### UC17 Hồ sơ cá nhân
+### UC17 Personal profile
 
-- **Actor:** tất cả
-- **Main flow:** tab tài khoản (tên, SĐT, avatar), bảo mật (đổi mật khẩu mock), vai trò (chỉ xem)
+- **Actor:** all roles
+- **Main flow:** account tab (name, phone number, avatar), security (mock password change), role (read-only)
 - **Permission:** authenticated

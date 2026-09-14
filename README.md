@@ -1,69 +1,69 @@
 # HandmadeFinance
 
-Web quản lý thu – chi cho shop handmade: ghi nhận tiền vào, tiền ra, theo dõi tổng doanh thu, tổng chi phí và lợi nhuận ròng theo thời gian và theo loại. Số liệu lưu USD; trên giao diện đổi sang EUR lúc xem.
+Income and expense management web app for a handmade shop: record money in, money out, track total revenue, total expenses, and net profit over time and by category. Amounts are stored in USD; the interface can convert them to EUR for display.
 
-Giao diện **React.js** (**HandmadeFinance**), backend đích **Go**, dữ liệu **PostgreSQL**. Bản mock trong repo vẫn chạy trên trình duyệt (chưa nối API).
+The target stack is a **React.js** frontend (**HandmadeFinance**), a **Go** backend, and **PostgreSQL** for data storage. The mock version in this repository still runs entirely in the browser (API integration is not implemented yet).
 
 ![Dashboard](docs/images/admin/01-dashboard.png)
 
-## Chức năng chính
+## Main features
 
-- Đăng nhập, đăng xuất, phân quyền theo vai trò trên giao diện
-- Dashboard: tổng doanh thu, tổng chi phí, lợi nhuận ròng, số giao dịch, biểu đồ, theo loại thu, giao dịch gần đây
-- Quản lý khoản thu: danh sách đủ cột (ẩn/hiện cột), modal thêm/sửa, modal chi tiết; tên sản phẩm, mã đơn, khu vực EU, kênh bán, SL, đơn giá, Item / Discount / Subtotal / Shipping / Tax, trước thuế / % thuế / sau thuế, trạng thái hồ sơ
-- Quản lý khoản chi: cùng luồng; người nhận, phạm vi nội địa/quốc tế, phương thức thanh toán, % thuế, tiền sau thuế
-- Báo cáo & phân tích: tổng quan, theo ngày, theo tháng, theo loại thu, theo loại chi, xuất báo cáo (in)
-- Import dữ liệu Excel: chọn file, xem trước, lịch sử trên giao diện
-- Nhật ký hoạt động
-- Người dùng (Admin): thêm/sửa, bật/tắt, avatar
-- Hồ sơ: tài khoản (SĐT, avatar), bảo mật, vai trò & quyền hạn
+- Login, logout, and role-based access control in the UI
+- Dashboard: total revenue, total expenses, net profit, transaction count, charts, revenue by income category, and recent transactions
+- Income management: full-column list (show/hide columns), add/edit modal, detail modal; product name, order code, EU region, sales channel, quantity, unit price, Item / Discount / Subtotal / Shipping / Tax, pre-tax amount / tax rate / post-tax amount, and record status
+- Expense management: same workflow; payee, domestic/international scope, payment method, tax rate, and post-tax amount
+- Reports & analytics: overview, by day, by month, by income category, by expense category, report export (print)
+- Excel data import: file selection, preview, and import history in the UI
+- Activity log
+- User management (Admin): add/edit, enable/disable, avatar
+- Profile: account (phone number, avatar), security, roles & permissions
 
-## Vai trò
+## Roles
 
-Có bốn vai trò. Menu và nút chỉ hiện khi có quyền.
+There are four roles. Menus and buttons are shown only when the user has permission.
 
-| | Admin | Chủ shop | Nhân viên | Người xem |
+| | Admin | Shop Owner | Employee | Viewer |
 |---|---|---|---|---|
-| Dashboard | Có | Có | Có | Có |
-| Xem thu / chi | Có | Có | Có | Có |
-| Thêm thu / chi | Có | Có | Có | |
-| Sửa thu / chi | Có | Có | Bản mình tạo | |
-| Xóa mềm thu / chi | Có | Có | | |
-| Import dữ liệu Excel | Có | Có | Có | |
-| Báo cáo | Có | Có | | Có |
-| Nhật ký hoạt động | Có | Có | | |
-| Người dùng | Có | | | |
-| Hồ sơ cá nhân | Có | Có | Có | Có |
+| Dashboard | Yes | Yes | Yes | Yes |
+| View income / expenses | Yes | Yes | Yes | Yes |
+| Add income / expenses | Yes | Yes | Yes | |
+| Edit income / expenses | Yes | Yes | Own records | |
+| Soft-delete income / expenses | Yes | Yes | | |
+| Import Excel data | Yes | Yes | Yes | |
+| Reports | Yes | Yes | | Yes |
+| Activity log | Yes | Yes | | |
+| Users | Yes | | | |
+| Personal profile | Yes | Yes | Yes | Yes |
 
-Tài khoản demo (mật khẩu `123456`):
+Demo accounts (password `123456`):
 
-- `admin@demo.local` — Quản trị viên
-- `owner@demo.local` — Chủ shop
-- `staff@demo.local` — Nhân viên
-- `viewer@demo.local` — Người xem
+- `admin@demo.local` — Administrator
+- `owner@demo.local` — Shop Owner
+- `staff@demo.local` — Employee
+- `viewer@demo.local` — Viewer
 
-![Đăng nhập](docs/images/chung/01-dang-nhap.png)
+![Login](docs/images/chung/01-dang-nhap.png)
 
 ## Mind map
 
-![Mind map HandmadeFinance](docs/mindmap.png)
+![HandmadeFinance mind map](docs/mindmap.png)
 
 ## Workflow
 
-Nhiều luồng riêng, cùng khung: hình viên thuốc = bắt đầu/kết thúc, chữ nhật = bước, thoi = Yes / No. Nút không hiện nếu thiếu quyền; URL không đủ quyền → `#/403`.
+Several separate flows share the same convention: pill shape = start/end, rectangle = step, diamond = Yes / No. A button is hidden when permission is missing; unauthorized URL access → `#/403`.
 
-### 1. Đăng nhập
+### 1. Login
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Mở HandmadeFinance]
-  A --> B[Nhập email và mật khẩu]
-  B --> C{Tài khoản đúng và đang hoạt động?}
-  C -->|No| D[Hiện lỗi trên form]
+  S([Start]) --> A[Open HandmadeFinance]
+  A --> B[Enter email and password]
+  B --> C{Credentials valid and account active?}
+  C -->|No| D[Show form error]
   D --> B
-  C -->|Yes| E[Lưu session]
-  E --> F[Mở Dashboard]
-  F --> END([Kết thúc])
+  C -->|Yes| E[Store session]
+  E --> F[Open Dashboard]
+  F --> END([End])
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
   classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
@@ -75,26 +75,26 @@ flowchart TD
   class C decision
 ```
 
-### 2. Ghi khoản thu hoặc chi
+### 2. Record income or expense
 
-Admin, Chủ shop, Nhân viên. Người xem không có nút thêm.
+Admin, Shop Owner, Employee. Viewer does not have an add button.
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Từ Dashboard mở khoản thu hoặc chi]
-  A --> B{Có quyền thêm?}
-  B -->|No| C[403 hoặc ẩn nút]
-  C --> END1([Kết thúc])
-  B -->|Yes| D[Mở modal nhập]
-  D --> E{Đủ trường bắt buộc?}
+  S([Start]) --> A[Open income or expenses from Dashboard]
+  A --> B{Has create permission?}
+  B -->|No| C[403 or hide button]
+  C --> END1([End])
+  B -->|Yes| D[Open entry modal]
+  D --> E{All required fields provided?}
   E -->|No| D
-  E -->|Yes| F[Lưu USD · source MANUAL]
-  F --> G{Có chứng từ?}
-  G -->|Yes| H[Lưu tên / type / size]
-  G -->|No| I[Ghi nhật ký]
+  E -->|Yes| F[Save in USD · source MANUAL]
+  F --> G{Attachment provided?}
+  G -->|Yes| H[Save name / type / size]
+  G -->|No| I[Write audit log]
   H --> I
-  I --> J[Hiện trên danh sách]
-  J --> END2([Kết thúc])
+  I --> J[Show in list]
+  J --> END2([End])
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
   classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
@@ -106,29 +106,29 @@ flowchart TD
   class B,E,G decision
 ```
 
-### 3. Sửa hoặc xóa mềm
+### 3. Edit or soft delete
 
-Nhân viên chỉ sửa bản mình tạo. Chỉ Admin và Chủ shop được xóa mềm.
+Employees may edit only records they created. Only Admin and Shop Owner may soft-delete.
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Chọn dòng trên danh sách]
-  A --> B{Sửa hay xóa?}
-  B -->|Sửa| C{Đủ quyền hoặc đúng người tạo?}
-  C -->|No| D[Ẩn nút / không lưu]
-  D --> END1([Kết thúc])
-  C -->|Yes| E[Mở modal]
-  E --> F{Đủ trường bắt buộc?}
+  S([Start]) --> A[Select a row in the list]
+  A --> B{Edit or delete?}
+  B -->|Edit| C{Has permission or is record creator?}
+  C -->|No| D[Hide button / do not save]
+  D --> END1([End])
+  C -->|Yes| E[Open modal]
+  E --> F{All required fields provided?}
   F -->|No| E
-  F -->|Yes| G[Cập nhật · ghi nhật ký]
-  G --> END2([Kết thúc])
-  B -->|Xóa| H{Có quyền xóa mềm?}
+  F -->|Yes| G[Update · write audit log]
+  G --> END2([End])
+  B -->|Delete| H{Has soft-delete permission?}
   H -->|No| D
-  H -->|Yes| I[Xác nhận]
-  I --> J{Đồng ý?}
+  H -->|Yes| I[Confirm]
+  I --> J{Confirmed?}
   J -->|No| END1
-  J -->|Yes| K[deletedAt · ghi nhật ký]
-  K --> L[Biến khỏi danh sách active]
+  J -->|Yes| K[deletedAt · write audit log]
+  K --> L[Remove from active list]
   L --> END2
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
@@ -141,26 +141,26 @@ flowchart TD
   class B,C,F,H,J decision
 ```
 
-### 4. Import Excel
+### 4. Excel import
 
-Admin, Chủ shop, Nhân viên. Không đọc nội dung file thật.
+Admin, Shop Owner, Employee. The mock does not read the actual file contents.
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Mở Import dữ liệu Excel]
-  A --> B{Có quyền import?}
+  S([Start]) --> A[Open Excel Data Import]
+  A --> B{Has import permission?}
   B -->|No| C[403]
-  C --> END1([Kết thúc])
-  B -->|Yes| D[Chọn khoản thu hoặc khoản chi]
-  D --> E[Chọn file]
-  E --> F{File .xlsx hoặc .xls?}
+  C --> END1([End])
+  B -->|Yes| D[Choose income or expense]
+  D --> E[Choose file]
+  E --> F{File is .xlsx or .xls?}
   F -->|No| E
-  F -->|Yes| G[Preview mock]
-  G --> H[Bấm Import]
-  H --> I{Thành công?}
-  I -->|No| J[Lịch sử FAILED]
-  I -->|Yes| K[Lịch sử COMPLETED]
-  J --> END2([Kết thúc])
+  F -->|Yes| G[Mock preview]
+  G --> H[Click Import]
+  H --> I{Successful?}
+  I -->|No| J[History status FAILED]
+  I -->|Yes| K[History status COMPLETED]
+  J --> END2([End])
   K --> END2
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
@@ -173,22 +173,22 @@ flowchart TD
   class B,F,I decision
 ```
 
-### 5. Báo cáo
+### 5. Reports
 
-Admin, Chủ shop, Người xem. Nhân viên không vào được.
+Admin, Shop Owner, Viewer. Employee cannot access reports.
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Mở Báo cáo]
-  A --> B{Có quyền báo cáo?}
+  S([Start]) --> A[Open Reports]
+  A --> B{Has report permission?}
   B -->|No| C[403]
-  C --> END1([Kết thúc])
-  B -->|Yes| D[Lọc ngày / loại]
-  D --> E[Đổi tiền USD hoặc EUR]
-  E --> F[Xem tổng quan · ngày · tháng · loại]
-  F --> G{Xuất báo cáo?}
-  G -->|Yes| H[In mock]
-  G -->|No| END2([Kết thúc])
+  C --> END1([End])
+  B -->|Yes| D[Filter by date / category]
+  D --> E[Display currency USD or EUR]
+  E --> F[View overview · daily · monthly · category]
+  F --> G{Export report?}
+  G -->|Yes| H[Mock print]
+  G -->|No| END2([End])
   H --> END2
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
@@ -201,14 +201,14 @@ flowchart TD
   class B,G decision
 ```
 
-### 6. Đăng xuất
+### 6. Logout
 
 ```mermaid
 flowchart TD
-  S([Bắt đầu]) --> A[Chọn Đăng xuất]
-  A --> B[Xóa session]
-  B --> C[Về màn hình đăng nhập]
-  C --> END([Kết thúc])
+  S([Start]) --> A[Select Logout]
+  A --> B[Clear session]
+  B --> C[Return to login screen]
+  C --> END([End])
 
   classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
   classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
@@ -216,70 +216,70 @@ flowchart TD
   class A,B,C step
 ```
 
-Số liệu lưu USD; EUR chỉ đổi lúc xem.
+Amounts are stored in USD; EUR is used only as a display conversion.
 
-## Giao diện
+## Interface
 
-Sau khi đăng nhập (sidebar + topbar):
+After login (sidebar + top bar):
 
 - Dashboard
-- Quản lý khoản thu
-- Quản lý khoản chi
-- Báo cáo & Phân tích
-- Import dữ liệu Excel
-- Nhật ký hoạt động
-- Quản lý người dùng
-- Hồ sơ cá nhân
+- Income Management
+- Expense Management
+- Reports & Analytics
+- Excel Data Import
+- Activity Log
+- User Management
+- Personal Profile
 
-Ảnh theo từng vai trò:
+Screenshots by role:
 
-- [chung](docs/images/chung/) — đăng nhập
+- [common](docs/images/chung/) — login
 - [admin](docs/images/admin/)
-- [chu-shop](docs/images/chu-shop/)
-- [nhan-vien](docs/images/nhan-vien/)
-- [nguoi-xem](docs/images/nguoi-xem/)
+- [shop-owner](docs/images/chu-shop/)
+- [employee](docs/images/nhan-vien/)
+- [viewer](docs/images/nguoi-xem/)
 
-Người xem — danh sách khoản thu (không nút thêm / sửa / xóa):
+Viewer — income list (no add / edit / delete buttons):
 
-![Người xem — khoản thu](docs/images/nguoi-xem/02-khoan-thu.png)
+![Viewer — income](docs/images/nguoi-xem/02-khoan-thu.png)
 
-Nhân viên — không có Báo cáo, Nhật ký, Người dùng trên menu:
+Employee — no Reports, Activity Log, or Users menu items:
 
-![Nhân viên — Dashboard](docs/images/nhan-vien/01-dashboard.png)
+![Employee — Dashboard](docs/images/nhan-vien/01-dashboard.png)
 
-## Dữ liệu
+## Data
 
-Thiết kế PostgreSQL (`database/shop_finance.sql`, `database/shop_finance.dbml`) gồm:
+The PostgreSQL design (`database/shop_finance.sql`, `database/shop_finance.dbml`) includes:
 
-- người dùng (SĐT, avatar, trạng thái)
-- loại thu, khoản thu (kênh bán, trạng thái hồ sơ, trước/sau thuế)
-- loại chi, khoản chi (phương thức thanh toán, trạng thái)
-- chứng từ
-- đợt import
-- nhật ký
+- users (phone number, avatar, status)
+- income categories and income records (sales channel, record status, pre/post-tax amounts)
+- expense categories and expense records (payment method, status)
+- attachments
+- import batches
+- audit logs
 
-Số liệu trên giao diện lấy từ `frontend/js/data.js` (có mẫu đơn Etsy `4154185113`). Một bộ dữ liệu USD; toolbar Đổi tiền xem USD hoặc EUR (tỷ giá mock).
+The UI data comes from `frontend/js/data.js` (including sample Etsy order `4154185113`). There is one USD dataset; the currency toolbar displays either USD or EUR using a mock exchange rate.
 
-## Cấu trúc repository
+## Repository structure
 
 ```text
 finance-manager/
   README.md
   frontend/          index.html, css/, js/
-  docs/              tài liệu sản phẩm
-  docs/images/       ảnh UI theo vai trò
+  docs/              product documentation
+  docs/images/       UI screenshots by role
   database/          shop_finance.sql, shop_finance.dbml
   scripts/           serve.sh, serve.bat
 ```
 
-## Tài liệu
+## Documentation
 
-- [Phạm vi](docs/01-scope.md)
-- [Chức năng](docs/02-features.md)
-- [Use case](docs/03-use-cases.md)
-- [Kiến trúc thông tin](docs/04-information-architecture.md)
-- [Mô hình dữ liệu](docs/05-data-model.md)
-- [Sơ đồ ER](docs/DATABASE.md)
-- [Tiêu chí chấp nhận](docs/06-acceptance-criteria.md)
+- [Scope](docs/01-scope.md)
+- [Features](docs/02-features.md)
+- [Use cases](docs/03-use-cases.md)
+- [Information architecture](docs/04-information-architecture.md)
+- [Data model](docs/05-data-model.md)
+- [ER diagram](docs/DATABASE.md)
+- [Acceptance criteria](docs/06-acceptance-criteria.md)
 - [Mind map](docs/mindmap.png)
-- [C4 kiến trúc (C1 → C2 → C3)](docs/architecture/c4/README.md)
+- [C4 architecture (C1 → C2 → C3)](docs/architecture/c4/README.md)

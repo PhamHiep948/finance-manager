@@ -1,20 +1,20 @@
 # C1 — System Context
 
-HandmadeFinance nằm trong bối cảnh nào, ai sử dụng nó, và ranh giới hệ thống ở đâu?
+What context does HandmadeFinance operate in, who uses it, and where is the system boundary?
 
-Luồng C4: **C1** → [C2 Container](02-container.md) → [C3 Component](03-component.md)
+C4 flow: **C1** → [C2 Container](02-container.md) → [C3 Component](03-component.md)
 
-Đây là bước 1: nhìn hệ thống từ bên ngoài, chưa nói công nghệ.
+This is step 1: view the system from the outside, without discussing technology yet.
 
 ![C1 System Context — HandmadeFinance](c1-system-context.jpg)
 
-File ảnh: [c1-system-context.jpg](c1-system-context.jpg)
+Image file: [c1-system-context.jpg](c1-system-context.jpg)
 
-## Cách đọc sơ đồ
+## How to read the diagram
 
-Một **Software System** ở giữa. Bốn **Person** đứng xung quanh, mỗi người một mối quan hệ vào hệ thống.
+One **Software System** is in the center. Four **Persons** are around it, each with one relationship to the system.
 
-Không có **External Software System** ở mức C1.
+There is no **External Software System** at C1 level.
 
 ## System
 
@@ -22,36 +22,36 @@ Không có **External Software System** ở mức C1.
 |---|---|
 | **Name** | HandmadeFinance |
 | **Type** | Software System |
-| **Description** | Hệ thống quản lý thu - chi cho shop handmade, theo dõi doanh thu, chi phí, chênh lệch thu - chi và báo cáo tài chính. |
+| **Description** | Income and expense management system for a handmade shop, tracking revenue, expenses, net cashflow, and financial reports. |
 
-**Inside HandmadeFinance:** đăng nhập, dashboard, khoản thu/chi, danh mục, báo cáo, import dữ liệu, nhật ký, người dùng, hồ sơ, phân quyền theo vai trò.
+**Inside HandmadeFinance:** login, dashboard, income/expenses, categories, reports, data import, audit log, users, profiles, and role-based access control.
 
-**Outside:** bốn vai trò người dùng; quy trình cửa hàng thủ công ngoài phần mềm; hệ thống bên thứ ba không thuộc V1 (ERP, kho SKU, cổng thanh toán, API sàn).
+**Outside:** the four user roles; manual shop processes outside the software; third-party systems not included in V1 (ERP, SKU inventory, payment gateways, marketplace APIs).
 
 ## People
 
-Bốn vai trò lấy từ `frontend/js/auth.js` (`ADMIN`, `SHOP_OWNER`, `EMPLOYEE`, `VIEWER`).
+The four roles come from `frontend/js/auth.js` (`ADMIN`, `SHOP_OWNER`, `EMPLOYEE`, `VIEWER`).
 
-| Actor | Trên sơ đồ | Relationship tới HandmadeFinance |
-| ----- | ---------- | -------------------------------- |
-| Chủ shop | Quản lý và theo dõi hoạt động thu - chi của cửa hàng | Quản lý và theo dõi thu - chi |
-| Admin | Quản trị người dùng và các chức năng quản trị hệ thống | Quản trị hệ thống và người dùng |
-| Nhân viên | Thực hiện nghiệp vụ thu - chi theo quyền được cấp | Ghi nhận giao dịch theo quyền |
-| Người xem | Xem dữ liệu và báo cáo theo quyền truy cập | Xem dữ liệu và báo cáo |
+| Actor | On the diagram | Relationship to HandmadeFinance |
+| ----- | -------------- | -------------------------------- |
+| Shop Owner | Manages and monitors the shop's income and expenses | Manages and monitors income and expenses |
+| Admin | Administers users and system-management functions | Administers the system and users |
+| Employee | Performs income/expense operations according to assigned permissions | Records transactions according to permissions |
+| Viewer | Views data and reports according to access rights | Views data and reports |
 
 ## External Systems
 
 No external software systems are currently required at the System Context level.
 
-Requirement V1 không dùng cổng thanh toán hay API sàn.
+V1 does not use payment gateways or marketplace APIs.
 
-## Bước tiếp theo
+## Next step
 
-Zoom vào HandmadeFinance để xem các Container: [C2 — Container](02-container.md).
+Zoom into HandmadeFinance to view its Containers: [C2 — Container](02-container.md).
 
 ## Source of Truth
 
-- Sơ đồ: `c1-system-context.jpg`
+- Diagram: `c1-system-context.jpg`
 - `README.md` (repo)
 - `docs/01-scope.md`
 - `docs/02-features.md`

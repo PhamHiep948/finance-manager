@@ -1,19 +1,19 @@
 Project handmade_finance {
   database_type: "PostgreSQL"
   Note: '''
-    Sản phẩm: HandmadeFinance. Schema shop_finance.
-    Giao diện HTML mock; schema này bám đúng trường UI đang hiện.
+    Product: HandmadeFinance. Schema shop_finance.
+    Mock HTML interface; this schema matches the fields currently shown in the UI.
 
-    Người dùng: email đăng nhập, SĐT, avatar, vai trò, đang hoạt động / ngừng kích hoạt.
-    Khoản thu: tên SP, mã đơn, khu vực EU, SL, đơn giá, Item/Discount/Subtotal/Ship/Tax,
-    số tiền trước thuế (amount), % thuế, tiền sau thuế, kênh bán, trạng thái hồ sơ.
-    Khoản chi: người nhận, nội địa/quốc tế, phương thức thanh toán, trước thuế / % thuế / sau thuế, trạng thái.
-    Số tiền lưu USD. UI đổi EUR lúc xem — không tách data theo tiền tệ.
-    Không quản lý kho SKU hay đơn nhiều dòng sản phẩm riêng.
-    Loại thu seed: Bán hàng, Thu khác.
-    Loại chi seed: Nguyên vật liệu, Bao bì / đóng gói, Vận chuyển, Quảng cáo,
-    Phí dịch vụ, Lương nhân viên, Điện / nước / Internet, Thuê mặt bằng,
-    Công cụ / thiết bị, Chi khác.
+    Users: login email, phone number, avatar, role, active / disabled status.
+    Income: product name, order code, EU region, quantity, unit price, Item/Discount/Subtotal/Ship/Tax,
+    pre-tax amount (amount), tax rate, post-tax amount, sales channel, record status.
+    Expenses: payee, domestic/international scope, payment method, pre-tax / tax rate / post-tax, status.
+    Amounts are stored in USD. The UI converts to EUR for display — no separate currency datasets.
+    No SKU inventory management or separate multi-line product orders.
+    Income category seeds: Sales, Other Income.
+    Expense category seeds: Raw Materials, Packaging, Shipping, Advertising,
+    Service Fees, Employee Salaries, Electricity / Water / Internet, Premises Rent,
+    Tools / Equipment, Other Expenses.
   '''
 }
 
@@ -101,7 +101,7 @@ TableGroup shared {
   audit_logs
 }
 
-Table app_users [note: "Người dùng; 4 vai trò. UI: avatar, SĐT, trạng thái hoạt động, lần hoạt động gần nhất."] {
+Table app_users [note: "Users; 4 roles. UI: avatar, phone number, active status, last activity time."] {
   id bigint [pk, increment]
   username varchar(100) [not null]
   email varchar(255)
@@ -118,7 +118,7 @@ Table app_users [note: "Người dùng; 4 vai trò. UI: avatar, SĐT, trạng th
   deleted_at timestamptz
 }
 
-Table import_batches [note: "Theo dõi từng lần import Excel trên trang Import dữ liệu Excel"] {
+Table import_batches [note: "Tracks each Excel import run from the Excel Data Import page"] {
   id bigint [pk, increment]
   import_type import_type [not null]
   original_file_name varchar(500) [not null]
@@ -133,7 +133,7 @@ Table import_batches [note: "Theo dõi từng lần import Excel trên trang Imp
   completed_at timestamptz
 }
 
-Table income_categories [note: "Phân loại khoản thu — UI badge Loại thu"] {
+Table income_categories [note: "Income classification — Income Category badge in the UI"] {
   id bigint [pk, increment]
   name varchar(150) [not null]
   description text
@@ -144,13 +144,13 @@ Table income_categories [note: "Phân loại khoản thu — UI badge Loại thu
   created_by bigint
 }
 
-Table incomes [note: "amount = số tiền trước thuế trên list/form. amount_after_tax tự tính từ % thuế. Chi tiết đơn: mã, EU, SL, phí. Modal chi tiết: kênh bán, trạng thái."] {
+Table incomes [note: "amount = pre-tax amount in list/form. amount_after_tax is calculated from tax rate. Order details: code, EU, quantity, fees. Detail modal: sales channel, status."] {
   id bigint [pk, increment]
   income_date date [not null]
   description text [not null]
   income_category_id bigint [not null]
   amount numeric(18,2) [not null]
-  currency_code varchar(3) [not null, default: "USD", note: "V1 chỉ USD; EUR là đổi tiền trên UI"]
+  currency_code varchar(3) [not null, default: "USD", note: "V1 supports USD only; EUR is a UI display conversion"]
   reference_code varchar(150)
   order_code varchar(150)
   sale_region sale_region
@@ -177,7 +177,7 @@ Table incomes [note: "amount = số tiền trước thuế trên list/form. amou
   deleted_by bigint
 }
 
-Table expense_categories [note: "Phân loại khoản chi — UI badge Loại chi"] {
+Table expense_categories [note: "Expense classification — Expense Category badge in the UI"] {
   id bigint [pk, increment]
   name varchar(150) [not null]
   description text
@@ -188,13 +188,13 @@ Table expense_categories [note: "Phân loại khoản chi — UI badge Loại ch
   created_by bigint
 }
 
-Table expenses [note: "amount = số tiền trước thuế. Modal chi tiết: phương thức thanh toán, trạng thái hồ sơ."] {
+Table expenses [note: "amount = pre-tax amount. Detail modal: payment method, record status."] {
   id bigint [pk, increment]
   expense_date date [not null]
   description text [not null]
   expense_category_id bigint [not null]
   amount numeric(18,2) [not null]
-  currency_code varchar(3) [not null, default: "USD", note: "V1 chỉ USD; EUR là đổi tiền trên UI"]
+  currency_code varchar(3) [not null, default: "USD", note: "V1 supports USD only; EUR is a UI display conversion"]
   payee varchar(255)
   origin_scope origin_scope [not null, default: "DOMESTIC"]
   payment_method payment_method
@@ -212,7 +212,7 @@ Table expenses [note: "amount = số tiền trước thuế. Modal chi tiết: p
   deleted_by bigint
 }
 
-Table attachments [note: "Metadata chứng từ trên modal chi tiết; file ngoài Postgres. Đúng một trong income_id / expense_id"] {
+Table attachments [note: "Attachment metadata shown in the detail modal; file stored outside Postgres. Exactly one of income_id / expense_id"] {
   id bigint [pk, increment]
   income_id bigint
   expense_id bigint
@@ -224,7 +224,7 @@ Table attachments [note: "Metadata chứng từ trên modal chi tiết; file ngo
   uploaded_at timestamptz [not null, default: `now()`]
 }
 
-Table audit_logs [note: "Nhật ký hoạt động trên UI: module, mô tả, IP. Trigger INSERT/UPDATE/DELETE; LOGIN/EXPORT/IMPORT do app ghi."] {
+Table audit_logs [note: "Activity log in the UI: module, description, IP. INSERT/UPDATE/DELETE via trigger; LOGIN/EXPORT/IMPORT written by the app."] {
   id bigint [pk, increment]
   table_name varchar(100)
   record_id bigint

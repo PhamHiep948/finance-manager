@@ -1,63 +1,63 @@
 # Scope V1
 
-Tên sản phẩm trên giao diện: **HandmadeFinance**.
+Product name in the interface: **HandmadeFinance**.
 
 ## Problem
 
-Shop handmade cần một nơi đơn giản để:
+A handmade shop needs a simple place to:
 
-- ghi nhận tiền vào;
-- ghi nhận tiền ra;
-- biết tổng doanh thu, tổng chi phí, lợi nhuận ròng;
-- xem dữ liệu theo thời gian;
-- xem theo loại thu / loại chi.
+- record money in;
+- record money out;
+- know total revenue, total expenses, and net profit;
+- view data over time;
+- view data by income / expense category.
 
-Không phải ERP, không phải kế toán đầy đủ, không quản lý kho / SKU.
+This is not an ERP, not a full accounting system, and does not manage inventory / SKUs.
 
-Khoản thu: tên sản phẩm, mã đơn, khu vực bán (trong EU / ngoài EU), số lượng, đơn giá, phí đơn (Item, Discount, Subtotal, Shipping, Tax), số tiền **trước thuế** và **sau thuế**, kênh bán (Etsy / website / Instagram / hội chợ / sỉ), trạng thái hồ sơ (nháp / chờ xử lý / hoàn thành).
+Income records: product name, order code, sales region (inside EU / outside EU), quantity, unit price, order fees (Item, Discount, Subtotal, Shipping, Tax), **pre-tax** and **post-tax** amounts, sales channel (Etsy / website / Instagram / local market / wholesale), and record status (draft / pending / completed).
 
-Khoản chi: nội dung, người nhận, phạm vi nội địa / quốc tế, phương thức thanh toán, % thuế, trước thuế / sau thuế, trạng thái hồ sơ.
+Expense records: description, payee, domestic / international scope, payment method, tax rate, pre-tax / post-tax amounts, and record status.
 
-Người dùng: họ tên, email, số điện thoại, ảnh đại diện, vai trò, đang hoạt động / ngừng kích hoạt.
+Users: full name, email, phone number, avatar, role, active / disabled status.
 
 ## Goals
 
-V1 hỗ trợ:
+V1 supports:
 
-- Đăng nhập mock (layout 2 cột HandmadeFinance).
-- Dashboard (KPI, biểu đồ thu–chi, doanh thu theo loại, giao dịch gần đây).
-- Quản lý khoản thu (bảng đủ cột, modal thêm/sửa, modal chi tiết).
-- Quản lý khoản chi (cùng mô hình).
-- Báo cáo & phân tích (một bộ số USD; đổi EUR lúc xem).
-- Import dữ liệu Excel (mock).
-- Chứng từ (metadata mock trên modal chi tiết).
-- Nhật ký hoạt động (mock).
-- Quản lý người dùng (Admin).
-- Hồ sơ: tài khoản, đổi mật khẩu mock, ma trận quyền.
-- Role / permission mock.
-- PostgreSQL **data model / schema design** bám UI.
+- Mock login (two-column HandmadeFinance layout).
+- Dashboard (KPIs, income-expense chart, revenue by category, recent transactions).
+- Income management (full-column table, add/edit modal, detail modal).
+- Expense management (same model).
+- Reports & analytics (one USD dataset; convert to EUR for display).
+- Excel data import (mock).
+- Attachments (mock metadata in detail modal).
+- Activity log (mock).
+- User management (Admin).
+- Profile: account, mock password change, permission matrix.
+- Mock roles / permissions.
+- PostgreSQL **data model / schema design** aligned with the UI.
 
 ## Non-goals
 
-V1 **không** làm:
+V1 does **not** include:
 
-- Quản lý kho, CRM, đơn hàng nhiều dòng SKU.
-- Payroll chi tiết, BHXH, kế toán kép.
-- Hóa đơn điện tử, payment gateway, Etsy API.
-- AI, chatbot.
+- Inventory management, CRM, or multi-line SKU orders.
+- Detailed payroll, social insurance, or double-entry accounting.
+- E-invoices, payment gateways, or Etsy API integration.
+- AI or chatbot features.
 - Backend API.
-- Authentication thật.
-- Kết nối PostgreSQL với frontend.
-- Parse Excel thật / upload file lên server.
+- Real authentication.
+- PostgreSQL-to-frontend integration.
+- Real Excel parsing / server-side file upload.
 
 ## Current reality
 
-| Thành phần | Sự thật |
+| Component | Reality |
 |---|---|
-| Frontend | **MOCK DATA** (`frontend/js/data.js`). Không `fetch` API, không SQL. |
-| Database | **Schema designed** (`database/shop_finance.sql`, `.dbml`). Chưa gắn app. |
+| Frontend | **MOCK DATA** (`frontend/js/data.js`). No API `fetch`, no SQL. |
+| Database | **Schema designed** (`database/shop_finance.sql`, `.dbml`). Not connected to the app. |
 | Auth | **Mock authentication** (sessionStorage / localStorage). |
-| Import Excel | **UI + mock flow**. Không đọc nội dung file. |
-| Chứng từ | Chọn file trên máy, lưu **tên / type / size**. Không upload. |
+| Excel Import | **UI + mock flow**. File contents are not read. |
+| Attachments | Select a local file and store **name / type / size**. No upload. |
 
-Backend chưa triển khai.
+Backend is not implemented yet.

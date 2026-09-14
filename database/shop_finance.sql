@@ -1,20 +1,20 @@
 -- ============================================================
 -- PostgreSQL schema — shop_finance (HandmadeFinance)
--- Web quản lý thu - chi shop handmade
+-- Income and expense management web app for a handmade shop
 -- PostgreSQL 15+
 --
--- Bám giao diện hiện tại:
--- Người dùng: SĐT, avatar, múi giờ, trạng thái hoạt động.
--- Khoản thu: amount = số tiền trước thuế; sau thuế; kênh bán; trạng thái hồ sơ;
---            mã đơn, khu vực EU, SL, đơn giá, Item/Discount/Subtotal/Shipping/Tax.
--- Khoản chi: người nhận, nội địa/quốc tế, phương thức TT, % thuế, sau thuế, trạng thái.
--- Số tiền lưu USD. Giao diện đổi sang EUR lúc xem (không tách 2 bộ dữ liệu).
--- Không quản lý kho SKU hay đơn nhiều dòng sản phẩm riêng.
+-- Aligned with the current interface:
+-- Users: phone number, avatar, timezone, active status.
+-- Income: amount = pre-tax amount; post-tax amount; sales channel; record status;
+--         order code, EU region, quantity, unit price, Item/Discount/Subtotal/Shipping/Tax.
+-- Expenses: payee, domestic/international scope, payment method, tax rate, post-tax amount, status.
+-- Amounts are stored in USD. The UI converts to EUR for display (no separate datasets).
+-- No SKU inventory management or separate multi-line product orders.
 --
--- Sơ đồ: docs/DATABASE.md · DBML: database/shop_finance.dbml
--- LƯU Ý: File này dùng để khởi tạo database mới.
--- Nếu database development đã chạy schema cũ, nên reset schema/dev DB
--- hoặc viết migration riêng thay vì chạy chồng trực tiếp.
+-- Diagram: docs/DATABASE.md · DBML: database/shop_finance.dbml
+-- NOTE: This file is intended to initialize a new database.
+-- If the development database already uses an older schema, reset the schema/dev DB
+-- or write a dedicated migration instead of applying this file on top of it.
 -- ============================================================
 
 BEGIN;
@@ -72,7 +72,7 @@ CREATE UNIQUE INDEX uq_app_users_email_active
 
 -- ============================================================
 -- 3. IMPORT BATCHES
--- Theo dõi từng lần import Excel.
+-- Tracks each Excel import execution.
 -- ============================================================
 CREATE TABLE import_batches (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -111,8 +111,8 @@ CREATE UNIQUE INDEX uq_income_categories_name_active
 
 -- ============================================================
 -- 5. INCOMES
--- Mỗi bản ghi là một khoản tiền vào.
--- amount = số tiền trước thuế trên list/form.
+-- Each record represents one incoming amount.
+-- amount = pre-tax amount shown in the list/form.
 -- Item − Discount = Subtotal; Subtotal + Shipping + Tax = amount.
 -- ============================================================
 CREATE TABLE incomes (
@@ -213,7 +213,7 @@ CREATE UNIQUE INDEX uq_expense_categories_name_active
 
 -- ============================================================
 -- 7. EXPENSES
--- Mỗi bản ghi là một khoản tiền ra. amount = số tiền trước thuế.
+-- Each record represents one outgoing amount. amount = pre-tax amount.
 -- ============================================================
 CREATE TABLE expenses (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -282,8 +282,8 @@ CREATE INDEX idx_expenses_import_batch
 
 -- ============================================================
 -- 8. ATTACHMENTS
--- PostgreSQL chỉ lưu metadata/đường dẫn, không lưu file binary.
--- Chính xác một trong income_id / expense_id phải có giá trị.
+-- PostgreSQL stores only metadata/paths, not binary files.
+-- Exactly one of income_id / expense_id must have a value.
 -- ============================================================
 CREATE TABLE attachments (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -349,8 +349,8 @@ BEGIN
 END;
 $$;
 
--- Backend có thể SET LOCAL app.current_user_id = '123' trong transaction
--- để trigger audit nhận biết người thao tác.
+-- The backend can SET LOCAL app.current_user_id = '123' within a transaction
+-- so the audit trigger can identify the acting user.
 CREATE OR REPLACE FUNCTION audit_row_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -440,8 +440,8 @@ FOR EACH ROW EXECUTE FUNCTION audit_row_changes();
 
 -- ============================================================
 -- 13. REPORTING VIEWS
--- Dashboard/Báo cáo đọc trực tiếp từ dữ liệu thật (amount USD).
--- Đổi EUR chỉ trên UI. Cột currency_code giữ 'USD'.
+-- Dashboard/Reports read directly from persisted data (USD amounts).
+-- EUR conversion happens only in the UI. The currency_code column remains 'USD'.
 -- ============================================================
 CREATE OR REPLACE VIEW vw_income_active AS
 SELECT
@@ -586,32 +586,32 @@ GROUP BY e.expense_category_id, c.name, e.currency_code;
 -- 14. BASIC SEED DATA
 -- ============================================================
 INSERT INTO income_categories (name, description)
-SELECT 'Bán hàng', 'Thu từ bán sản phẩm'
+SELECT 'Sales', 'Income from product sales'
 WHERE NOT EXISTS (
     SELECT 1 FROM income_categories
-    WHERE LOWER(name) = LOWER('Bán hàng') AND deleted_at IS NULL
+    WHERE LOWER(name) = LOWER('Sales') AND deleted_at IS NULL
 );
 
 INSERT INTO income_categories (name, description)
-SELECT 'Thu khác', 'Các khoản thu khác ngoài bán hàng'
+SELECT 'Other Income', 'Income other than product sales'
 WHERE NOT EXISTS (
     SELECT 1 FROM income_categories
-    WHERE LOWER(name) = LOWER('Thu khác') AND deleted_at IS NULL
+    WHERE LOWER(name) = LOWER('Other Income') AND deleted_at IS NULL
 );
 
 INSERT INTO expense_categories (name, description)
 SELECT v.name, v.description
 FROM (VALUES
-    ('Nguyên vật liệu', 'Chi mua nguyên vật liệu làm sản phẩm'),
-    ('Bao bì / đóng gói', 'Chi hộp, túi, tem, đóng gói'),
-    ('Vận chuyển', 'Chi phí giao nhận và vận chuyển'),
-    ('Quảng cáo', 'Chi phí quảng cáo và marketing'),
-    ('Phí dịch vụ', 'Phí nền tảng, thanh toán hoặc dịch vụ liên quan'),
-    ('Lương nhân viên', 'Chi lương (số tiền, không phải module payroll)'),
-    ('Điện / nước / Internet', 'Chi tiện ích cửa hàng'),
-    ('Thuê mặt bằng', 'Chi thuê gian hàng / mặt bằng'),
-    ('Công cụ / thiết bị', 'Chi công cụ, thiết bị làm hàng'),
-    ('Chi khác', 'Các khoản chi chưa thuộc nhóm khác')
+    ('Raw Materials', 'Cost of materials used to make products'),
+    ('Packaging', 'Cost of boxes, bags, labels, and packaging'),
+    ('Shipping', 'Delivery and transportation costs'),
+    ('Advertising', 'Advertising and marketing costs'),
+    ('Service Fees', 'Platform, payment, or related service fees'),
+    ('Employee Salaries', 'Salary expenses (amount only, not a payroll module)'),
+    ('Electricity / Water / Internet', 'Shop utility expenses'),
+    ('Premises Rent', 'Shop/stall rental expenses'),
+    ('Tools / Equipment', 'Tools and equipment used for production'),
+    ('Other Expenses', 'Expenses not covered by another category')
 ) AS v(name, description)
 WHERE NOT EXISTS (
     SELECT 1
@@ -620,14 +620,14 @@ WHERE NOT EXISTS (
       AND e.deleted_at IS NULL
 );
 
--- Tài khoản demo (UI: admin@demo.local …). password_hash chỉ placeholder — auth V1 là mock JS.
+-- Demo accounts (UI: admin@demo.local …). password_hash is only a placeholder — V1 auth is mock JS.
 INSERT INTO app_users (username, email, password_hash, full_name, phone, avatar_url, role, is_active)
 SELECT v.username, v.email, 'mock-hash-123456', v.full_name, v.phone, v.avatar_url, v.role::user_role, v.is_active
 FROM (VALUES
     ('admin', 'admin@demo.local', 'Admin', '090 123 4567', 'https://i.pravatar.cc/64?img=33', 'ADMIN', TRUE),
-    ('owner', 'owner@demo.local', 'Chủ shop', '090 222 3333', 'https://i.pravatar.cc/64?img=12', 'SHOP_OWNER', TRUE),
-    ('staff', 'staff@demo.local', 'Nhân viên', '090 333 4444', 'https://i.pravatar.cc/64?img=11', 'EMPLOYEE', TRUE),
-    ('viewer', 'viewer@demo.local', 'Người xem', '090 555 6666', 'https://i.pravatar.cc/64?img=5', 'VIEWER', TRUE)
+    ('owner', 'owner@demo.local', 'Shop Owner', '090 222 3333', 'https://i.pravatar.cc/64?img=12', 'SHOP_OWNER', TRUE),
+    ('staff', 'staff@demo.local', 'Employee', '090 333 4444', 'https://i.pravatar.cc/64?img=11', 'EMPLOYEE', TRUE),
+    ('viewer', 'viewer@demo.local', 'Viewer', '090 555 6666', 'https://i.pravatar.cc/64?img=5', 'VIEWER', TRUE)
 ) AS v(username, email, full_name, phone, avatar_url, role, is_active)
 WHERE NOT EXISTS (
     SELECT 1 FROM app_users u
