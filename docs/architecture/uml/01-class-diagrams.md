@@ -1,8 +1,5 @@
 # Sơ đồ lớp — Auth, Income và Expense
 
-> **Phạm vi:** Bước 6 · **Trạng thái:** Thiết kế code-level, chưa triển khai C#  
-> **Cấu trúc tham chiếu:** [Cấu trúc thư mục mục tiêu](../../07-folder-structure.md)
-
 Sơ đồ lớp (class diagram) dùng đúng tên class dự kiến trong ba tầng. DTO (Data Transfer Object — đối tượng truyền dữ liệu) thuộc tầng API; entity, service, policy, validator và repository interface thuộc Application; repository implementation thuộc Infrastructure.
 
 Các sơ đồ dùng bố cục từ trên xuống (`direction TB`) để tránh kéo ngang trên màn hình. Cách đọc chung: **Presentation → Application → Infrastructure**; đường nét đứt biểu thị lớp triển khai interface.
