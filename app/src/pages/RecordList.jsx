@@ -3,9 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { EXPENSE_CATEGORIES, FX_USD_TO_EUR, INCOME_CATEGORIES } from "../lib/data";
 import { I } from "../lib/icons";
 import {
-  afterTaxOf, catName, colDefs, defaultColMap, dmy, loadColOrder, loadCols, money, originScopeLabel,
-  paymentMethodLabel, pctLabel, recStatus, saleRegionLabel, salesChannelLabel, saveCols, usd,
+  afterTaxOf, catName, catTone, colDefs, defaultColMap, dmy, initials, loadColOrder, loadCols, money, originScopeLabel,
+  paymentMethodLabel, pctLabel, recStatus, saleRegionLabel, salesChannelLabel, saveCols, sum, usd,
 } from "../lib/format";
+
 import { IMG_RECEIPT, INCOME_SOURCES_UI, PAY_METHODS, UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import RecordForm from "./RecordForm";
@@ -186,7 +187,19 @@ export default function RecordList({ kind }) {
     return Boolean(cols[id]);
   }
 
-  const kpis = isIncome ? UI_MOCK.incomeKpis : UI_MOCK.expenseKpis;
+  const kpis = useMemo(() => {
+    if (isIncome) return UI_MOCK.incomeKpis;
+    const total = sum(list);
+    const intl = sum(list.filter((x) => x.originScope === "INTERNATIONAL"));
+    const share = total ? ((intl / total) * 100).toFixed(1) : "0.0";
+    const cards = [...UI_MOCK.expenseKpis];
+    cards[2] = {
+      label: "Chi phí quốc tế",
+      value: money(intl, ccy),
+      delta: `${share}% tổng chi phí tháng`,
+    };
+    return cards;
+  }, [isIncome, list, ccy]);
   const defsById = Object.fromEntries(colDefs(kind).map((c) => [c.id, c]));
   const visibleOrder = colOrder.filter(colOn);
 
@@ -196,23 +209,85 @@ export default function RecordList({ kind }) {
   }
 
   function bodyCell(id, r) {
+    const st = recStatus(r.id, kind, r);
+    const statusCls = st.k === "done" ? "ok" : st.k === "pending" ? "warn" : "neutral";
+    const regionCls = r.saleRegion === "IN_EU" ? "region-eu" : r.saleRegion === "OUTSIDE_EU" ? "region-out" : "";
+    const originCls = r.originScope === "INTERNATIONAL" ? "scope-int" : r.originScope === "DOMESTIC" ? "scope-dom" : "";
+    const srcCls = r.source === "EXCEL_IMPORT" ? "src-excel" : "src-manual";
     const cells = {
-      date: <td>{dmy(isIncome ? r.incomeDate : r.expenseDate)}</td>,
-      product: <td>{r.description}</td>,
-      category: <td>{catName(cats, r.categoryId)}</td>,
-      order: <td>{r.orderCode || "—"}</td>,
-      payee: <td>{r.recipient || "—"}</td>,
-      qty: <td className="amount">{r.productQty || "—"}</td>,
-      amount: <td className="amount">{money(r.amount, ccy)}</td>,
-      taxPercent: <td className="amount">{pctLabel(r.taxPercent)}</td>,
-      afterTax: <td className="amount">{money(afterTaxOf(r), ccy)}</td>,
-      region: <td>{saleRegionLabel(r.saleRegion)}</td>,
-      origin: <td>{originScopeLabel(r.originScope)}</td>,
-      source: <td>{r.source === "EXCEL_IMPORT" ? "Excel" : "Nhập tay"}</td>,
-      creator: <td>{userName(r.createdBy)}</td>,
-      item: <td className="amount">{r.itemTotal ? money(r.itemTotal, ccy) : "—"}</td>,
-      discount: <td className="amount">{Number(r.discountAmount) ? `−${money(r.discountAmount, ccy)}` : "—"}</td>,
-      ship: <td className="amount">{Number(r.shippingAmount) ? money(r.shippingAmount, ccy) : "—"}</td>,
+      date: (
+        <td>
+          <span className="cell-date">{dmy(isIncome ? r.incomeDate : r.expenseDate)}</span>
+        </td>
+      ),
+      product: (
+        <td>
+          <button type="button" className="cell-link cell-product-name">{r.description}</button>
+          <span className={`badge cell-status-badge ${statusCls}`}>{st.t}</span>
+        </td>
+      ),
+      category: (
+        <td>
+          <span className={`badge ${catTone(r.categoryId)}`}>{catName(cats, r.categoryId)}</span>
+        </td>
+      ),
+      order: <td><span className="cell-code">{r.orderCode || "—"}</span></td>,
+      payee: <td><span className="cell-payee">{r.recipient || "—"}</span></td>,
+      qty: <td className="amount"><span className="cell-qty">{r.productQty || "—"}</span></td>,
+      amount: (
+        <td className="amount">
+          <span className={isIncome ? "plus" : "minus"}>
+            {isIncome ? "+" : "−"}{money(r.amount, ccy)}
+          </span>
+        </td>
+      ),
+      taxPercent: (
+        <td className="amount">
+          <span className="cell-tax-pct">{pctLabel(r.taxPercent)}</span>
+        </td>
+      ),
+      afterTax: (
+        <td className="amount">
+          <strong className={isIncome ? "plus" : "minus"}>
+            {money(afterTaxOf(r), ccy)}
+          </strong>
+        </td>
+      ),
+      region: (
+        <td>
+          {r.saleRegion
+            ? <span className={`badge ${regionCls}`}>{saleRegionLabel(r.saleRegion)}</span>
+            : <span className="muted">—</span>}
+        </td>
+      ),
+      origin: (
+        <td>
+          {r.originScope
+            ? <span className={`badge ${originCls}`}>{originScopeLabel(r.originScope)}</span>
+            : <span className="muted">—</span>}
+        </td>
+      ),
+      source: (
+        <td>
+          <span className={`badge ${srcCls}`}>
+            {r.source === "EXCEL_IMPORT" ? "Excel" : "Nhập tay"}
+          </span>
+        </td>
+      ),
+      creator: (() => {
+        const name = userName(r.createdBy);
+        return (
+          <td>
+            <div className="user-cell user-cell-compact">
+              <span className="avatar user-initials" aria-hidden="true">{initials(name)}</span>
+              <span className="cell-creator">{name}</span>
+            </div>
+          </td>
+        );
+      })(),
+      item: <td className="amount">{r.itemTotal ? money(r.itemTotal, ccy) : <span className="muted">—</span>}</td>,
+      discount: <td className="amount">{Number(r.discountAmount) ? <span className="minus">−{money(r.discountAmount, ccy)}</span> : <span className="muted">—</span>}</td>,
+      ship: <td className="amount">{Number(r.shippingAmount) ? money(r.shippingAmount, ccy) : <span className="muted">—</span>}</td>,
       tax: <td className="amount">{money(Number(r.taxAmount) || 0, ccy)}</td>,
     };
     return <Fragment key={id}>{cells[id]}</Fragment>;
@@ -235,45 +310,57 @@ export default function RecordList({ kind }) {
         </div>
       </div>
       <div className="kpis">{kpis.map((k) => <Kpi key={k.label} {...k} />)}</div>
-      <div className="toolbar">
+      <div className="toolbar record-toolbar">
         <label className="search-box toolbar-search">
           <I name="search" />
-          <input type="search" placeholder={isIncome ? "Tìm tên sản phẩm, mã đơn, người tạo..." : "Tìm nội dung, người nhận..."} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+          <input type="search" placeholder={isIncome ? "Tìm sản phẩm, mã đơn..." : "Tìm nội dung, người nhận..."} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </label>
-        <select className="toolbar-ctrl" value={cat} onChange={(e) => { setCat(e.target.value); setPage(1); }}>
-          <option value="">{isIncome ? "Loại thu" : "Loại chi"}: Tất cả</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select className="toolbar-ctrl" value={src} onChange={(e) => { setSrc(e.target.value); setPage(1); }}>
-          <option value="">Nguồn: Tất cả</option>
-          <option value="MANUAL">Nhập tay</option>
-          <option value="EXCEL_IMPORT">Excel</option>
-        </select>
-        {isIncome ? (
-          <select className="toolbar-ctrl" value={region} onChange={(e) => { setRegion(e.target.value); setPage(1); }}>
-            <option value="">Khu vực: Tất cả</option>
-            <option value="IN_EU">Trong EU</option>
-            <option value="OUTSIDE_EU">Ngoài EU</option>
+        <div className="toolbar-divider" />
+        <div className="toolbar-filters">
+          <select className={`toolbar-ctrl${cat ? " filter-active" : ""}`} value={cat} onChange={(e) => { setCat(e.target.value); setPage(1); }}>
+            <option value="">{isIncome ? "Loại thu" : "Loại chi"}: Tất cả</option>
+            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-        ) : (
-          <select className="toolbar-ctrl" value={origin} onChange={(e) => { setOrigin(e.target.value); setPage(1); }}>
-            <option value="">Phạm vi: Tất cả</option>
-            <option value="DOMESTIC">Nội địa</option>
-            <option value="INTERNATIONAL">Quốc tế</option>
+          <select className={`toolbar-ctrl${src ? " filter-active" : ""}`} value={src} onChange={(e) => { setSrc(e.target.value); setPage(1); }}>
+            <option value="">Nguồn: Tất cả</option>
+            <option value="MANUAL">Nhập tay</option>
+            <option value="EXCEL_IMPORT">Excel</option>
           </select>
-        )}
-        <select className="toolbar-ctrl" value={ccy} onChange={(e) => setCcy(e.target.value)}>
-          <option value="USD">USD ($)</option>
-          <option value="EUR">EUR (€)</option>
-        </select>
-        <input className="toolbar-ctrl" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
-        <input className="toolbar-ctrl" type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+          {isIncome ? (
+            <select className={`toolbar-ctrl${region ? " filter-active" : ""}`} value={region} onChange={(e) => { setRegion(e.target.value); setPage(1); }}>
+              <option value="">Khu vực: Tất cả</option>
+              <option value="IN_EU">Trong EU</option>
+              <option value="OUTSIDE_EU">Ngoài EU</option>
+            </select>
+          ) : (
+            <select className={`toolbar-ctrl${origin ? " filter-active" : ""}`} value={origin} onChange={(e) => { setOrigin(e.target.value); setPage(1); }}>
+              <option value="">Phạm vi: Tất cả</option>
+              <option value="DOMESTIC">Nội địa</option>
+              <option value="INTERNATIONAL">Quốc tế</option>
+            </select>
+          )}
+          <select className="toolbar-ctrl" value={ccy} onChange={(e) => setCcy(e.target.value)}>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+        </div>
+        <div className="toolbar-daterange">
+          <I name="calendar" />
+          <input className={`toolbar-ctrl toolbar-date${from ? " filter-active" : ""}`} type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+          <span className="toolbar-date-sep">→</span>
+          <input className={`toolbar-ctrl toolbar-date${to ? " filter-active" : ""}`} type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+        </div>
       </div>
       <article className="card" style={{ padding: 0 }}>
         <div className="card-head list-card-head">
-          <div>
-            <h3 className="section-title">{isIncome ? "Danh sách khoản thu" : "Danh sách khoản chi"}</h3>
-            <p className="muted">Bấm một dòng để xem. Sửa và xóa nằm trong màn chi tiết.</p>
+          <div className="table-title-block">
+            <div className="table-title-row">
+              <h3 className="section-title">{isIncome ? "Khoản thu" : "Khoản chi"}</h3>
+              {filtered.length > 0 && (
+                <span className="record-count-badge">{filtered.length} bản ghi</span>
+              )}
+            </div>
+            <p className="muted">Bấm một dòng để xem chi tiết · Sửa và xóa trong màn hình chi tiết</p>
           </div>
           <div className="list-card-actions">
             <button className="btn ghost sm" type="button" onClick={openCols}><I name="columns-3" /> Cột hiển thị</button>
@@ -286,11 +373,23 @@ export default function RecordList({ kind }) {
               <tr>{visibleOrder.map(headerCell)}</tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.length > 0 ? rows.map((r) => (
                   <tr key={r.id} className="clickable" onClick={() => setViewId(r.id)}>
                     {visibleOrder.map((id) => bodyCell(id, r))}
                   </tr>
-                ))}
+                )) : (
+                <tr>
+                  <td colSpan={visibleOrder.length}>
+                    <div className="empty-state">
+                      <div className="empty-state-icon">
+                        <I name={isIncome ? "trending-up" : "receipt"} />
+                      </div>
+                      <strong>{isIncome ? "Chưa có khoản thu nào" : "Chưa có khoản chi nào"}</strong>
+                      <p>{q || cat || src ? "Không có kết quả khớp với bộ lọc hiện tại." : isIncome ? "Bắt đầu bằng cách thêm khoản thu đầu tiên." : "Bắt đầu bằng cách thêm khoản chi đầu tiên."}</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -305,8 +404,9 @@ export default function RecordList({ kind }) {
               <button type="button" className="btn ghost pager-btn" disabled={p >= pages} onClick={() => setPage(p + 1)}>Sau</button>
             </div>
           </div>
-        ) : <div className="empty"><strong>{isIncome ? "Chưa có khoản thu nào." : "Chưa có khoản chi nào."}</strong></div>}
+        ) : null}
       </article>
+
       {isIncome ? (
         <div className="grid-2">
           <article className="card">

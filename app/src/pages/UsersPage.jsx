@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { I } from "../lib/icons";
-import { roleUi } from "../lib/format";
+import { initials, roleUi } from "../lib/format";
 import { UI_USERS } from "../lib/ui-mock";
 import { ROLE_LABEL } from "../lib/auth";
 import { useFinance } from "../lib/store";
@@ -83,6 +83,7 @@ export default function UsersPage() {
                   <tr key={u.id}>
                     <td>
                       <div className="user-cell">
+                        <span className="avatar user-initials" aria-hidden="true">{initials(u.name)}</span>
                         <div className="meta"><b>{u.name}</b><small>{u.email}</small></div>
                       </div>
                     </td>

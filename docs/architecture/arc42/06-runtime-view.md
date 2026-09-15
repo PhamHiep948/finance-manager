@@ -103,3 +103,5 @@ sequenceDiagram
 | Dữ liệu sai | `400/422` với lỗi theo field |
 | Record không tồn tại/đã xóa | `404` |
 | Database lỗi | Transaction rollback; trả error id, không lộ SQL |
+
+Các sequence code-level (mức lớp) cho Auth, Income và Expense được mô tả tại [UML Sequence Diagrams](../uml/02-sequence-diagrams.md). Endpoint trong tài liệu đó là provisional contract cho tới khi OpenAPI 3.0 được hoàn thành.

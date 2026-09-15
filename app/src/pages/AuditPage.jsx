@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { I } from "../lib/icons";
-import { roleUi } from "../lib/format";
+import { initials, roleUi } from "../lib/format";
 import { UI_AUDIT, UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import { Kpi } from "./Dashboard";
@@ -57,12 +57,12 @@ export default function AuditPage() {
                 const m = ACT[a.action] || ["info", a.action, "info"];
                 return (
                   <tr key={a.id}>
-                    <td className="muted">{a.id}</td>
-                    <td><div className="user-cell"><div className="meta"><b>{a.user}</b><small>{a.role || ""}</small></div></div></td>
+                    <td><span className="cell-code">{a.id}</span></td>
+                    <td><div className="user-cell"><span className="avatar audit-avatar">{initials(a.user)}</span><div className="meta"><b>{a.user}</b><small>{a.role || ""}</small></div></div></td>
                     <td><span className={`audit-action ${m[0]}`}>{m[1]}</span></td>
                     <td>{a.module}</td>
                     <td>{a.detail}</td>
-                    <td className="muted" style={{ whiteSpace: "pre-line" }}>{a.time}</td>
+                    <td><span className="audit-time">{a.time.replace(" ", "\n")}</span></td>
                   </tr>
                 );
               })}

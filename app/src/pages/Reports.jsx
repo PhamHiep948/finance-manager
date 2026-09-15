@@ -269,20 +269,56 @@ export default function Reports() {
           </div>
         </article>
       ) : null}
-      {tab === "in" || tab === "out" ? (
-        <div className="grid-2">
-          <article className="card">
-            <h3 className="section-title">{tab === "in" ? "Theo loại thu" : "Theo loại chi"}</h3>
-            <div className="chart-sm"><canvas ref={tab === "in" ? inRef : outRef} /></div>
-          </article>
-          <article className="card">
-            <h3 className="section-title">Chi tiết</h3>
-            {(tab === "in" ? groupByCat(inc, INCOME_CATEGORIES) : groupByCat(exp, EXPENSE_CATEGORIES)).map((x) => (
-              <div className="row-item" key={x.name}><span>{x.name}</span><b className="num">{money(x.amount, ccy)}</b></div>
-            ))}
-          </article>
-        </div>
-      ) : null}
+      {(tab === "in" || tab === "out") ? (() => {
+        const isIn = tab === "in";
+        const groups = isIn
+          ? groupByCat(inc, INCOME_CATEGORIES)
+          : groupByCat(exp, EXPENSE_CATEGORIES);
+        const sorted = [...groups].sort((a, b) => b.amount - a.amount);
+        return (
+          <div className="grid-2">
+            <article className="card">
+              <h3 className="section-title">{isIn ? "Theo loại thu" : "Theo loại chi"}</h3>
+              <p className="muted" style={{ fontSize: 12, marginBottom: 12 }}>
+                {isIn ? "Tỷ trọng doanh thu theo danh mục" : "Tỷ trọng chi phí theo danh mục"} · {ccy}
+              </p>
+              <div className="chart-sm"><canvas ref={isIn ? inRef : outRef} /></div>
+            </article>
+            <article className="card cat-detail-card">
+              <div className="cat-detail-head">
+                <h3 className="section-title">Chi tiết danh mục</h3>
+                <span className="cat-detail-count">{sorted.length} danh mục</span>
+              </div>
+              {sorted.length === 0 ? (
+                <div className="empty" style={{ padding: "32px 0" }}>Không có dữ liệu trong kỳ đã chọn.</div>
+              ) : (
+                <div className="cat-detail-list">
+                  {sorted.map((x, i) => (
+                    <div className="cat-detail-row" key={x.name}>
+                      <div className="cat-detail-top">
+                        <div className="cat-detail-label">
+                          <span className="cat-swatch" style={{ background: colors[i % colors.length] }} />
+                          <span className="cat-detail-name">{x.name}</span>
+                        </div>
+                        <div className="cat-detail-right">
+                          <span className="cat-detail-pct">{x.pct}%</span>
+                          <b className="cat-detail-amount num">{money(x.amount, ccy)}</b>
+                        </div>
+                      </div>
+                      <div className="cat-progress-track">
+                        <div
+                          className="cat-progress-fill"
+                          style={{ width: `${x.pct}%`, background: colors[i % colors.length] }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          </div>
+        );
+      })() : null}
     </>
   );
 }

@@ -5,14 +5,29 @@ import { initials, roleUi } from "../lib/format";
 import { UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 
-const NAV = [
-  { to: "/dashboard", label: "Tổng quan", perm: "dashboard", icon: "layout-dashboard" },
-  { to: "/incomes", label: "Khoản thu", perm: "incomeRead", icon: "trending-up" },
-  { to: "/expenses", label: "Khoản chi", perm: "expenseRead", icon: "trending-down" },
-  { to: "/reports", label: "Báo cáo", perm: "reportRead", icon: "pie-chart" },
-  { to: "/import", label: "Import Excel", perm: "importData", icon: "file-spreadsheet" },
-  { to: "/audit", label: "Nhật ký", perm: "auditRead", icon: "scroll-text" },
-  { to: "/users", label: "Người dùng", perm: "userManagement", icon: "users" },
+const NAV_GROUPS = [
+  {
+    label: "Quản lý",
+    items: [
+      { to: "/dashboard", label: "Tổng quan", perm: "dashboard", icon: "layout-dashboard" },
+      { to: "/incomes", label: "Khoản thu", perm: "incomeRead", icon: "trending-up" },
+      { to: "/expenses", label: "Khoản chi", perm: "expenseRead", icon: "trending-down" },
+    ],
+  },
+  {
+    label: "Phân tích",
+    items: [
+      { to: "/reports", label: "Báo cáo", perm: "reportRead", icon: "pie-chart" },
+      { to: "/import", label: "Import Excel", perm: "importData", icon: "file-spreadsheet" },
+    ],
+  },
+  {
+    label: "Hệ thống",
+    items: [
+      { to: "/audit", label: "Nhật ký", perm: "auditRead", icon: "scroll-text" },
+      { to: "/users", label: "Người dùng", perm: "userManagement", icon: "users" },
+    ],
+  },
 ];
 
 export default function Shell() {
@@ -41,18 +56,36 @@ export default function Shell() {
   return (
     <>
       <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+              <polyline points="16 7 22 7 22 13" />
+            </svg>
+          </div>
+          <span className="brand-name">FinanceApp</span>
+        </div>
         <nav className="nav">
-          {NAV.filter((n) => can(n.perm)).map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              title={n.label}
-              className={({ isActive }) => `nav-btn${isActive ? " active" : ""}`}
-            >
-              <I name={n.icon} />
-              <span className="nav-label">{n.label}</span>
-            </NavLink>
-          ))}
+          {NAV_GROUPS.map((group) => {
+            const visible = group.items.filter((n) => can(n.perm));
+            if (!visible.length) return null;
+            return (
+              <div key={group.label} className="nav-group">
+                <span className="nav-group-label">{group.label}</span>
+                {visible.map((n) => (
+                  <NavLink
+                    key={n.to}
+                    to={n.to}
+                    title={n.label}
+                    className={({ isActive }) => `nav-btn${isActive ? " active" : ""}`}
+                  >
+                    <I name={n.icon} />
+                    <span className="nav-label">{n.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
         <div className="sidebar-foot">
           <div className="sidebar-account">
@@ -91,12 +124,13 @@ export default function Shell() {
         <section className="page"><Outlet /></section>
       </div>
       <div className={`modal-back${confirm ? " open" : ""}`} onClick={() => setConfirm(null)}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <h3>Xác nhận</h3>
+        <div className="modal modal-confirm" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-confirm-icon"><I name="triangle-alert" /></div>
+          <h3>Xác nhận xóa</h3>
           <p>{confirm?.text}</p>
           <div className="modal-actions">
-            <button className="btn secondary" type="button" onClick={() => setConfirm(null)}>Hủy</button>
-            <button className="btn danger" type="button" onClick={() => { const fn = confirm?.onOk; setConfirm(null); fn?.(); }}>Xóa</button>
+            <button className="btn secondary" type="button" onClick={() => setConfirm(null)}>Hủy bỏ</button>
+            <button className="btn danger" type="button" onClick={() => { const fn = confirm?.onOk; setConfirm(null); fn?.(); }}><I name="trash-2" /> Xóa vĩnh viễn</button>
           </div>
         </div>
       </div>

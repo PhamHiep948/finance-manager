@@ -7,10 +7,11 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../lib/data";
 import { catName, dmy, groupByCat, inRange, money, monthlyFrom, sum } from "../lib/format";
 import { CHART_EXPENSE, CHART_INCOME, CHART_PALETTE } from "../lib/theme";
 
-function Kpi({ label, value, delta, up }) {
+function Kpi({ label, value, delta, up, icon, color = "blue" }) {
   const deltaCls = String(delta || "").startsWith("-") || up === false ? "down" : "up";
   return (
     <article className="card kpi">
+      {icon ? <div className={`kpi-ico ${color}`}><I name={icon} size={16} /></div> : null}
       <div className="label">{label}</div>
       <div className="value num">{value}</div>
       {delta ? <div className={`chg ${deltaCls}`}>{delta}</div> : null}
@@ -80,15 +81,15 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="kpis">
-        <Kpi label={`Tổng doanh thu (${ccy})`} value={money(tin, ccy)} />
-        <Kpi label={`Tổng chi phí (${ccy})`} value={money(tex, ccy)} />
-        <Kpi label={`Lợi nhuận ròng (${ccy})`} value={money(profit, ccy)} />
-        <Kpi label="Số giao dịch" value={String(inc.length + exp.length)} />
+        <Kpi label={`Tổng doanh thu (${ccy})`} value={money(tin, ccy)} icon="trending-up" color="green" />
+        <Kpi label={`Tổng chi phí (${ccy})`} value={money(tex, ccy)} icon="trending-down" color="red" />
+        <Kpi label={`Lợi nhuận ròng (${ccy})`} value={money(profit, ccy)} icon="wallet" color="blue" />
+        <Kpi label="Số giao dịch" value={String(inc.length + exp.length)} icon="receipt" color="purple" />
       </div>
       <div className="kpis dashboard-insights">
-        <Kpi label={`Chi phí TB / khoản chi (${ccy})`} value={money(averageExpense, ccy)} />
-        <Kpi label="Tỷ lệ chi phí / doanh thu" value={`${expenseRatio.toFixed(1)}%`} />
-        <Kpi label={`Doanh thu TB / khoản thu (${ccy})`} value={money(averageIncome, ccy)} />
+        <Kpi label={`Chi phí TB / khoản chi (${ccy})`} value={money(averageExpense, ccy)} icon="circle-dollar-sign" color="orange" />
+        <Kpi label="Tỷ lệ chi phí / doanh thu" value={`${expenseRatio.toFixed(1)}%`} icon="pie-chart" color="indigo" />
+        <Kpi label={`Doanh thu TB / khoản thu (${ccy})`} value={money(averageIncome, ccy)} icon="bar-chart-3" color="green" />
       </div>
       <div className="grid-70-30">
         <article className="card">
@@ -135,10 +136,10 @@ export default function Dashboard() {
             <tbody>
               {recent.length ? recent.map((t) => (
                 <tr key={`${t.kind}-${t.id}`}>
-                  <td className="muted">{dmy(t.date)}</td>
-                  <td>{t.description}</td>
-                  <td>{t.kind === "in" ? "Thu" : "Chi"}</td>
-                  <td className="amount">{t.kind === "in" ? "+" : "−"} {money(t.amount, ccy)}</td>
+                  <td><span className="cell-date">{dmy(t.date)}</span></td>
+                  <td><span className="dash-tx-name">{t.description}</span></td>
+                  <td><span className={`badge ${t.kind === "in" ? "ok" : "fail"}`}>{t.kind === "in" ? "Thu" : "Chi"}</span></td>
+                  <td className="amount"><span className={t.kind === "in" ? "plus" : "minus"}>{t.kind === "in" ? "+" : "−"}{money(t.amount, ccy)}</span></td>
                 </tr>
               )) : <tr><td colSpan={4}><div className="empty">Không có giao dịch trong khoảng ngày.</div></td></tr>}
             </tbody>

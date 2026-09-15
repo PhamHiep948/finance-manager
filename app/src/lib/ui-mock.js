@@ -39,7 +39,7 @@ export const UI_MOCK = {
   expenseKpis: [
     { label: "Tổng chi phí (tháng)", value: "$4,280.00", delta: "+4.1% so với tháng trước" },
     { label: "Giao dịch", value: "36", delta: "+3 so với tháng trước" },
-    { label: "Dự kiến", value: "$612.00", delta: "Chưa đối soát" },
+    { label: "Chi phí quốc tế", value: "$0.00", delta: "0.0% tổng chi phí tháng" },
     { label: "Thuế & phí ước tính", value: "$312.45", delta: "VAT, thuế xuất khẩu, phí sàn" },
   ],
   reportKpis: [

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronUp, UploadCloud } from "lucide-react";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../lib/data";
 import { I } from "../lib/icons";
 import { afterTax, toDisplay, valNum } from "../lib/format";
@@ -26,14 +27,23 @@ function FormSection({ id, title, sub, defaultOpen, children }) {
   }
   return (
     <div className={`form-section${open ? "" : " is-collapsed"}`}>
-      <div className="form-section-head">
-        <div>
+      <button
+        type="button"
+        className={`form-section-head${open ? "" : " is-closed"}`}
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls={`${id}-body`}
+      >
+        <div className="form-section-copy">
           <h3 className="form-section-title">{title}</h3>
           <p className="muted form-section-sub">{sub}</p>
         </div>
-        <button type="button" className="btn ghost section-toggle" onClick={toggle}>{open ? "Ẩn bớt" : "Hiện thêm"}</button>
-      </div>
-      <div className="form-section-body">{children}</div>
+        <span className="section-toggle-btn" aria-hidden="true">
+          <span className="section-toggle-label">{open ? "Thu gọn" : "Mở rộng"}</span>
+          {open ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+        </span>
+      </button>
+      <div className="form-section-body" id={`${id}-body`}>{children}</div>
     </div>
   );
 }
@@ -72,7 +82,7 @@ export default function RecordForm({ kind, rec, onClose }) {
   const cats = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
-    <div className="form-window">
+    <div className="form-window record-form-window">
       <div className="form-window-head">
         <div>
           <div className="exp-kicker">{rec ? <><I name="pencil" /> Cập nhật</> : <><I name="plus-circle" /> Giao dịch mới</>} <span className="muted">/</span> <span className="muted">{typeLabel}</span></div>
@@ -82,34 +92,36 @@ export default function RecordForm({ kind, rec, onClose }) {
         <button className="icon-ghost" type="button" aria-label="Đóng" onClick={onClose}><I name="x" /></button>
       </div>
       <div className="form-window-body">
-        <form className="card" onSubmit={onSubmit} style={{ boxShadow: "none", border: 0, padding: 0 }}>
-          <div className="form-grid">
-            {isIncome ? (
-              <>
-                <label className="field"><span>Ngày thu <span className="req">*</span></span><input name="incomeDate" type="date" required defaultValue={r.incomeDate} /></label>
-                <label className="field"><span>Loại thu <span className="req">*</span></span>
-                  <select name="categoryId" defaultValue={r.categoryId}>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-                </label>
-                <label className="field span-2"><span>Tên sản phẩm <span className="req">*</span></span><input name="description" required defaultValue={r.description || ""} placeholder="Lily Flower" /></label>
-              </>
-            ) : (
-              <>
-                <label className="field"><span>Ngày chi <span className="req">*</span></span><input name="expenseDate" type="date" required defaultValue={r.expenseDate} /></label>
-                <label className="field"><span>Loại chi <span className="req">*</span></span>
-                  <select name="categoryId" defaultValue={r.categoryId}>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-                </label>
-                <label className="field span-2"><span>Nội dung <span className="req">*</span></span><input name="description" required defaultValue={r.description || ""} /></label>
-              </>
-            )}
-            <label className="field"><span>Số tiền trước thuế ({ccy}) <span className="req">*</span></span>
-              <input name="amount" type="number" step="0.01" required value={amount} onChange={(e) => { setManual((m) => ({ ...m, amount: 1 })); setAmount(e.target.value); }} />
-            </label>
-            {!isIncome ? <label className="field"><span>Người nhận</span><input name="recipient" defaultValue={r.recipient || ""} /></label> : null}
-            <label className="field"><span>% thuế</span><input name="taxPercent" type="number" step="0.01" min="0" max="100" value={taxPercent} onChange={(e) => setTaxPercent(e.target.value)} placeholder="0" /></label>
-            <label className="field"><span>Tiền sau thuế ({ccy})</span>
-              <input name="amountAfterTax" type="number" step="0.01" readOnly tabIndex={-1} className="is-computed" value={after} />
-              <small className="muted">Tự tính từ số tiền trước thuế và % thuế, không nhập tay.</small>
-            </label>
+        <form className="card record-form" onSubmit={onSubmit} style={{ boxShadow: "none", border: 0, padding: 0 }}>
+          <div className="form-primary-card">
+            <div className="form-grid">
+              {isIncome ? (
+                <>
+                  <label className="field"><span>Ngày thu <span className="req">*</span></span><input name="incomeDate" type="date" required defaultValue={r.incomeDate} /></label>
+                  <label className="field"><span>Loại thu <span className="req">*</span></span>
+                    <select name="categoryId" defaultValue={r.categoryId}>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                  </label>
+                  <label className="field span-2"><span>Tên sản phẩm <span className="req">*</span></span><input name="description" required defaultValue={r.description || ""} placeholder="Lily Flower" /></label>
+                </>
+              ) : (
+                <>
+                  <label className="field"><span>Ngày chi <span className="req">*</span></span><input name="expenseDate" type="date" required defaultValue={r.expenseDate} /></label>
+                  <label className="field"><span>Loại chi <span className="req">*</span></span>
+                    <select name="categoryId" defaultValue={r.categoryId}>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                  </label>
+                  <label className="field span-2"><span>Nội dung <span className="req">*</span></span><input name="description" required defaultValue={r.description || ""} /></label>
+                </>
+              )}
+              <label className="field"><span>Số tiền trước thuế ({ccy}) <span className="req">*</span></span>
+                <input name="amount" type="number" step="0.01" required value={amount} onChange={(e) => { setManual((m) => ({ ...m, amount: 1 })); setAmount(e.target.value); }} />
+              </label>
+              {!isIncome ? <label className="field"><span>Người nhận</span><input name="recipient" defaultValue={r.recipient || ""} /></label> : null}
+              <label className="field"><span>% thuế</span><input name="taxPercent" type="number" step="0.01" min="0" max="100" value={taxPercent} onChange={(e) => setTaxPercent(e.target.value)} placeholder="0" /></label>
+              <label className="field"><span>Tiền sau thuế ({ccy})</span>
+                <input name="amountAfterTax" type="number" step="0.01" readOnly tabIndex={-1} className="is-computed" value={after} />
+                <small className="muted">Tự tính từ số tiền trước thuế và % thuế, không nhập tay.</small>
+              </label>
+            </div>
           </div>
           {isIncome ? (
             <>
@@ -141,10 +153,17 @@ export default function RecordForm({ kind, rec, onClose }) {
                 <div className="form-grid">
                   <label className="field span-2"><span>Mã tham chiếu</span><input name="referenceCode" defaultValue={r.referenceCode || ""} /></label>
                   <label className="field span-2"><span>Ghi chú</span><textarea name="note" defaultValue={r.note || ""} /></label>
-                  <label className="field span-2"><span>Chứng từ</span>
-                    <input type="file" name="attach" onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachMeta(`${f.name} · ${f.type || "file"} · ${f.size} bytes`); }} />
-                    <small className="muted">{attachMeta}</small>
-                  </label>
+                  <div className="field span-2">
+                    <span>Chứng từ đính kèm</span>
+                    <label className="attach-drop">
+                      <input type="file" name="attach" className="attach-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachMeta(`${f.name} · ${f.type || "file"} · ${f.size} bytes`); }} />
+                      <span className="attach-drop-inner">
+                        <UploadCloud aria-hidden="true" />
+                        <span>Kéo thả file vào đây hoặc <b>chọn file</b></span>
+                        <small className="muted">{attachMeta}</small>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </FormSection>
             </>
@@ -163,10 +182,17 @@ export default function RecordForm({ kind, rec, onClose }) {
               <FormSection id="expense-extra" title="Ghi chú & chứng từ" sub="Ghi chú và file đính kèm" defaultOpen={!!(r.note || r.attachment)}>
                 <div className="form-grid">
                   <label className="field span-2"><span>Ghi chú</span><textarea name="note" defaultValue={r.note || ""} /></label>
-                  <label className="field span-2"><span>Chứng từ</span>
-                    <input type="file" name="attach" onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachMeta(`${f.name} · ${f.type || "file"} · ${f.size} bytes`); }} />
-                    <small className="muted">{attachMeta}</small>
-                  </label>
+                  <div className="field span-2">
+                    <span>Chứng từ đính kèm</span>
+                    <label className="attach-drop">
+                      <input type="file" name="attach" className="attach-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachMeta(`${f.name} · ${f.type || "file"} · ${f.size} bytes`); }} />
+                      <span className="attach-drop-inner">
+                        <UploadCloud aria-hidden="true" />
+                        <span>Kéo thả file vào đây hoặc <b>chọn file</b></span>
+                        <small className="muted">{attachMeta}</small>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </FormSection>
             </>

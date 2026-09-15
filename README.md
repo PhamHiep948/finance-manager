@@ -1,54 +1,88 @@
 # HandmadeFinance
 
-Income and expense management web app for a handmade shop: record money in, money out, track total revenue, total expenses, and net profit over time and by category. Amounts are stored in USD; the interface can convert them to EUR for display.
+Ứng dụng quản lý thu–chi cho cửa hàng đồ thủ công. Stack mục tiêu gồm **React.js**, **ASP.NET Core/C#** và **PostgreSQL**. Repository hiện có UI mock và thiết kế database/kiến trúc; backend cùng OpenAPI 3.0 chưa được triển khai.
 
-The target stack is a **React.js** frontend (**HandmadeFinance**), a **.NET (C#)** backend, and **PostgreSQL** for data storage. The mock version in this repository still runs entirely in the browser (API integration is not implemented yet).
+## Giao diện
 
-![Dashboard](docs/images/admin/01-dashboard.png)
+### Tổng quan
 
-## Main features
+![Tổng quan](docs/images/admin/01-dashboard.png)
 
-- Login, logout, and role-based access control in the UI
-- Dashboard: total revenue, total expenses, net profit, transaction count, charts, revenue by income category, and recent transactions
-- Income management: full-column list (show/hide columns), add/edit modal, detail modal; product name, order code, EU region, sales channel, quantity, unit price, Item / Discount / Subtotal / Shipping / Tax, pre-tax amount / tax rate / post-tax amount, and record status
-- Expense management: same workflow; payee, domestic/international scope, payment method, tax rate, and post-tax amount
-- Reports & analytics: overview, by day, by month, by income category, by expense category, report export (print)
-- Excel data import: file selection, preview, and import history in the UI
-- Activity log
-- User management (Admin): add/edit, enable/disable, avatar
-- Profile: account (phone number, avatar), security, roles & permissions
+### Khoản thu
 
-## Roles
+![Khoản thu](docs/images/admin/02-khoan-thu.png)
 
-There are four roles. Menus and buttons are shown only when the user has permission.
+### Khoản chi
 
-| | Admin | Shop Owner | Employee | Viewer |
-|---|---|---|---|---|
-| Dashboard | Yes | Yes | Yes | Yes |
-| View income / expenses | Yes | Yes | Yes | Yes |
-| Add income / expenses | Yes | Yes | Yes | |
-| Edit income / expenses | Yes | Yes | Own records | |
-| Soft-delete income / expenses | Yes | Yes | | |
-| Import Excel data | Yes | Yes | Yes | |
-| Reports | Yes | Yes | | Yes |
-| Activity log | Yes | Yes | | |
-| Users | Yes | | | |
-| Personal profile | Yes | Yes | Yes | Yes |
-
-Demo accounts (password `123456`):
-
-- `admin@demo.local` — Administrator
-- `owner@demo.local` — Shop Owner
-- `staff@demo.local` — Employee
-- `viewer@demo.local` — Viewer
+![Khoản chi](docs/images/admin/03-khoan-chi.png)
 
 ## Mind map
 
 ![HandmadeFinance mind map](docs/mindmap.png)
 
+## Use Case Diagram
+
+```mermaid
+flowchart LR
+    admin(["🧍<br/>Administrator"])
+    owner(["🧍<br/>Shop Owner"])
+    employee(["🧍<br/>Employee"])
+    viewer(["🧍<br/>Viewer"])
+
+    subgraph system["HandmadeFinance · System Boundary"]
+        common["UC01 Login / UC02 Logout<br/>UC03 View Dashboard / UC17 Manage Profile<br/><i>[Shared use cases]</i>"]
+        read["UC04 View Income<br/>UC08 View Expenses"]
+        write["UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses"]
+        remove["UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses"]
+        importUc["UC12 Import Excel Data"]
+        reports["UC13 View Reports<br/>UC14 Export Reports"]
+        audit["UC15 View Audit Log"]
+        users["UC16 Manage Users"]
+    end
+
+    admin --> common
+    admin --> read
+    admin --> write
+    admin --> remove
+    admin --> importUc
+    admin --> reports
+    admin --> audit
+    admin --> users
+    owner --> common
+    owner --> read
+    owner --> write
+    owner --> remove
+    owner --> importUc
+    owner --> reports
+    owner --> audit
+    employee --> common
+    employee --> read
+    employee -->|may edit own records only| write
+    employee --> importUc
+    viewer --> common
+    viewer --> read
+    viewer --> reports
+
+    style system fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
+    style admin fill:#666,color:#fff
+    style owner fill:#666,color:#fff
+    style employee fill:#666,color:#fff
+    style viewer fill:#666,color:#fff
+    style common fill:#1168bd,color:#fff
+    style read fill:#3a7bd5,color:#fff
+    style write fill:#3a7bd5,color:#fff
+    style remove fill:#3a7bd5,color:#fff
+    style importUc fill:#3a7bd5,color:#fff
+    style reports fill:#3a7bd5,color:#fff
+    style audit fill:#3a7bd5,color:#fff
+    style users fill:#3a7bd5,color:#fff
+```
+
+Chi tiết actor, quyền và luồng nghiệp vụ: [Actors, roles và use cases](docs/03-use-cases.md).
+
 ## C4 Architecture
 
-The three C4 levels below describe the system context, containers, and main components of the .NET backend. See the complete documentation and C4 Level 4 diagrams in [docs/architecture/c4](docs/architecture/c4/README.md).
+README chỉ trình bày C1–C3. C4 Level 4 và UML chi tiết được giữ trong thư mục tài liệu kiến trúc.
 
 ### C1 — System Context
 
@@ -105,7 +139,7 @@ flowchart TB
     style database fill:#1168bd,color:#fff
 ```
 
-### C3 — Component (.NET Backend)
+### C3 — Component
 
 ```mermaid
 flowchart TB
@@ -154,69 +188,38 @@ flowchart TB
     style persistence fill:#1168bd,color:#fff
 ```
 
-## Interface
+Tài liệu đầy đủ: [C4 Architecture](docs/architecture/c4/README.md) và [arc42 Architecture Handbook](docs/architecture/arc42/README.md).
 
-After login (sidebar + top bar):
+## Phân quyền
 
-- Dashboard
-- Income Management
-- Expense Management
-- Reports & Analytics
-- Excel Data Import
-- Activity Log
-- User Management
-- Personal Profile
+| Chức năng | Admin | Shop Owner | Employee | Viewer |
+|---|---:|---:|---:|---:|
+| Xem dashboard và thu/chi | Có | Có | Có | Có |
+| Tạo khoản thu/chi | Có | Có | Có | Không |
+| Sửa khoản thu/chi | Có | Có | Bản ghi của mình | Không |
+| Xóa mềm khoản thu/chi | Có | Có | Không | Không |
+| Import Excel | Có | Có | Có | Không |
+| Báo cáo | Có | Có | Không | Có |
+| Nhật ký hoạt động | Có | Có | Không | Không |
+| Quản lý người dùng | Có | Không | Không | Không |
 
-Screenshots by role:
+Backend phải kiểm tra RBAC và own-record policy; việc ẩn nút ở frontend chỉ phục vụ UI/UX.
 
-- [admin](docs/images/admin/)
-- [shop-owner](docs/images/chu-shop/)
-- [employee](docs/images/nhan-vien/)
-- [viewer](docs/images/nguoi-xem/)
+## Tài liệu
 
-Viewer — income list (no add / edit / delete buttons):
+- Requirements: [Scope](docs/01-scope.md), [Features](docs/02-features.md), [Acceptance criteria](docs/06-acceptance-criteria.md).
+- UI/UX: [Information architecture](docs/04-information-architecture.md).
+- Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](database/shop_finance.sql).
+- Folder structure: [React và backend three-tier](docs/07-folder-structure.md).
+- Code-level design: [Class diagrams](docs/architecture/uml/01-class-diagrams.md), [Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md).
+- API contract: OpenAPI 3.0/Swagger **chưa có**; các endpoint hiện tại chỉ là provisional contract.
 
-![Viewer — income](docs/images/nguoi-xem/02-khoan-thu.png)
+## Chạy UI mock
 
-Employee — no Reports, Activity Log, or Users menu items:
-
-![Employee — Dashboard](docs/images/nhan-vien/01-dashboard.png)
-
-## Data
-
-The PostgreSQL design (`database/shop_finance.sql`, `database/shop_finance.dbml`) includes:
-
-- users (phone number, avatar, status)
-- income categories and income records (sales channel, record status, pre/post-tax amounts)
-- expense categories and expense records (payment method, status)
-- attachments
-- import batches
-- audit logs
-
-The UI data comes from `app/src/lib/data.js` (including sample Etsy order `4154185113`). There is one USD dataset; the currency toolbar displays either USD or EUR using a mock exchange rate.
-
-## Repository structure
-
-```text
-finance-manager/
-  README.md
-  app/               React.js mock (Vite)
-  docs/              product documentation
-  docs/images/       UI screenshots by role
-  database/          shop_finance.sql, shop_finance.dbml
-  scripts/           serve.sh, serve.bat
+```bash
+cd app
+npm install
+npm run dev
 ```
 
-## Documentation
-
-- [Scope](docs/01-scope.md)
-- [Features](docs/02-features.md)
-- [Use cases](docs/03-use-cases.md)
-- [Use Case Diagram](docs/03-use-cases.md#use-case-diagram)
-- [Information architecture](docs/04-information-architecture.md)
-- [Data model](docs/05-data-model.md)
-- [ER diagram](docs/DATABASE.md)
-- [Acceptance criteria](docs/06-acceptance-criteria.md)
-- [Mind map](docs/mindmap.png)
-- [C4 architecture (C1 → C2 → C3 → C4)](docs/architecture/c4/README.md)
-- [arc42 architecture handbook](docs/architecture/arc42/README.md)
+Tài khoản demo dùng mật khẩu `123456`: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, `viewer@demo.local`.
