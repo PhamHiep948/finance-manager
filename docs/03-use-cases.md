@@ -11,8 +11,6 @@ Product name: **HandmadeFinance**.
 | `EMPLOYEE` | Employee |
 | `VIEWER` | Viewer |
 
-Do not add any other roles.
-
 ## Role × feature matrix
 
 | Feature | Admin | Shop Owner | Employee | Viewer |
