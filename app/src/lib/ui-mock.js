@@ -1,5 +1,5 @@
 /** Presentation-only mock for screenshot fidelity. Swap with API later. */
-const UI_MOCK = {
+export const UI_MOCK = {
   displayName: "Nguyễn Handmade",
   roleLine: "Quản trị viên",
   kpis: {
@@ -18,10 +18,10 @@ const UI_MOCK = {
     expense: [12, 16, 18, 21, 19, 18.2],
   },
   groups: [
-    { name: "Đồ gốm", amount: 13400000, color: "#3B82F6", pct: 33 },
-    { name: "Đan lát", amount: 12100000, color: "#22C55E", pct: 30 },
-    { name: "Trang sức", amount: 8300000, color: "#F59E0B", pct: 21 },
-    { name: "Quà tặng", amount: 6300000, color: "#A3E635", pct: 16 },
+    { name: "Đồ gốm", amount: 13400000, color: "#0071e3", pct: 33 },
+    { name: "Đan lát", amount: 12100000, color: "#1d7a4c", pct: 30 },
+    { name: "Trang sức", amount: 8300000, color: "#9a6700", pct: 21 },
+    { name: "Quà tặng", amount: 6300000, color: "#2b93f0", pct: 16 },
   ],
   recentTx: [
     { code: "TX001", text: "Bán bộ ấm trà xanh cổ vịt", time: "Hôm nay, 14:20", amount: 1200000, type: "in", status: "done" },
@@ -31,16 +31,16 @@ const UI_MOCK = {
     { code: "TX005", text: "Bán gỗ mây tre đan xuất khẩu", time: "11/06/2024", amount: 2800000, type: "in", status: "done" },
   ],
   incomeKpis: [
-    { label: "Tổng doanh thu (tháng)", value: "$12,450.80", delta: "+12.5% so với tháng trước", icon: "trending-up", tone: "blue" },
-    { label: "Đơn hàng mới", value: "48", delta: "+5 so với tháng trước", icon: "shopping-bag", tone: "green" },
-    { label: "Doanh thu trung bình", value: "$259.40", delta: "-2.1% so với tháng trước", icon: "circle-dollar-sign", tone: "orange" },
-    { label: "Thị trường châu Âu", value: "€3,840.00", delta: "+8.4% so với tháng trước", icon: "globe", tone: "purple" },
+    { label: "Tổng doanh thu (tháng)", value: "$12,450.80", delta: "+12.5% so với tháng trước" },
+    { label: "Đơn hàng mới", value: "48", delta: "+5 so với tháng trước" },
+    { label: "Doanh thu trung bình", value: "$259.40", delta: "-2.1% so với tháng trước" },
+    { label: "Thị trường châu Âu", value: "€3,840.00", delta: "+8.4% so với tháng trước" },
   ],
   expenseKpis: [
-    { label: "Tổng chi phí (tháng)", value: "$4,280.00", delta: "+4.1% so với tháng trước", icon: "wallet", tone: "blue" },
-    { label: "Giao dịch", value: "36", delta: "+3 so với tháng trước", icon: "receipt", tone: "green" },
-    { label: "Dự kiến", value: "$612.00", delta: "Chưa đối soát", icon: "calendar-clock", tone: "orange" },
-    { label: "Thuế & phí ước tính", value: "$312.45", delta: "VAT, thuế xuất khẩu, phí sàn", icon: "file-text", tone: "purple" },
+    { label: "Tổng chi phí (tháng)", value: "$4,280.00", delta: "+4.1% so với tháng trước" },
+    { label: "Giao dịch", value: "36", delta: "+3 so với tháng trước" },
+    { label: "Dự kiến", value: "$612.00", delta: "Chưa đối soát" },
+    { label: "Thuế & phí ước tính", value: "$312.45", delta: "VAT, thuế xuất khẩu, phí sàn" },
   ],
   reportKpis: [
     { label: "Tổng doanh thu", value: "109,500,000 đ", delta: "+14.2%", up: true, icon: "bar-chart-3" },
@@ -53,10 +53,10 @@ const UI_MOCK = {
     expense: [8.4, 9.0, 9.3, 10.1, 11.0, 11.8],
   },
   donut: [
-    { name: "Đồ Gốm", pct: 45, color: "#1D4ED8" },
-    { name: "Đan Lát", pct: 25, color: "#22C55E" },
-    { name: "Thêu Thùa", pct: 15, color: "#22D3EE" },
-    { name: "Trang Sức", pct: 15, color: "#A3E635" },
+    { name: "Đồ Gốm", pct: 45, color: "#0071e3" },
+    { name: "Đan Lát", pct: 25, color: "#1d7a4c" },
+    { name: "Thêu Thùa", pct: 15, color: "#0058b8" },
+    { name: "Trang Sức", pct: 15, color: "#9a6700" },
   ],
   products: [
     { name: "Bình gốm thủ công Men Lam", sold: 124, revenue: "18,600,000 đ", growth: "+12%" },
@@ -86,7 +86,7 @@ const UI_MOCK = {
   ],
 };
 
-const UI_USERS = [
+export const UI_USERS = [
   { id: 101, name: "Nguyễn Văn An", email: "an.nguyen@handmadeshop.vn", role: "ADMIN", status: "active", last: "2 phút trước", photo: "https://i.pravatar.cc/64?img=32" },
   { id: 102, name: "Trần Thị Bình", email: "binh.tran@handmadeshop.vn", role: "EMPLOYEE", status: "active", last: "1 giờ trước", photo: "https://i.pravatar.cc/64?img=47" },
   { id: 103, name: "Lê Hoàng Cường", email: "cuong.le@handmadeshop.vn", role: "VIEWER", status: "disabled", last: "3 ngày trước", photo: "https://i.pravatar.cc/64?img=12" },
@@ -94,7 +94,7 @@ const UI_USERS = [
   { id: 105, name: "Vũ Thanh Hà", email: "ha.vu@handmadeshop.vn", role: "VIEWER", status: "active", last: "15 phút trước", photo: "https://i.pravatar.cc/64?img=49" },
 ];
 
-const UI_AUDIT = [
+export const UI_AUDIT = [
   { id: "LOG-001", user: "Nguyễn Handmade", role: "Quản trị viên", initial: "N", action: "login", module: "Hệ thống", detail: "Đăng nhập vào hệ thống từ trình", time: "08:30:15\n2024-05-20" },
   { id: "LOG-002", user: "Trần Thị Thu", role: "Nhân viên kế toán", initial: "T", action: "create", module: "Khoản thu", detail: "Tạo mới hóa đơn bán lẻ", time: "09:15:42\n2024-05-20" },
   { id: "LOG-003", user: "Lê Văn Nam", role: "Nhân viên kho", initial: "L", action: "update", module: "Khoản chi", detail: "Cập nhật trạng thái thanh toán cho", time: "10:05:11\n2024-05-20" },
@@ -105,10 +105,10 @@ const UI_AUDIT = [
   { id: "LOG-008", user: "Nguyễn Handmade", role: "Quản trị viên", initial: "N", action: "update", module: "Phân quyền", detail: "Thay đổi quyền hạn cho nhóm “Nhân", time: "16:05:44\n2024-05-20" },
 ];
 
-const INCOME_SOURCES_UI = ["Etsy Store", "Website Direct", "Instagram Shop", "Local Market", "B2B Wholesale"];
-const PAY_METHODS = ["Thẻ tín dụng", "Chuyển khoản", "Tiền mặt", "PayPal"];
-const AVATAR_ADMIN = "https://i.pravatar.cc/160?img=47";
-const IMG_HERO = "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=1600&q=60";
-const IMG_IMPORT = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=60";
-const IMG_REPORT = "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=640&q=60";
-const IMG_RECEIPT = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=70";
+export const INCOME_SOURCES_UI = ["Etsy Store", "Website Direct", "Instagram Shop", "Local Market", "B2B Wholesale"];
+export const PAY_METHODS = ["Thẻ tín dụng", "Chuyển khoản", "Tiền mặt", "PayPal"];
+export const AVATAR_ADMIN = "https://i.pravatar.cc/160?img=47";
+export const IMG_HERO = "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=1600&q=60";
+export const IMG_IMPORT = "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=60";
+export const IMG_REPORT = "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=640&q=60";
+export const IMG_RECEIPT = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=70";

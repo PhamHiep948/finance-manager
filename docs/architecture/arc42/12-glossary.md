@@ -26,6 +26,6 @@ Definitions follow HandmadeFinance semantics from the documentation and schema.
 | **Attachment** | Supporting document: metadata + `storage_path`; belongs to exactly one Income or one Expense; binary content is not stored in PostgreSQL. |
 | **Sales Channel** | Sales channel: ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE. |
 | **Payment Method** | CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL. |
-| **Modular Monolith** | One Go Backend with multiple logical Components and one PostgreSQL database. |
-| **Container** | Deployable/runtime building block: React Frontend, Go Backend, PostgreSQL. |
-| **Component** | Logical module inside the Go Backend (HTTP API, Identity, Income, etc.). |
+| **Modular Monolith** | One .NET Backend with multiple logical Components and one PostgreSQL database. |
+| **Container** | Deployable/runtime building block: React Frontend, .NET Backend, PostgreSQL. |
+| **Component** | Logical module inside the .NET Backend (HTTP API, Identity, Income, etc.). |

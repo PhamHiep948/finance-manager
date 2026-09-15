@@ -54,7 +54,7 @@ V1 does **not** include:
 
 | Component | Reality |
 |---|---|
-| Frontend | **MOCK DATA** (`frontend/js/data.js`). No API `fetch`, no SQL. |
+| Frontend | **MOCK DATA** (`app/src/lib/data.js`). No API `fetch`, no SQL. |
 | Database | **Schema designed** (`database/shop_finance.sql`, `.dbml`). Not connected to the app. |
 | Auth | **Mock authentication** (sessionStorage / localStorage). |
 | Excel Import | **UI + mock flow**. File contents are not read. |

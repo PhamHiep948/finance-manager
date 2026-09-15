@@ -1,52 +1,48 @@
-# HandmadeFinance — Architecture Documentation (arc42)
+# HandmadeFinance — Tài liệu kiến trúc arc42
 
-This is **ESSENTIAL-level arc42** documentation. It can be read independently; a separate C4 architecture-model document set is not required.
+> **Trạng thái:** Baseline · **Đối tượng đọc:** developer, reviewer, người bảo trì
 
-Sources: business documentation under `docs/`, `database/`, `docker-compose.yml`, `.env.example`, and the React → Go → PostgreSQL architecture baseline.
+Tài liệu này dùng arc42 để giải thích mục tiêu, ràng buộc, quyết định và các kịch bản chạy. Các sơ đồ C4 Mermaid là góc nhìn cấu trúc chính; arc42 không tạo một kiến trúc khác.
 
-## Architecture baseline
-
-```text
-Users
-  → React.js Web Frontend
-  → HTTPS / REST / JSON
-  → Go Backend (Modular Monolith)
-  → Persistence / Data Access
-  → PostgreSQL
+```mermaid
+flowchart LR
+    goals["1–2<br/>Mục tiêu & ràng buộc"]
+    context["3<br/>Context · C4 C1"]
+    strategy["4<br/>Chiến lược"]
+    blocks["5<br/>Building blocks · C4 C2/C3"]
+    runtime["6–7<br/>Runtime & deployment"]
+    quality["8–12<br/>Concepts, ADR, quality, risks"]
+    goals --> context --> strategy --> blocks --> runtime --> quality
+    style context fill:#1168bd,color:#fff
+    style blocks fill:#1168bd,color:#fff
+    style goals fill:#e8f1fc,stroke:#3a7bd5
+    style strategy fill:#e8f1fc,stroke:#3a7bd5
+    style runtime fill:#e8f1fc,stroke:#3a7bd5
+    style quality fill:#e8f1fc,stroke:#3a7bd5
 ```
 
-The Frontend **does not** access PostgreSQL. Real authorization is enforced by the Go Backend; hiding React buttons is only a user-experience measure.
+## Mục lục
 
-Context / building-block diagrams are included **inside** Sections 3 and 5 (Mermaid + images under `diagrams/`).
+| Phần | Nội dung |
+|---|---|
+| 1 | [Giới thiệu và mục tiêu](01-introduction-and-goals.md) |
+| 2 | [Ràng buộc kiến trúc](02-architecture-constraints.md) |
+| 3 | [Context và scope](03-context-and-scope.md) |
+| 4 | [Chiến lược giải pháp](04-solution-strategy.md) |
+| 5 | [Building Block View](05-building-block-view.md) |
+| 6 | [Runtime View](06-runtime-view.md) |
+| 7 | [Deployment View](07-deployment-view.md) |
+| 8 | [Cross-cutting Concepts](08-crosscutting-concepts.md) |
+| 9 | [Architecture Decisions](09-architecture-decisions.md) |
+| 10 | [Quality Requirements](10-quality-requirements.md) |
+| 11 | [Risks và Technical Debt](11-risks-and-technical-debt.md) |
+| 12 | [Glossary](12-glossary.md) |
 
-## Table of contents
+## Baseline
 
-| # | Section | File |
-| - | ------- | ---- |
-| 1 | Introduction and Goals | [01-introduction-and-goals.md](01-introduction-and-goals.md) |
-| 2 | Architecture Constraints | [02-architecture-constraints.md](02-architecture-constraints.md) |
-| 3 | Context and Scope | [03-context-and-scope.md](03-context-and-scope.md) |
-| 4 | Solution Strategy | [04-solution-strategy.md](04-solution-strategy.md) |
-| 5 | Building Block View | [05-building-block-view.md](05-building-block-view.md) |
-| 6 | Runtime View | [06-runtime-view.md](06-runtime-view.md) |
-| 7 | Deployment View | [07-deployment-view.md](07-deployment-view.md) |
-| 8 | Cross-cutting Concepts | [08-crosscutting-concepts.md](08-crosscutting-concepts.md) |
-| 9 | Architecture Decisions | [09-architecture-decisions.md](09-architecture-decisions.md) |
-| 10 | Quality Requirements | [10-quality-requirements.md](10-quality-requirements.md) |
-| 11 | Risks and Technical Debt | [11-risks-and-technical-debt.md](11-risks-and-technical-debt.md) |
-| 12 | Glossary | [12-glossary.md](12-glossary.md) |
+- **Hiện tại:** React/Vite mock chạy hoàn toàn trong trình duyệt.
+- **Đích:** React Web → ASP.NET Core Web API → PostgreSQL.
+- **Nguyên tắc:** backend là trust boundary; domain không phụ thuộc transport hoặc SQL chi tiết.
+- **Chưa quyết định:** ASP.NET Core Controllers hay Minimal APIs, token/session server-side, thư viện truy cập dữ liệu, nơi lưu file và hạ tầng production.
 
-## Information-source labels
-
-| Label | Meaning |
-| ----- | ------- |
-| FACT | Schema, docs 01–06, DATABASE.md, docker-compose |
-| DECISION | Architecture baseline in this documentation + Architecture Decision Records in Section 9 |
-| PROPOSED | Quality target not yet measured in production |
-| To Be Determined | Not decided yet; do not invent technology |
-
-## Domain (V1)
-
-Income and expense management for a handmade shop: Income, Expense, Dashboard, Reports, Excel Import, Attachments, Audit Log, User Management, Profile, Authentication, Authorization.
-
-This is not an enterprise resource planning system, stock-keeping-unit inventory system, customer relationship management system, double-entry accounting system, payment gateway, Etsy API integration, or artificial-intelligence system.
+Liên quan: [C4 C1 → C2 → C3 → C4](../c4/README.md) · [C4 Code cho hai tính năng chính](../c4/04-code.md) · [Use Case Diagram](../../03-use-cases.md#use-case-diagram).

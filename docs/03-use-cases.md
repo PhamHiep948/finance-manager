@@ -35,41 +35,89 @@ Do not add any other roles.
 
 Menus / buttons are **not displayed** when the user lacks permission. Unauthorized URL access → `#/403`.
 
-## Use-case diagram (17 UCs, one diagram)
+## Use Case Diagram
 
-Grouped by permission. Do not draw 17 separate diagrams.
+The diagram groups use cases by capability and connects each actor directly to the capabilities available to that role.
 
 ```mermaid
-flowchart TB
-  subgraph FM ["HandmadeFinance — UC01 … UC17"]
-    subgraph all ["All roles"]
-      UC01[UC01 Login]
-      UC02[UC02 Logout]
-      UC03[UC03 Dashboard]
-      UC04[UC04 View income]
-      UC08[UC08 View expenses]
-      UC17[UC17 Profile]
+flowchart LR
+    admin(["🧍<br/>Administrator"])
+    owner(["🧍<br/>Shop Owner"])
+    employee(["🧍<br/>Employee"])
+    viewer(["🧍<br/>Viewer"])
+
+    subgraph system["HandmadeFinance · System Boundary"]
+        common["UC01 Login / UC02 Logout<br/>UC03 View Dashboard / UC17 Manage Profile<br/><i>[Shared use cases]</i>"]
+        read["UC04 View Income<br/>UC08 View Expenses"]
+        write["UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses"]
+        remove["UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses"]
+        importUc["UC12 Import Excel Data"]
+        reports["UC13 View Reports<br/>UC14 Export Reports"]
+        audit["UC15 View Audit Log"]
+        users["UC16 Manage Users"]
     end
-    subgraph entry ["Admin, Shop Owner, Employee"]
-      UC05[UC05 Add income]
-      UC06[UC06 Edit income]
-      UC09[UC09 Add expense]
-      UC10[UC10 Edit expense]
-      UC12[UC12 Import]
-    end
-    subgraph reports ["Admin, Shop Owner, Viewer"]
-      UC13[UC13 View reports]
-      UC14[UC14 Export reports]
-    end
-    subgraph deleteGroup ["Admin, Shop Owner"]
-      UC07[UC07 Soft-delete income]
-      UC11[UC11 Soft-delete expense]
-      UC15[UC15 Audit log]
-    end
-    subgraph adminOnly ["Admin only"]
-      UC16[UC16 Users]
-    end
-  end
+
+    admin --> common
+    admin --> read
+    admin --> write
+    admin --> remove
+    admin --> importUc
+    admin --> reports
+    admin --> audit
+    admin --> users
+    owner --> common
+    owner --> read
+    owner --> write
+    owner --> remove
+    owner --> importUc
+    owner --> reports
+    owner --> audit
+    employee --> common
+    employee --> read
+    employee -->|may edit own records only| write
+    employee --> importUc
+    viewer --> common
+    viewer --> read
+    viewer --> reports
+
+    style system fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
+    style admin fill:#666,color:#fff
+    style owner fill:#666,color:#fff
+    style employee fill:#666,color:#fff
+    style viewer fill:#666,color:#fff
+    style common fill:#1168bd,color:#fff
+    style read fill:#3a7bd5,color:#fff
+    style write fill:#3a7bd5,color:#fff
+    style remove fill:#3a7bd5,color:#fff
+    style importUc fill:#3a7bd5,color:#fff
+    style reports fill:#3a7bd5,color:#fff
+    style audit fill:#3a7bd5,color:#fff
+    style users fill:#3a7bd5,color:#fff
+```
+
+### Include relationships and constraints
+
+```mermaid
+flowchart LR
+    auth["Authenticate Session"]:::shared
+    authorize["Check RBAC Permission"]:::shared
+    own["Verify Record Ownership"]:::rule
+    validate["Validate Input"]:::shared
+    audit["Write Audit Log"]:::shared
+
+    write["Add / Edit Income or Expense"] -->|"<<include>>"| auth
+    write -->|"<<include>>"| authorize
+    write -->|"<<include>>"| validate
+    employeeEdit["Employee Edits Transaction"] -->|"<<include>>"| own
+    employeeEdit --> write
+    deleteUc["Soft-delete Transaction"] -->|"<<include>>"| auth
+    deleteUc -->|"<<include>>"| authorize
+    deleteUc -->|"<<include>>"| audit
+    importUc["Import Excel"] -->|"<<include>>"| validate
+    importUc -->|"<<include>>"| audit
+
+    classDef shared fill:#1168bd,color:#fff,stroke:#0b4884
+    classDef rule fill:#e8f1fc,color:#123,stroke:#3a7bd5
 ```
 
 Employees may edit income/expense records only if they created them. Employees cannot delete records.

@@ -59,4 +59,4 @@ Demo user seeds: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, `vi
 | `originScope` / `amountAfterTax` | `origin_scope` / `amount_after_tax` |
 | `attachment` `{name,type,size}` | `attachments.original_name`, `mime_type`, `file_size_bytes` |
 
-The frontend reads **mock JS** (`frontend/js/data.js`) and maps columns as above — it does not query SQL views at runtime.
+The frontend reads **mock JS** (`app/src/lib/data.js`) and maps columns as above — it does not query SQL views at runtime.

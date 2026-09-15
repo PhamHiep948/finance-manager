@@ -2,7 +2,7 @@
 
 Each Architecture Decision Record contains: Context, Decision, Alternatives, Consequences, Status.
 
-Status **Accepted** = established by the schema / business documentation / Architecture Decision Records in this file. **Proposed** = a principle not yet implemented in code. Do not invent Architecture Decision Records for Gin, JSON Web Token, or S3.
+Status **Accepted** = established by the schema / business documentation / Architecture Decision Records in this file. **Proposed** = a principle not yet implemented in code. Do not invent Architecture Decision Records for a specific ORM, JSON Web Token approach, or object storage provider.
 
 ## ADR-001 React.js for Web Frontend
 
@@ -10,18 +10,18 @@ Status **Accepted** = established by the schema / business documentation / Archi
 |---|---|
 | **Context** | A web user interface is needed for income/expenses, dashboard, import, and authorization. |
 | **Decision** | Web Frontend = React.js single-page application calling REST. |
-| **Alternatives** | Server-rendered Go templates; mobile-only. Not selected because they are outside the V1 web scope. |
-| **Consequences** | The frontend team can work independently from Go; all monetary and authorization rules remain enforced by the API. |
+| **Alternatives** | Server-rendered Razor Pages/MVC; mobile-only. Not selected because they are outside the V1 web scope. |
+| **Consequences** | The frontend team can work independently from .NET; all monetary and authorization rules remain enforced by the API. |
 | **Status** | Accepted |
 
-## ADR-002 Go for Backend
+## ADR-002 .NET for Backend
 
 | | |
 |---|---|
 | **Context** | The system needs application programming interfaces, role-based access control, import, and SQL access. |
-| **Decision** | The Backend Application is written in Go. |
+| **Decision** | The Backend Application is written in C# on .NET. |
 | **Alternatives** | Node, Java. The repository has no requirement for those choices. |
-| **Consequences** | One backend runtime; HTTP framework **To Be Determined**. |
+| **Consequences** | One .NET runtime; ASP.NET Core Controllers versus Minimal APIs remains **To Be Determined**. |
 | **Status** | Accepted |
 
 ## ADR-003 Modular Monolith instead of Microservices
@@ -29,7 +29,7 @@ Status **Accepted** = established by the schema / business documentation / Archi
 | | |
 |---|---|
 | **Context** | One income/expense bounded context and one PostgreSQL database. |
-| **Decision** | Modular Monolith; Go Backend components live in one deployable. |
+| **Decision** | Modular Monolith; .NET Backend components live in one deployable. |
 | **Alternatives** | Separate Income/Expense/Auth microservices — higher operational complexity with no current driver. |
 | **Consequences** | Modules do not issue SQL directly; they share Persistence. |
 | **Status** | Accepted |
@@ -79,7 +79,7 @@ Status **Accepted** = established by the schema / business documentation / Archi
 | | |
 |---|---|
 | **Context** | Four roles; Viewer/Employee can call APIs manually. |
-| **Decision** | Identity & Access is mandatory in Go; React only improves user experience. |
+| **Decision** | Identity & Access is mandatory in .NET; React only improves user experience. |
 | **Alternatives** | Hide UI buttons only — insufficient. |
 | **Consequences** | Every write scenario in Section 6 contains a 403 path. Session mechanism To Be Determined. |
 | **Status** | Accepted (principle). Session implementation: Proposed / To Be Determined |

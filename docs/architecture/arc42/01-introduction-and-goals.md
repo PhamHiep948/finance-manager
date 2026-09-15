@@ -44,7 +44,7 @@ Three to five architecture priorities (detailed scenarios: [10-quality-requireme
 | ID | Quality Goal | Why it matters |
 | -- | ------------ | -------------- |
 | QG-1 | Data Correctness | Income/expense totals and Net Result must match active records; USD is the canonical currency |
-| QG-2 | Security | Roles and permissions must be rejected by the Go Backend even if React hides the button |
+| QG-2 | Security | Roles and permissions must be rejected by the .NET Backend even if React hides the button |
 | QG-3 | Auditability | INSERT/UPDATE/DELETE/LOGIN/EXPORT/IMPORT must be traceable to actor, time, and module |
 | QG-4 | Usability | Each of the four roles sees the correct menu; Viewer must not be exposed to write actions |
 | QG-5 | Maintainability | Modular Monolith + a single Persistence layer for SQL makes business modules easier to extend |

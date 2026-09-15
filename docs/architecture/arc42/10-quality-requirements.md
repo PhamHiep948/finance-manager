@@ -11,7 +11,7 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **ID**                | QR-01                                                        |
 | **Quality Attribute** | Security / Authorization (QG-2)                              |
 | **Scenario**          | A logged-in VIEWER calls `POST` to create Income (or Expense, Import) |
-| **Environment**       | Go Backend + PostgreSQL; independent of React hiding the button |
+| **Environment**       | .NET Backend + PostgreSQL; independent of React hiding the button |
 | **Expected Response** | 403 Forbidden; no INSERT into incomes/expenses/import_batches |
 | **Measurement**       | API test; audit contains no business INSERT for that user    |
 
@@ -66,7 +66,7 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **ID**                | QR-06                                                                |
 | **Quality Attribute** | Performance                                                          |
 | **Scenario**          | User opens Dashboard using the default date range with V1 single-shop data |
-| **Environment**       | Go + Postgres local/production To Be Determined                                         |
+| **Environment**       | .NET + PostgreSQL local/production To Be Determined                                         |
 | **Expected Response** | **Proposed Target:** 95th percentile latency under 2 seconds. **To Be Determined before production** if not measured |
 | **Measurement**       | GET dashboard API latency                                            |
 
@@ -99,6 +99,6 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **ID**                | QR-09                                                              |
 | **Quality Attribute** | Maintainability (QG-5)                                             |
 | **Scenario**          | Add a field to `incomes`                                           |
-| **Environment**       | Go modules                                                         |
+| **Environment**       | .NET projects/modules                                                         |
 | **Expected Response** | SQL remains inside Persistence; Income Management contains no SQL driver code |
 | **Measurement**       | PR review / architecture test (**Proposed**)                       |

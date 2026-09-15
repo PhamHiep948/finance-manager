@@ -1,67 +1,51 @@
 # 3. Context and Scope
 
-Who uses HandmadeFinance, where is the system boundary, and are there any external systems?
-
-## 3.1 Business Context
-
-HandmadeFinance helps a handmade shop record income and expenses and view aggregates. Business boundary: money in / money out / internal reporting. Outside the boundary: inventory, SKUs, payment gateways, e-commerce marketplaces, ERP.
-
-## 3.2 System Context
-
-Four **Persons** use one **Software System**. V1 has no External Software System.
-
-![System Context](diagrams/context.jpg)
+## 3.1 Business context — C4 Level 1
 
 ```mermaid
-flowchart TB
-  admin["Administrator<br/>Person"]
-  owner["Shop Owner<br/>Person"]
-  staff["Employee<br/>Person"]
-  viewer["Viewer<br/>Person"]
-  hf["HandmadeFinance<br/>Software System"]
+flowchart LR
+    admin(["👤 Quản trị viên"])
+    owner(["👤 Chủ shop"])
+    employee(["👤 Nhân viên"])
+    viewer(["👤 Người xem"])
 
-  admin -->|"Administers the system and users"| hf
-  owner -->|"Manages and monitors income and expenses"| hf
-  staff -->|"Records transactions according to permissions"| hf
-  viewer -->|"Views data and reports"| hf
+    subgraph boundary[" "]
+        finance["HandmadeFinance<br/><i>[Software System]</i><br/>Quản lý khoản thu, khoản chi, báo cáo,<br/>import dữ liệu, người dùng và nhật ký"]
+    end
+
+    admin -- "quản trị người dùng và toàn bộ dữ liệu" --> finance
+    owner -- "điều hành thu chi, báo cáo và audit" --> finance
+    employee -- "ghi nhận thu chi theo quyền" --> finance
+    viewer -- "xem dashboard, giao dịch và báo cáo" --> finance
+
+    style finance fill:#1168bd,color:#fff
 ```
 
-## 3.3 People
+Chi tiết và quy ước C4: [C1 — System Context](../c4/01-system-context.md).
 
-| Role | Display name | Relationship |
-| ---- | ------------ | ------------ |
-| `ADMIN` | Administrator | Administers the system and users |
-| `SHOP_OWNER` | Shop Owner | Manages and monitors income and expenses |
-| `EMPLOYEE` | Employee | Records transactions according to permissions |
-| `VIEWER` | Viewer | Views data and reports |
+## 3.2 Phạm vi nghiệp vụ
 
-All users access the system through the **React.js Web Frontend** (Section 5).
+| Trong HandmadeFinance | Ngoài phạm vi V1 |
+|---|---|
+| Đăng nhập, RBAC, hồ sơ | Real OAuth/OIDC |
+| Khoản thu, khoản chi, danh mục | Tồn kho, SKU, CRM |
+| Dashboard và báo cáo | Kế toán kép, khai thuế |
+| Import Excel, attachment metadata | Marketplace/payment integration |
+| Người dùng và audit log | ERP, hóa đơn điện tử |
 
-## 3.4 System Boundary
+## 3.3 Business interfaces
 
-**Inside:** login, dashboard, income/expenses, categories, reports, Excel import, attachments (metadata), audit log, users, profile, authorization.
+| Actor | Input | Output |
+|---|---|---|
+| Admin | Người dùng, giao dịch, cấu hình trạng thái | Toàn bộ dữ liệu và audit |
+| Chủ shop | Giao dịch, bộ lọc, file import | Dashboard, báo cáo, audit |
+| Nhân viên | Giao dịch của mình, file import | Danh sách và dashboard |
+| Người xem | Bộ lọc xem dữ liệu | Dashboard, danh sách, báo cáo |
 
-**Outside:** four Persons; manual shop processes; third-party software not included in V1.
+## 3.4 Technical context
 
-## 3.5 External Systems
+Ở kiến trúc đích, người dùng truy cập React Web qua HTTPS; Web gọi .NET Backend bằng REST/JSON; Backend dùng PostgreSQL protocol/SQL. Không có kết nối Frontend → Database.
 
-V1 **does not require** an External Software System.
+## 3.5 Status boundary
 
-There is no Etsy API, payment gateway, email service, or ERP in the context.
-
-USD→EUR exchange-rate source: **To Be Determined** ([Section 11](11-risks-and-technical-debt.md)).
-
-Attachment storage: PostgreSQL stores only `storage_path`; the **actual file storage location** is To Be Determined.
-
-## 3.6 Technical Context
-
-```text
-User (browser)
-  → React.js Web Frontend
-  → HTTPS / REST / JSON
-  → Go Backend
-  → SQL
-  → PostgreSQL
-```
-
-Runtime building-block details: [05-building-block-view.md](05-building-block-view.md).
+React mock hiện giữ dữ liệu trong JavaScript và phiên trong Web Storage. .NET Backend và kết nối PostgreSQL là thiết kế đích, không phải thành phần đã chạy.

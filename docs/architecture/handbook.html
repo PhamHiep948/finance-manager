@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HandmadeFinance — C4 + arc42 (complete)</title>
+  <style>
+    :root {
+      --bg: #f4f6f8; --panel: #fff; --ink: #111827; --muted: #4b5563;
+      --line: #e5e7eb; --brand: #1d4ed8; --brand2: #1e40af; --nav: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--ink); line-height: 1.65;
+    }
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    aside {
+      position: sticky; top: 0; height: 100vh; overflow: auto;
+      background: var(--nav); color: #e5e7eb; padding: 20px 14px 40px;
+    }
+    aside h1 { font-size: 15px; margin: 0 0 8px; color: #fff; line-height: 1.35; }
+    aside p { font-size: 12px; color: #94a3b8; margin: 0 0 16px; }
+    aside a { color: #cbd5e1; text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; font-size: 13px; }
+    aside a:hover { background: #1e3a5f; color: #fff; }
+    aside .g { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin: 14px 8px 6px; }
+    main { padding: 28px 36px 80px; max-width: 980px; }
+    .hero {
+      background: linear-gradient(135deg, #1d4ed8, #0f172a);
+      color: #fff; padding: 28px 32px; border-radius: 16px; margin-bottom: 28px;
+    }
+    .hero h2 { margin: 0 0 8px; font-size: 26px; }
+    .hero p { margin: 0; opacity: .9; }
+    article.sec {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 8px 32px 36px; margin: 0 0 28px;
+    }
+    .md h1 { font-size: 1.55rem; border-bottom: 2px solid var(--brand); padding-bottom: 8px; }
+    .md h2 { font-size: 1.25rem; color: var(--brand2); margin-top: 1.6em; }
+    .md h3 { font-size: 1.08rem; }
+    .md img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .md table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 12px 0 20px; }
+    .md th, .md td { border: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
+    .md th { background: #eff6ff; text-align: left; }
+    .md pre { background: #0f172a; color: #e2e8f0; padding: 14px 16px; border-radius: 10px; overflow: auto; font-size: 13px; }
+    .md code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; }
+    .md :not(pre) > code { background: #eef2ff; padding: 1px 5px; border-radius: 4px; }
+    .md .mermaid { background: #fff; color: #111; padding: 12px; }
+    .src { font-size: 12px; color: #64748b; margin: 16px 0 0; }
+    @media print {
+      aside { display: none; }
+      .layout { display: block; }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside><h1>HandmadeFinance</h1><p>C4 + arc42 · read in order</p><div class="g">C4 Model</div><a href="#sec-c4-readme">C4 — README</a><a href="#sec-c4-01">C4 — 01 System Context</a><a href="#sec-c4-02">C4 — 02 Container</a><a href="#sec-c4-03">C4 — 03 Component</a><a href="#sec-c4-04">C4 — 04 Code</a><div class="g">arc42</div><a href="#sec-arc42-readme">arc42 — README</a><a href="#sec-arc42-01">arc42 — 01 Introduction and Goals</a><a href="#sec-arc42-02">arc42 — 02 Architecture Constraints</a><a href="#sec-arc42-03">arc42 — 03 Context and Scope</a><a href="#sec-arc42-04">arc42 — 04 Solution Strategy</a><a href="#sec-arc42-05">arc42 — 05 Building Block View</a><a href="#sec-arc42-06">arc42 — 06 Runtime View</a><a href="#sec-arc42-07">arc42 — 07 Deployment View</a><a href="#sec-arc42-08">arc42 — 08 Cross-cutting Concepts</a><a href="#sec-arc42-09">arc42 — 09 Architecture Decisions</a><a href="#sec-arc42-10">arc42 — 10 Quality Requirements</a><a href="#sec-arc42-11">arc42 — 11 Risks and Technical Debt</a><a href="#sec-arc42-12">arc42 — 12 Glossary</a></aside>
+    <main>
+      <div class="hero">
+        <h2>HandmadeFinance — complete architecture documentation</h2>
+        <p>Full C4 (README, System Context, Container, Component, Code) and arc42 (README + 12 sections). Content is taken from the source Markdown files.</p>
+      </div>
+      <article class="sec" id="sec-c4-readme"><div class="md"><h1>Mô hình C4 — HandmadeFinance</h1>
+<blockquote><p><strong>Trạng thái:</strong> Baseline kiến trúc · <strong>Đối tượng đọc:</strong> developer, reviewer, người bảo trì</p></blockquote>
+<p>Bộ tài liệu đi từ ngoài vào trong. Mỗi nút có <strong>tên</strong>, <strong>loại</strong> (<code>Person</code>, <code>Software System</code>, <code>Container</code>, <code>Component</code>), công nghệ khi cần và mô tả ngắn.</p>
+<pre class="mermaid">flowchart LR
+    C1[&quot;C1 · System Context&lt;br/&gt;&lt;small&gt;Ai dùng hệ thống?&lt;/small&gt;&quot;]
+    C2[&quot;C2 · Container&lt;br/&gt;&lt;small&gt;Hệ thống gồm những khối chạy nào?&lt;/small&gt;&quot;]
+    C3[&quot;C3 · Component&lt;br/&gt;&lt;small&gt;.NET Backend được chia thành module nào?&lt;/small&gt;&quot;]
+    C4[&quot;C4 · Code&lt;br/&gt;&lt;small&gt;Hai feature chính được tổ chức ra sao?&lt;/small&gt;&quot;]
+    C1 --&gt;|&quot;zoom vào HandmadeFinance&quot;| C2
+    C2 --&gt;|&quot;zoom vào .NET Backend&quot;| C3
+    C3 --&gt;|&quot;zoom vào Income &amp; Expense&quot;| C4
+    style C1 fill:#1168bd,color:#fff,stroke:#0b4884
+    style C2 fill:#1168bd,color:#fff,stroke:#0b4884
+    style C3 fill:#1168bd,color:#fff,stroke:#0b4884
+    style C4 fill:#1168bd,color:#fff,stroke:#0b4884</pre>
+<table><thead><tr><th>Cấp</th><th>Tài liệu</th><th>Phạm vi</th></tr></thead><tbody><tr><td>C1</td><td><a href="#sec-c4-01">System Context</a></td><td>Bốn vai trò và ranh giới HandmadeFinance</td></tr><tr><td>C2</td><td><a href="#sec-c4-02">Container</a></td><td>React Web, .NET Backend, PostgreSQL</td></tr><tr><td>C3</td><td><a href="#sec-c4-03">Component</a></td><td>Các component bên trong .NET Backend</td></tr><tr><td>C4</td><td><a href="#sec-c4-04">Code — hai tính năng chính</a></td><td>C# classes/interfaces cho quản lý khoản thu và khoản chi</td></tr></tbody></table>
+<h2>Trạng thái triển khai</h2>
+<table><thead><tr><th>Khối</th><th>Trạng thái thực tế</th></tr></thead><tbody><tr><td>React Web</td><td>Đã có giao diện mock trong <code>app/</code></td></tr><tr><td>Mock store/auth</td><td>Đang chạy trong trình duyệt; dùng dữ liệu JavaScript và Web Storage</td></tr><tr><td>.NET Backend</td><td>Kiến trúc đích, chưa được triển khai</td></tr><tr><td>PostgreSQL</td><td>Đã thiết kế schema, chưa nối với ứng dụng</td></tr></tbody></table>
+<p>Các sơ đồ mô tả <strong>kiến trúc đích</strong>, đồng thời ghi rõ trạng thái hiện tại để không nhầm thiết kế với mã nguồn đã triển khai. Level 4 là code-level target vì .NET Backend chưa được triển khai.</p>
+<h2>Quy ước màu</h2>
+<ul><li>Xanh đậm: khối chính đang được mô tả.</li><li>Xanh nhạt: thành phần lân cận trong cùng hệ thống.</li><li>Xám: người dùng hoặc thành phần nằm ngoài boundary đang zoom.</li><li>Nét đứt: boundary của Software System hoặc Container.</li></ul>
+<p>Xem thêm: <a href="../../03-use-cases.md#use-case-diagram">Use Case Diagram</a> · <a href="../arc42/README.md">arc42</a>.</p></div><p class="src">Source: C4 — README</p></article><article class="sec" id="sec-c4-01"><div class="md"><h1>C1 — System Context</h1>
+<blockquote><p><strong>Mục tiêu:</strong> ai sử dụng HandmadeFinance và hệ thống chịu trách nhiệm gì, chưa đi vào công nghệ.</p></blockquote>
+<pre class="mermaid">flowchart LR
+    admin([&quot;👤 Quản trị viên&quot;])
+    owner([&quot;👤 Chủ shop&quot;])
+    employee([&quot;👤 Nhân viên&quot;])
+    viewer([&quot;👤 Người xem&quot;])
+
+    subgraph boundary[&quot; &quot;]
+        finance[&quot;HandmadeFinance&lt;br/&gt;&lt;i&gt;[Software System]&lt;/i&gt;&lt;br/&gt;Quản lý khoản thu, khoản chi, báo cáo,&lt;br/&gt;import dữ liệu, người dùng và nhật ký&quot;]
+    end
+
+    admin -- &quot;quản trị người dùng và toàn bộ dữ liệu&quot; --&gt; finance
+    owner -- &quot;điều hành thu chi, báo cáo và audit&quot; --&gt; finance
+    employee -- &quot;ghi nhận thu chi theo quyền&quot; --&gt; finance
+    viewer -- &quot;xem dashboard, giao dịch và báo cáo&quot; --&gt; finance
+
+    style finance fill:#1168bd,color:#fff</pre>
+<h2>Ranh giới hệ thống</h2>
+<p>HandmadeFinance chịu trách nhiệm đăng nhập, phân quyền, dashboard, khoản thu, khoản chi, báo cáo, import Excel, audit log, quản lý người dùng và hồ sơ cá nhân.</p>
+<p>Ngoài phạm vi V1: tồn kho/SKU, CRM, kế toán kép, hóa đơn điện tử, thanh toán trực tuyến, Etsy API và ERP. Vì chưa có tích hợp thật với hệ thống bên ngoài nên C1 không vẽ marketplace hoặc payment gateway.</p>
+<h2>Người dùng và quyền chính</h2>
+<table><thead><tr><th>Person</th><th>Quyền chính</th></tr></thead><tbody><tr><td>Quản trị viên</td><td>Toàn quyền, bao gồm quản lý người dùng</td></tr><tr><td>Chủ shop</td><td>Quản lý thu chi, import, báo cáo và audit log</td></tr><tr><td>Nhân viên</td><td>Tạo thu chi, chỉ sửa bản ghi do mình tạo, được import</td></tr><tr><td>Người xem</td><td>Chỉ xem dashboard, thu chi, báo cáo và hồ sơ</td></tr></tbody></table>
+<p><strong>Tiếp theo:</strong> zoom vào Software System → <a href="#sec-c4-02">C2 — Container</a>.</p>
+<p><strong>Nguồn sự thật:</strong> <code>app/src/lib/auth.js</code>, <code>docs/01-scope.md</code>, <code>docs/03-use-cases.md</code>.</p></div><p class="src">Source: C4 — 01 System Context</p></article><article class="sec" id="sec-c4-02"><div class="md"><h1>C2 — Container</h1>
+<blockquote><p><strong>Mục tiêu:</strong> zoom vào HandmadeFinance và mô tả các khối chạy/lưu trữ ở kiến trúc đích.</p></blockquote>
+<pre class="mermaid">flowchart TB
+    operator([&quot;👤 Admin / Chủ shop / Nhân viên&quot;])
+    reader([&quot;👤 Người xem&quot;])
+
+    subgraph platform[&quot;HandmadeFinance [Software System Boundary]&quot;]
+        direction TB
+        subgraph presentation[&quot;Presentation&quot;]
+            web[&quot;Web Frontend&lt;br/&gt;&lt;i&gt;[Container: React.js + Vite]&lt;/i&gt;&lt;br/&gt;Giao diện, routing, form, bảng và biểu đồ&quot;]
+        end
+        subgraph application[&quot;Application&quot;]
+            backend[&quot;.NET Backend&lt;br/&gt;&lt;i&gt;[Container: ASP.NET Core Web API]&lt;/i&gt;&lt;br/&gt;Xác thực, RBAC, nghiệp vụ,&lt;br/&gt;import, báo cáo và audit&quot;]
+        end
+        subgraph data[&quot;Data&quot;]
+            database[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&lt;br/&gt;Users, categories, incomes, expenses,&lt;br/&gt;imports, attachments và audit logs&quot;)]
+        end
+    end
+
+    workbook[(&quot;Excel Workbook&lt;br/&gt;&lt;i&gt;[External Data]&lt;/i&gt;&lt;br/&gt;Tệp .xlsx / .xls do người dùng cung cấp&quot;)]
+
+    operator --&gt; web
+    reader --&gt; web
+    web -- &quot;REST / HTTPS / JSON&quot; --&gt; backend
+    web -- &quot;upload file import&quot; --&gt; backend
+    workbook -.-&gt;|&quot;được chọn từ thiết bị&quot;| web
+    backend -- &quot;SQL / PostgreSQL protocol&quot; --&gt; database
+
+    style web fill:#1168bd,color:#fff
+    style backend fill:#1168bd,color:#fff
+    style database fill:#1168bd,color:#fff</pre>
+<h2>Trách nhiệm</h2>
+<table><thead><tr><th>Container</th><th>Công nghệ</th><th>Trách nhiệm</th><th>Trạng thái</th></tr></thead><tbody><tr><td>Web Frontend</td><td>React.js, Vite</td><td>UI, route guard, biểu đồ, form và bảng dữ liệu</td><td>Đã có bản mock</td></tr><tr><td>.NET Backend</td><td>C#, ASP.NET Core Web API, REST/JSON</td><td>Điểm tin cậy cho xác thực, RBAC, nghiệp vụ và truy cập dữ liệu</td><td>Chưa triển khai</td></tr><tr><td>PostgreSQL</td><td>PostgreSQL</td><td>Dữ liệu bền vững và quan hệ nghiệp vụ</td><td>Đã có schema, chưa kết nối</td></tr></tbody></table>
+<h2>Quy tắc kiến trúc</h2>
+<ol><li>Trình duyệt không truy cập PostgreSQL trực tiếp.</li><li>Ẩn nút ở frontend chỉ là UX; .NET Backend phải kiểm tra quyền cho mọi request.</li><li>Tiền được lưu theo USD; EUR chỉ là giá trị quy đổi để hiển thị.</li><li>Xóa giao dịch là soft delete để giữ lịch sử và audit.</li><li>Attachment hiện chỉ có metadata; chiến lược lưu binary ở backend chưa được quyết định.</li></ol>
+<h2>Trạng thái hiện tại</h2>
+<pre class="mermaid">flowchart LR
+    user([&quot;Người dùng&quot;])
+    react[&quot;React Web&lt;br/&gt;&lt;i&gt;đã triển khai&lt;/i&gt;&quot;]
+    mock[&quot;Mock Store + Auth&lt;br/&gt;&lt;i&gt;JavaScript / Web Storage&lt;/i&gt;&quot;]
+    pg[(&quot;PostgreSQL schema&lt;br/&gt;&lt;i&gt;chưa kết nối&lt;/i&gt;&quot;)]
+    user --&gt; react --&gt; mock
+    pg -.-&gt;|&quot;thiết kế dữ liệu, chưa có runtime link&quot;| mock
+    style react fill:#1168bd,color:#fff
+    style mock fill:#3a7bd5,color:#fff
+    style pg fill:#999,color:#fff</pre>
+<p><strong>Trước:</strong> <a href="#sec-c4-01">C1 — System Context</a> · <strong>Tiếp theo:</strong> zoom vào .NET Backend → <a href="#sec-c4-03">C3 — Component</a>.</p></div><p class="src">Source: C4 — 02 Container</p></article><article class="sec" id="sec-c4-03"><div class="md"><h1>C3 — Component — .NET Backend</h1>
+<blockquote><p><strong>Trạng thái:</strong> kiến trúc đích. Các component dưới đây chưa có mã C#/.NET trong repository.</p></blockquote>
+<pre class="mermaid">flowchart TB
+    subgraph rt[&quot;.NET Backend [Container]&quot;]
+        direction TB
+        api[&quot;HTTP API&lt;br/&gt;&lt;i&gt;[Component: ASP.NET Core]&lt;/i&gt;&lt;br/&gt;REST endpoints, request validation,&lt;br/&gt;response và error mapping&quot;]
+        identity[&quot;Identity &amp; Access&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Đăng nhập, session/token, RBAC,&lt;br/&gt;own-record policy&quot;]
+        user[&quot;User &amp; Profile&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Tài khoản, vai trò, trạng thái và hồ sơ&quot;]
+        ledger[&quot;Income &amp; Expense&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;CRUD, danh mục, thuế, trạng thái&lt;br/&gt;và soft delete&quot;]
+        importer[&quot;Excel Import&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Kiểm tra file, preview,&lt;br/&gt;batch import và kết quả từng dòng&quot;]
+        reporting[&quot;Dashboard &amp; Reporting&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;KPI, xu hướng, phân nhóm&lt;br/&gt;và dữ liệu export&quot;]
+        audit[&quot;Audit Log&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Ghi nhận hành động nghiệp vụ&lt;br/&gt;để truy vết&quot;]
+        persistence[&quot;Persistence&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Repository, transaction boundary&lt;br/&gt;và SQL mapping&quot;]
+    end
+
+    web[&quot;Web Frontend&lt;br/&gt;&lt;i&gt;[Container: React.js]&lt;/i&gt;&quot;]
+    db[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&quot;)]
+    file[(&quot;Excel Workbook&lt;br/&gt;&lt;i&gt;[External Data]&lt;/i&gt;&quot;)]
+
+    web --&gt; api
+    file -.-&gt;|&quot;upload qua Web Frontend&quot;| api
+    api --&gt; identity
+    api --&gt; user
+    api --&gt; ledger
+    api --&gt; importer
+    api --&gt; reporting
+    identity --&gt; persistence
+    user --&gt; persistence
+    ledger --&gt; persistence
+    importer --&gt; ledger
+    importer --&gt; persistence
+    reporting --&gt; persistence
+    user -.-&gt;|&quot;administrative events&quot;| audit
+    ledger -.-&gt;|&quot;transaction events&quot;| audit
+    importer -.-&gt;|&quot;batch results&quot;| audit
+    audit --&gt; persistence
+    persistence --&gt; db
+
+    style api fill:#1168bd,color:#fff
+    style identity fill:#1168bd,color:#fff
+    style user fill:#1168bd,color:#fff
+    style ledger fill:#0b4f9e,color:#fff
+    style importer fill:#1168bd,color:#fff
+    style reporting fill:#1168bd,color:#fff
+    style audit fill:#1168bd,color:#fff
+    style persistence fill:#1168bd,color:#fff</pre>
+<h2>Component catalog</h2>
+<table><thead><tr><th>Component</th><th>Sở hữu trách nhiệm</th><th>Không chịu trách nhiệm</th></tr></thead><tbody><tr><td>HTTP API</td><td>Transport, validation, error contract</td><td>SQL và quyết định nghiệp vụ</td></tr><tr><td>Identity &amp; Access</td><td>Authentication, RBAC, own-record rule</td><td>Ẩn/hiện giao diện</td></tr><tr><td>User &amp; Profile</td><td>Vòng đời tài khoản và hồ sơ</td><td>Giao dịch tài chính</td></tr><tr><td>Income &amp; Expense</td><td>Quy tắc thu/chi, thuế, trạng thái, soft delete</td><td>Render báo cáo</td></tr><tr><td>Excel Import</td><td>Parse/validate batch và điều phối nhập</td><td>Ghi bảng giao dịch bỏ qua domain</td></tr><tr><td>Dashboard &amp; Reporting</td><td>Query tổng hợp, KPI, export</td><td>Thay đổi giao dịch</td></tr><tr><td>Audit Log</td><td>Nhật ký hành động nghiệp vụ</td><td>Dữ liệu vận hành chính</td></tr><tr><td>Persistence</td><td>Repository, SQL, transaction</td><td>HTTP và UI authorization</td></tr></tbody></table>
+<h2>Luồng phụ thuộc</h2>
+<p><code>HTTP API → Identity &amp; Access → domain component → Persistence → PostgreSQL</code>.</p>
+<p>Import gọi Income &amp; Expense để dùng chung validation. Reporting chỉ đọc qua Persistence. Không component nghiệp vụ nào mở kết nối PostgreSQL riêng.</p>
+<p><strong>Trước:</strong> <a href="#sec-c4-02">C2 — Container</a> · <strong>Tiếp theo:</strong> <a href="#sec-c4-04">C4 — Code cho khoản thu và khoản chi</a> · <strong>Liên quan:</strong> <a href="../arc42/05-building-block-view.md">arc42 Building Block View</a>.</p>
+<p><strong>Nguồn sự thật:</strong> <code>docs/02-features.md</code>, <code>docs/03-use-cases.md</code>, <code>database/shop_finance.sql</code>, <code>app/src/lib/store.jsx</code>.</p></div><p class="src">Source: C4 — 03 Component</p></article><article class="sec" id="sec-c4-04"><div class="md"><h1>C4 Level 4 — Code — Hai tính năng chính</h1>
+<blockquote><p><strong>Trạng thái:</strong> thiết kế code-level mục tiêu cho .NET Backend; repository hiện chưa có mã C#/.NET.</p></blockquote>
+<p>Level 4 zoom từ component <strong>Income &amp; Expense</strong> ở <a href="#sec-c4-03">C3</a>. Hai sơ đồ chỉ định trách nhiệm và hướng phụ thuộc mong muốn, không khóa framework HTTP hoặc thư viện SQL.</p>
+<h2>L4.1 Quản lý khoản thu</h2>
+<pre class="mermaid">flowchart TB
+    subgraph income[&quot;Income Management [Component]&quot;]
+        direction TB
+        handler[&quot;IncomeController&lt;br/&gt;&lt;i&gt;[ASP.NET Core Controller]&lt;/i&gt;&lt;br/&gt;Nhận request, map DTO và HTTP response&quot;]
+        service[&quot;IncomeService&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Điều phối create, update,&lt;br/&gt;soft delete và truy vấn&quot;]
+        policy[&quot;IncomePolicy&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Kiểm tra role và quyền sửa&lt;br/&gt;bản ghi của nhân viên&quot;]
+        validator[&quot;IncomeValidator&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Kiểm tra ngày, số tiền, thuế,&lt;br/&gt;danh mục và trạng thái&quot;]
+        model[&quot;Income&lt;br/&gt;&lt;i&gt;[Domain entity]&lt;/i&gt;&lt;br/&gt;Dữ liệu và quy tắc khoản thu&quot;]
+        repository[&quot;IIncomeRepository&lt;br/&gt;&lt;i&gt;[C# interface]&lt;/i&gt;&lt;br/&gt;SaveAsync, FindAsync, ListAsync, SoftDeleteAsync&quot;]
+        postgres[&quot;PostgresIncomeRepository&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Hiện thực repository bằng SQL&quot;]
+
+        handler --&gt; service
+        service --&gt; policy
+        service --&gt; validator
+        service --&gt; model
+        service --&gt; repository
+        postgres -.-&gt;|&quot;implements&quot;| repository
+    end
+
+    api[&quot;HTTP API&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    identity[&quot;Identity &amp; Access&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    audit[&quot;Audit Log&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    db[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&quot;)]
+
+    api --&gt; handler
+    policy --&gt; identity
+    service -.-&gt;|&quot;ghi sự kiện create/update/delete&quot;| audit
+    postgres --&gt; db
+
+    style handler fill:#1168bd,color:#fff
+    style service fill:#0b4f9e,color:#fff
+    style policy fill:#1168bd,color:#fff
+    style validator fill:#1168bd,color:#fff
+    style model fill:#1168bd,color:#fff
+    style repository fill:#1168bd,color:#fff
+    style postgres fill:#1168bd,color:#fff</pre>
+<p>Luồng chính: <code>IncomeController → IncomeService → Policy/Validator/Domain → IIncomeRepository</code>. Mọi thay đổi thành công phải tạo audit entry trong cùng transaction nghiệp vụ khi triển khai.</p>
+<h2>L4.2 Quản lý khoản chi</h2>
+<pre class="mermaid">flowchart TB
+    subgraph expense[&quot;Expense Management [Component]&quot;]
+        direction TB
+        handler[&quot;ExpenseController&lt;br/&gt;&lt;i&gt;[ASP.NET Core Controller]&lt;/i&gt;&lt;br/&gt;Nhận request, map DTO và HTTP response&quot;]
+        service[&quot;ExpenseService&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Điều phối create, update,&lt;br/&gt;soft delete và truy vấn&quot;]
+        policy[&quot;ExpensePolicy&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Kiểm tra role và quyền sửa&lt;br/&gt;bản ghi của nhân viên&quot;]
+        validator[&quot;ExpenseValidator&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Kiểm tra ngày, người nhận, tiền,&lt;br/&gt;thuế, phạm vi và trạng thái&quot;]
+        model[&quot;Expense&lt;br/&gt;&lt;i&gt;[Domain entity]&lt;/i&gt;&lt;br/&gt;Dữ liệu và quy tắc khoản chi&quot;]
+        repository[&quot;IExpenseRepository&lt;br/&gt;&lt;i&gt;[C# interface]&lt;/i&gt;&lt;br/&gt;SaveAsync, FindAsync, ListAsync, SoftDeleteAsync&quot;]
+        postgres[&quot;PostgresExpenseRepository&lt;br/&gt;&lt;i&gt;[C# class]&lt;/i&gt;&lt;br/&gt;Hiện thực repository bằng SQL&quot;]
+
+        handler --&gt; service
+        service --&gt; policy
+        service --&gt; validator
+        service --&gt; model
+        service --&gt; repository
+        postgres -.-&gt;|&quot;implements&quot;| repository
+    end
+
+    api[&quot;HTTP API&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    identity[&quot;Identity &amp; Access&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    audit[&quot;Audit Log&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&quot;]
+    db[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&quot;)]
+
+    api --&gt; handler
+    policy --&gt; identity
+    service -.-&gt;|&quot;ghi sự kiện create/update/delete&quot;| audit
+    postgres --&gt; db
+
+    style handler fill:#1168bd,color:#fff
+    style service fill:#0b4f9e,color:#fff
+    style policy fill:#1168bd,color:#fff
+    style validator fill:#1168bd,color:#fff
+    style model fill:#1168bd,color:#fff
+    style repository fill:#1168bd,color:#fff
+    style postgres fill:#1168bd,color:#fff</pre>
+<p>Khoản chi dùng cùng pattern với khoản thu nhưng có rule riêng cho người nhận, phạm vi nội địa/quốc tế, phương thức thanh toán và số tiền sau thuế.</p>
+<h2>Quy tắc chung cho hai feature</h2>
+<ol><li>Controller không chứa SQL hoặc business rule.</li><li>Service phụ thuộc repository interface, không phụ thuộc trực tiếp PostgreSQL driver.</li><li>Policy luôn được thực thi ở backend; việc frontend ẩn nút chỉ phục vụ UX.</li><li>Validator được tái sử dụng cho form nhập tay và Excel Import.</li><li>Soft delete cập nhật <code>deleted_at</code>, <code>deleted_by</code>; không xóa vật lý giao dịch.</li><li>Domain dùng USD làm đơn vị lưu trữ; EUR chỉ là phép quy đổi hiển thị.</li></ol>
+<p><strong>Trước:</strong> <a href="#sec-c4-03">C3 — Component</a> · <strong>Liên quan:</strong> <a href="../../03-use-cases.md">Use cases</a>.</p></div><p class="src">Source: C4 — 04 Code</p></article><article class="sec" id="sec-arc42-readme"><div class="md"><h1>HandmadeFinance — Tài liệu kiến trúc arc42</h1>
+<blockquote><p><strong>Trạng thái:</strong> Baseline · <strong>Đối tượng đọc:</strong> developer, reviewer, người bảo trì</p></blockquote>
+<p>Tài liệu này dùng arc42 để giải thích mục tiêu, ràng buộc, quyết định và các kịch bản chạy. Các sơ đồ C4 Mermaid là góc nhìn cấu trúc chính; arc42 không tạo một kiến trúc khác.</p>
+<pre class="mermaid">flowchart LR
+    goals[&quot;1–2&lt;br/&gt;Mục tiêu &amp; ràng buộc&quot;]
+    context[&quot;3&lt;br/&gt;Context · C4 C1&quot;]
+    strategy[&quot;4&lt;br/&gt;Chiến lược&quot;]
+    blocks[&quot;5&lt;br/&gt;Building blocks · C4 C2/C3&quot;]
+    runtime[&quot;6–7&lt;br/&gt;Runtime &amp; deployment&quot;]
+    quality[&quot;8–12&lt;br/&gt;Concepts, ADR, quality, risks&quot;]
+    goals --&gt; context --&gt; strategy --&gt; blocks --&gt; runtime --&gt; quality
+    style context fill:#1168bd,color:#fff
+    style blocks fill:#1168bd,color:#fff
+    style goals fill:#e8f1fc,stroke:#3a7bd5
+    style strategy fill:#e8f1fc,stroke:#3a7bd5
+    style runtime fill:#e8f1fc,stroke:#3a7bd5
+    style quality fill:#e8f1fc,stroke:#3a7bd5</pre>
+<h2>Mục lục</h2>
+<table><thead><tr><th>Phần</th><th>Nội dung</th></tr></thead><tbody><tr><td>1</td><td><a href="#sec-arc42-01">Giới thiệu và mục tiêu</a></td></tr><tr><td>2</td><td><a href="#sec-arc42-02">Ràng buộc kiến trúc</a></td></tr><tr><td>3</td><td><a href="#sec-arc42-03">Context và scope</a></td></tr><tr><td>4</td><td><a href="#sec-arc42-04">Chiến lược giải pháp</a></td></tr><tr><td>5</td><td><a href="#sec-arc42-05">Building Block View</a></td></tr><tr><td>6</td><td><a href="#sec-arc42-06">Runtime View</a></td></tr><tr><td>7</td><td><a href="#sec-arc42-07">Deployment View</a></td></tr><tr><td>8</td><td><a href="#sec-arc42-08">Cross-cutting Concepts</a></td></tr><tr><td>9</td><td><a href="#sec-arc42-09">Architecture Decisions</a></td></tr><tr><td>10</td><td><a href="#sec-arc42-10">Quality Requirements</a></td></tr><tr><td>11</td><td><a href="#sec-arc42-11">Risks và Technical Debt</a></td></tr><tr><td>12</td><td><a href="#sec-arc42-12">Glossary</a></td></tr></tbody></table>
+<h2>Baseline</h2>
+<ul><li><strong>Hiện tại:</strong> React/Vite mock chạy hoàn toàn trong trình duyệt.</li><li><strong>Đích:</strong> React Web → ASP.NET Core Web API → PostgreSQL.</li><li><strong>Nguyên tắc:</strong> backend là trust boundary; domain không phụ thuộc transport hoặc SQL chi tiết.</li><li><strong>Chưa quyết định:</strong> ASP.NET Core Controllers hay Minimal APIs, token/session server-side, thư viện truy cập dữ liệu, nơi lưu file và hạ tầng production.</li></ul>
+<p>Liên quan: <a href="../c4/README.md">C4 C1 → C2 → C3 → C4</a> · <a href="../c4/04-code.md">C4 Code cho hai tính năng chính</a> · <a href="../03-use-cases.md#use-case-diagram">Use Case Diagram</a>.</p></div><p class="src">Source: arc42 — README</p></article><article class="sec" id="sec-arc42-01"><div class="md"><h1>1. Introduction and Goals</h1>
+<p>HandmadeFinance is a web application for managing <strong>income and expenses</strong> for a handmade shop: recording money in and money out, tracking total revenue, total expenses, and <strong>Net Result</strong> over time and by category.</p>
+<h2>1.1 Requirements Overview</h2>
+<h3>Problem</h3>
+<p>The shop needs a simple place to record transactions and understand cash performance, not a complete accounting or sales system.</p>
+<h3>Business goal (V1)</h3>
+<ul><li>Record <strong>Income</strong> and <strong>Expense</strong> with categories, tax, record status, and source (manual / Excel).</li><li>Dashboard and reports use <strong>one USD dataset</strong>; EUR is only a display-time conversion.</li><li>Excel Import supports validation, preview, batch tracking, and audit.</li><li>Four fixed roles with authorization; important actions are audited.</li><li>Attachments: metadata + storage path; binary files are not stored in PostgreSQL.</li></ul>
+<h3>Functional scope (mapped to feature catalog)</h3>
+<table><thead><tr><th>ID</th><th>Capability</th></tr></thead><tbody><tr><td>F01</td><td>Authentication</td></tr><tr><td>F02</td><td>Dashboard</td></tr><tr><td>F03</td><td>Income Management</td></tr><tr><td>F04</td><td>Expense Management</td></tr><tr><td>F05</td><td>Reports</td></tr><tr><td>F06</td><td>Excel Import</td></tr><tr><td>F07</td><td>Attachments</td></tr><tr><td>F08</td><td>Audit Log</td></tr><tr><td>F09</td><td>User Management (Admin)</td></tr><tr><td>F10</td><td>Profile</td></tr></tbody></table>
+<p>Detailed UCs: <a href="../03-use-cases.md">docs/03-use-cases.md</a>.</p>
+<h3>Non-goals (V1)</h3>
+<p>No inventory / SKU management, payroll, double-entry accounting, electronic invoicing, payment gateways, Etsy API, or AI/chatbot.</p>
+<h2>1.2 Quality Goals</h2>
+<p>Three to five architecture priorities (detailed scenarios: <a href="#sec-arc42-10">10-quality-requirements.md</a>).</p>
+<table><thead><tr><th>ID</th><th>Quality Goal</th><th>Why it matters</th></tr></thead><tbody><tr><td>QG-1</td><td>Data Correctness</td><td>Income/expense totals and Net Result must match active records; USD is the canonical currency</td></tr><tr><td>QG-2</td><td>Security</td><td>Roles and permissions must be rejected by the .NET Backend even if React hides the button</td></tr><tr><td>QG-3</td><td>Auditability</td><td>INSERT/UPDATE/DELETE/LOGIN/EXPORT/IMPORT must be traceable to actor, time, and module</td></tr><tr><td>QG-4</td><td>Usability</td><td>Each of the four roles sees the correct menu; Viewer must not be exposed to write actions</td></tr><tr><td>QG-5</td><td>Maintainability</td><td>Modular Monolith + a single Persistence layer for SQL makes business modules easier to extend</td></tr></tbody></table>
+<h2>1.3 Stakeholders</h2>
+<table><thead><tr><th>Stakeholder</th><th>Concerns</th></tr></thead><tbody><tr><td>Shop Owner (<code>SHOP_OWNER</code>)</td><td>Track income/expenses, reports, audit log</td></tr><tr><td>Administrator (<code>ADMIN</code>)</td><td>Users, access configuration, full business permissions</td></tr><tr><td>Employee (<code>EMPLOYEE</code>)</td><td>Record / edit own transactions, import</td></tr><tr><td>Viewer (<code>VIEWER</code>)</td><td>Read dashboard, income, expenses, reports, profile</td></tr><tr><td>Developer / maintainer</td><td>Module boundaries, schema, ADRs</td></tr><tr><td>Operator (local / future production)</td><td>Existing PostgreSQL Docker setup; production To Be Determined</td></tr></tbody></table>
+<p>The four roles are detailed in <a href="#sec-arc42-03">Section 3</a>.</p></div><p class="src">Source: arc42 — 01 Introduction and Goals</p></article><article class="sec" id="sec-arc42-02"><div class="md"><h1>2. Architecture Constraints</h1>
+<p>Only constraints grounded in the repository or architecture baseline (Sections 4 and 9) are included. Do not invent deadlines, budget, or team size.</p>
+<h2>2.1 Technical Constraints</h2>
+<table><thead><tr><th>Constraint</th><th>Source</th><th>Type</th></tr></thead><tbody><tr><td>Web Frontend = <strong>React.js</strong></td><td>Architecture baseline, ADR-001</td><td>DECISION</td></tr><tr><td>Backend = <strong>.NET (C#)</strong>, Modular Monolith</td><td>Architecture baseline, ADR-002, ADR-003</td><td>DECISION</td></tr><tr><td>API = <strong>REST</strong>, <strong>HTTPS</strong>, <strong>JSON</strong></td><td>ADR-005</td><td>DECISION</td></tr><tr><td>Database = <strong>PostgreSQL</strong></td><td><code>database/shop_finance.sql</code>, docker-compose</td><td>FACT + DECISION</td></tr><tr><td>Schema name <code>shop_finance</code>; local database name <code>handmade_finance</code></td><td>SQL, <code>.env.example</code></td><td>FACT</td></tr><tr><td>Only .NET Backend may issue SQL to PostgreSQL</td><td>Baseline, ADR-004</td><td>DECISION</td></tr><tr><td>Persistence / Data Access is the only SQL layer</td><td>Building Block View</td><td>DECISION</td></tr><tr><td>Local Postgres: image <code>postgres:16</code>, host port <strong>5433</strong>, timezone <code>Asia/Ho_Chi_Minh</code></td><td><code>docker-compose.yml</code></td><td>FACT</td></tr><tr><td>In V1, <code>currency_code</code> is only <code>USD</code> (table CHECK constraint)</td><td>SQL</td><td>FACT</td></tr></tbody></table>
+<p>Do not choose an ASP.NET Core API style, object-relational mapping library, JSON Web Token approach, Redis, or cloud object storage unless a later Architecture Decision Record does so (currently <strong>To Be Determined</strong>).</p>
+<h2>2.2 Organizational Constraints</h2>
+<table><thead><tr><th>Constraint</th><th>Source</th></tr></thead><tbody><tr><td>PostgreSQL schema is already designed; do not invent tables outside the model</td><td><code>database/</code></td></tr></tbody></table>
+<h2>2.3 Conventions</h2>
+<table><thead><tr><th>Convention</th><th>Details</th></tr></thead><tbody><tr><td>Role enum</td><td><code>ADMIN</code>, <code>SHOP_OWNER</code>, <code>EMPLOYEE</code>, <code>VIEWER</code> — do not add roles</td></tr><tr><td>UI permission hiding</td><td>Menus/buttons are not rendered when permission is missing; unauthorized URL access → 403</td></tr><tr><td>Soft-delete list</td><td><code>deleted_at IS NULL</code> for active records</td></tr><tr><td>Audit actions</td><td><code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>LOGIN</code>, <code>EXPORT</code>, <code>IMPORT</code></td></tr><tr><td>Data source</td><td><code>MANUAL</code> or <code>EXCEL_IMPORT</code> (Excel requires <code>import_batch_id</code>)</td></tr><tr><td>Import status</td><td><code>PENDING</code>, <code>PROCESSING</code>, <code>COMPLETED</code>, <code>FAILED</code></td></tr><tr><td>Hash routes (information architecture)</td><td><code>#/login</code>, <code>#/dashboard</code>, <code>#/incomes</code>, <code>#/expenses</code>, <code>#/reports</code>, <code>#/import</code>, <code>#/audit</code>, <code>#/users</code>, <code>#/profile</code>, <code>#/403</code></td></tr></tbody></table>
+<h2>2.4 Business Constraints</h2>
+<table><thead><tr><th>Constraint</th><th>Details</th></tr></thead><tbody><tr><td>Canonical currency USD</td><td>EUR is Presentation Conversion only</td></tr><tr><td>Four fixed roles</td><td>Matrix in <a href="../03-use-cases.md">docs/03-use-cases.md</a></td></tr><tr><td>Employee cannot delete transactions</td><td><code>incomeDelete</code> / <code>expenseDelete</code> = false</td></tr><tr><td>Employee cannot view reports / audit log</td><td><code>reportRead</code> / <code>auditRead</code> = false</td></tr><tr><td>Only Admin manages users</td><td><code>userManagement</code></td></tr><tr><td>V1 does not integrate external systems</td><td>No payment gateway, no Etsy API</td></tr></tbody></table></div><p class="src">Source: arc42 — 02 Architecture Constraints</p></article><article class="sec" id="sec-arc42-03"><div class="md"><h1>3. Context and Scope</h1>
+<h2>3.1 Business context — C4 Level 1</h2>
+<pre class="mermaid">flowchart LR
+    admin([&quot;👤 Quản trị viên&quot;])
+    owner([&quot;👤 Chủ shop&quot;])
+    employee([&quot;👤 Nhân viên&quot;])
+    viewer([&quot;👤 Người xem&quot;])
+
+    subgraph boundary[&quot; &quot;]
+        finance[&quot;HandmadeFinance&lt;br/&gt;&lt;i&gt;[Software System]&lt;/i&gt;&lt;br/&gt;Quản lý khoản thu, khoản chi, báo cáo,&lt;br/&gt;import dữ liệu, người dùng và nhật ký&quot;]
+    end
+
+    admin -- &quot;quản trị người dùng và toàn bộ dữ liệu&quot; --&gt; finance
+    owner -- &quot;điều hành thu chi, báo cáo và audit&quot; --&gt; finance
+    employee -- &quot;ghi nhận thu chi theo quyền&quot; --&gt; finance
+    viewer -- &quot;xem dashboard, giao dịch và báo cáo&quot; --&gt; finance
+
+    style finance fill:#1168bd,color:#fff</pre>
+<p>Chi tiết và quy ước C4: <a href="../c4/01-system-context.md">C1 — System Context</a>.</p>
+<h2>3.2 Phạm vi nghiệp vụ</h2>
+<table><thead><tr><th>Trong HandmadeFinance</th><th>Ngoài phạm vi V1</th></tr></thead><tbody><tr><td>Đăng nhập, RBAC, hồ sơ</td><td>Real OAuth/OIDC</td></tr><tr><td>Khoản thu, khoản chi, danh mục</td><td>Tồn kho, SKU, CRM</td></tr><tr><td>Dashboard và báo cáo</td><td>Kế toán kép, khai thuế</td></tr><tr><td>Import Excel, attachment metadata</td><td>Marketplace/payment integration</td></tr><tr><td>Người dùng và audit log</td><td>ERP, hóa đơn điện tử</td></tr></tbody></table>
+<h2>3.3 Business interfaces</h2>
+<table><thead><tr><th>Actor</th><th>Input</th><th>Output</th></tr></thead><tbody><tr><td>Admin</td><td>Người dùng, giao dịch, cấu hình trạng thái</td><td>Toàn bộ dữ liệu và audit</td></tr><tr><td>Chủ shop</td><td>Giao dịch, bộ lọc, file import</td><td>Dashboard, báo cáo, audit</td></tr><tr><td>Nhân viên</td><td>Giao dịch của mình, file import</td><td>Danh sách và dashboard</td></tr><tr><td>Người xem</td><td>Bộ lọc xem dữ liệu</td><td>Dashboard, danh sách, báo cáo</td></tr></tbody></table>
+<h2>3.4 Technical context</h2>
+<p>Ở kiến trúc đích, người dùng truy cập React Web qua HTTPS; Web gọi .NET Backend bằng REST/JSON; Backend dùng PostgreSQL protocol/SQL. Không có kết nối Frontend → Database.</p>
+<h2>3.5 Status boundary</h2>
+<p>React mock hiện giữ dữ liệu trong JavaScript và phiên trong Web Storage. .NET Backend và kết nối PostgreSQL là thiết kế đích, không phải thành phần đã chạy.</p></div><p class="src">Source: arc42 — 03 Context and Scope</p></article><article class="sec" id="sec-arc42-04"><div class="md"><h1>4. Solution Strategy</h1>
+<h2>4.1 Chiến lược trong một câu</h2>
+<p>Tách UI, nghiệp vụ và lưu trữ thành <code>React Web → .NET modular monolith → PostgreSQL</code>, dùng backend làm trust boundary và dùng một mô hình nghiệp vụ chung cho thao tác tay lẫn import.</p>
+<h2>4.2 Mapping mục tiêu → giải pháp</h2>
+<table><thead><tr><th>Mục tiêu</th><th>Chiến lược</th></tr></thead><tbody><tr><td>UI dễ thay đổi</td><td>React giữ presentation, routing và client state</td></tr><tr><td>Dữ liệu tin cậy</td><td>.NET Backend kiểm tra input, permission và business rule</td></tr><tr><td>Triển khai ban đầu đơn giản</td><td>Một .NET modular monolith thay vì microservices</td></tr><tr><td>Báo cáo nhất quán</td><td>Reporting đọc cùng nguồn PostgreSQL với giao dịch</td></tr><tr><td>Truy vết thay đổi</td><td>Soft delete và Audit Log component</td></tr><tr><td>Không nhân đôi quy tắc</td><td>Import gọi Income &amp; Expense component</td></tr><tr><td>Tiền tệ nhất quán</td><td>Lưu USD; EUR chỉ quy đổi hiển thị</td></tr></tbody></table>
+<h2>4.3 Dependency direction</h2>
+<pre class="mermaid">flowchart LR
+    ui[&quot;React Web&lt;br/&gt;&lt;i&gt;Presentation&lt;/i&gt;&quot;]
+    api[&quot;HTTP API&lt;br/&gt;&lt;i&gt;Transport&lt;/i&gt;&quot;]
+    access[&quot;Identity &amp; Access&lt;br/&gt;&lt;i&gt;Security policy&lt;/i&gt;&quot;]
+    domain[&quot;Domain Components&lt;br/&gt;&lt;i&gt;Business rules&lt;/i&gt;&quot;]
+    persistence[&quot;Persistence&lt;br/&gt;&lt;i&gt;Repository / transaction&lt;/i&gt;&quot;]
+    db[(&quot;PostgreSQL&quot;)]
+    ui --&gt; api --&gt; access --&gt; domain --&gt; persistence --&gt; db
+    style domain fill:#1168bd,color:#fff
+    style api fill:#3a7bd5,color:#fff
+    style access fill:#3a7bd5,color:#fff
+    style persistence fill:#3a7bd5,color:#fff</pre>
+<p>Transport không chứa SQL; Persistence không quyết định quyền; Frontend không phải security boundary.</p>
+<h2>4.4 Quyết định chưa khóa</h2>
+<p>ASP.NET Core Controllers/Minimal APIs, JWT hay server session, Entity Framework Core, Dapper hoặc ADO.NET, object storage và nền tảng production đều là TBD. Không đưa chúng vào sơ đồ baseline như sự thật đã quyết định.</p></div><p class="src">Source: arc42 — 04 Solution Strategy</p></article><article class="sec" id="sec-arc42-05"><div class="md"><h1>5. Building Block View</h1>
+<p>Phần này đồng bộ với C4: Level 1 là toàn hệ thống, Level 2 là Container, Level 3 zoom vào .NET Backend.</p>
+<h2>5.1 Level 1 — HandmadeFinance</h2>
+<p>HandmadeFinance là một software system phục vụ bốn vai trò: Admin, Chủ shop, Nhân viên và Người xem. Chi tiết: <a href="../c4/01-system-context.md">C1 System Context</a>.</p>
+<h2>5.2 Level 2 — Containers</h2>
+<pre class="mermaid">flowchart TB
+    operator([&quot;👤 Admin / Chủ shop / Nhân viên&quot;])
+    reader([&quot;👤 Người xem&quot;])
+
+    subgraph platform[&quot;HandmadeFinance [Software System Boundary]&quot;]
+        direction TB
+        subgraph presentation[&quot;Presentation&quot;]
+            web[&quot;Web Frontend&lt;br/&gt;&lt;i&gt;[Container: React.js + Vite]&lt;/i&gt;&lt;br/&gt;Giao diện, routing, form, bảng và biểu đồ&quot;]
+        end
+        subgraph application[&quot;Application&quot;]
+            backend[&quot;.NET Backend&lt;br/&gt;&lt;i&gt;[Container: ASP.NET Core Web API]&lt;/i&gt;&lt;br/&gt;Xác thực, RBAC, nghiệp vụ,&lt;br/&gt;import, báo cáo và audit&quot;]
+        end
+        subgraph data[&quot;Data&quot;]
+            database[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&lt;br/&gt;Users, categories, incomes, expenses,&lt;br/&gt;imports, attachments và audit logs&quot;)]
+        end
+    end
+
+    workbook[(&quot;Excel Workbook&lt;br/&gt;&lt;i&gt;[External Data]&lt;/i&gt;&lt;br/&gt;Tệp .xlsx / .xls do người dùng cung cấp&quot;)]
+
+    operator --&gt; web
+    reader --&gt; web
+    web -- &quot;REST / HTTPS / JSON&quot; --&gt; backend
+    web -- &quot;upload file import&quot; --&gt; backend
+    workbook -.-&gt;|&quot;được chọn từ thiết bị&quot;| web
+    backend -- &quot;SQL / PostgreSQL protocol&quot; --&gt; database
+
+    style web fill:#1168bd,color:#fff
+    style backend fill:#1168bd,color:#fff
+    style database fill:#1168bd,color:#fff</pre>
+<table><thead><tr><th>Container</th><th>Public surface</th><th>Dữ liệu sở hữu</th></tr></thead><tbody><tr><td>Web Frontend</td><td>Hash routes, forms, tables, charts</td><td>Client/session state tạm thời</td></tr><tr><td>.NET Backend</td><td>REST/JSON endpoints</td><td>Business rules và transaction orchestration</td></tr><tr><td>PostgreSQL</td><td>Chỉ backend được truy cập</td><td>Users, categories, incomes, expenses, imports, attachments, audits</td></tr></tbody></table>
+<h2>5.3 Level 3 — .NET Backend Components</h2>
+<pre class="mermaid">flowchart TB
+    subgraph rt[&quot;.NET Backend [Container]&quot;]
+        direction TB
+        api[&quot;HTTP API&lt;br/&gt;&lt;i&gt;[Component: ASP.NET Core]&lt;/i&gt;&lt;br/&gt;REST endpoints, request validation,&lt;br/&gt;response và error mapping&quot;]
+        identity[&quot;Identity &amp; Access&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Đăng nhập, session/token, RBAC,&lt;br/&gt;own-record policy&quot;]
+        user[&quot;User &amp; Profile&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Tài khoản, vai trò, trạng thái và hồ sơ&quot;]
+        ledger[&quot;Income &amp; Expense&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;CRUD, danh mục, thuế, trạng thái&lt;br/&gt;và soft delete&quot;]
+        importer[&quot;Excel Import&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Kiểm tra file, preview,&lt;br/&gt;batch import và kết quả từng dòng&quot;]
+        reporting[&quot;Dashboard &amp; Reporting&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;KPI, xu hướng, phân nhóm&lt;br/&gt;và dữ liệu export&quot;]
+        audit[&quot;Audit Log&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Ghi nhận hành động nghiệp vụ&lt;br/&gt;để truy vết&quot;]
+        persistence[&quot;Persistence&lt;br/&gt;&lt;i&gt;[Component]&lt;/i&gt;&lt;br/&gt;Repository, transaction boundary&lt;br/&gt;và SQL mapping&quot;]
+    end
+
+    web[&quot;Web Frontend&lt;br/&gt;&lt;i&gt;[Container: React.js]&lt;/i&gt;&quot;]
+    db[(&quot;PostgreSQL&lt;br/&gt;&lt;i&gt;[Container: Database]&lt;/i&gt;&quot;)]
+    file[(&quot;Excel Workbook&lt;br/&gt;&lt;i&gt;[External Data]&lt;/i&gt;&quot;)]
+
+    web --&gt; api
+    file -.-&gt;|&quot;upload qua Web Frontend&quot;| api
+    api --&gt; identity
+    api --&gt; user
+    api --&gt; ledger
+    api --&gt; importer
+    api --&gt; reporting
+    identity --&gt; persistence
+    user --&gt; persistence
+    ledger --&gt; persistence
+    importer --&gt; ledger
+    importer --&gt; persistence
+    reporting --&gt; persistence
+    user -.-&gt;|&quot;administrative events&quot;| audit
+    ledger -.-&gt;|&quot;transaction events&quot;| audit
+    importer -.-&gt;|&quot;batch results&quot;| audit
+    audit --&gt; persistence
+    persistence --&gt; db
+
+    style api fill:#1168bd,color:#fff
+    style identity fill:#1168bd,color:#fff
+    style user fill:#1168bd,color:#fff
+    style ledger fill:#0b4f9e,color:#fff
+    style importer fill:#1168bd,color:#fff
+    style reporting fill:#1168bd,color:#fff
+    style audit fill:#1168bd,color:#fff
+    style persistence fill:#1168bd,color:#fff</pre>
+<table><thead><tr><th>Component</th><th>Chức năng</th><th>API gọi đến</th></tr></thead><tbody><tr><td>HTTP API</td><td>Parse/validate request, map response/error</td><td>Tất cả use case endpoint</td></tr><tr><td>Identity &amp; Access</td><td>Login, credential/session, RBAC, own-record policy</td><td>Login và mọi endpoint bảo vệ</td></tr><tr><td>User &amp; Profile</td><td>User lifecycle và profile</td><td>Users, profile</td></tr><tr><td>Income &amp; Expense</td><td>CRUD, category, tax, status, soft delete</td><td>Incomes, expenses</td></tr><tr><td>Excel Import</td><td>Validate/preview/process batch</td><td>Import</td></tr><tr><td>Dashboard &amp; Reporting</td><td>KPI, time series, category aggregate, export model</td><td>Dashboard, reports</td></tr><tr><td>Audit Log</td><td>Append hành động cần truy vết</td><td>Audit query; nhận event nội bộ</td></tr><tr><td>Persistence</td><td>Repository, transaction và SQL mapping</td><td>Được các component khác dùng nội bộ</td></tr></tbody></table>
+<h2>5.4 Mapping giao diện → component</h2>
+<table><thead><tr><th>UI</th><th>Component chính</th></tr></thead><tbody><tr><td>Login và route permission</td><td>Identity &amp; Access</td></tr><tr><td>Quản lý người dùng, hồ sơ</td><td>User &amp; Profile</td></tr><tr><td>Quản lý thu và chi</td><td>Income &amp; Expense</td></tr><tr><td>Import Excel</td><td>Excel Import + Income &amp; Expense</td></tr><tr><td>Dashboard, báo cáo</td><td>Dashboard &amp; Reporting</td></tr><tr><td>Nhật ký</td><td>Audit Log</td></tr></tbody></table>
+<h2>5.5 Quy tắc dependency</h2>
+<ol><li>HTTP API chỉ điều phối, không viết SQL.</li><li>Import không bỏ qua validation của Income &amp; Expense.</li><li>Audit được ghi trong cùng transaction nghiệp vụ khi cần tính nhất quán.</li><li>Reporting không thay đổi giao dịch.</li><li>Chỉ Persistence giao tiếp PostgreSQL.</li></ol>
+<p>Sơ đồ C3 đầy đủ: <a href="../c4/03-component.md">C3 — Component</a>.</p>
+<h2>5.6 Level 4 — Hai feature chính</h2>
+<p>Code-level target cho <code>Income Management</code> và <code>Expense Management</code> được mô tả bằng ASP.NET Core Controller, Service, Policy, Validator, Domain Entity và Repository tại <a href="../c4/04-code.md">C4 Level 4</a>. Đây là thiết kế đích; chưa có C# source để đối chiếu implementation.</p></div><p class="src">Source: arc42 — 05 Building Block View</p></article><article class="sec" id="sec-arc42-06"><div class="md"><h1>6. Runtime View</h1>
+<p>Các sequence dưới đây mô tả kiến trúc đích. Endpoint cụ thể và cơ chế token/session vẫn TBD.</p>
+<h2>6.1 Đăng nhập</h2>
+<pre class="mermaid">sequenceDiagram
+    actor U as Người dùng
+    participant W as React Web
+    participant A as HTTP API
+    participant I as Identity &amp; Access
+    participant P as Persistence
+    participant D as PostgreSQL
+    U-&gt;&gt;W: Nhập email và mật khẩu
+    W-&gt;&gt;A: Gửi yêu cầu đăng nhập
+    A-&gt;&gt;I: Validate credential
+    I-&gt;&gt;P: Tìm tài khoản đang active
+    P-&gt;&gt;D: SELECT user
+    D--&gt;&gt;P: User + password hash + role
+    P--&gt;&gt;I: User
+    I--&gt;&gt;A: Session/token hoặc lỗi
+    A--&gt;&gt;W: User an toàn + credential
+    W--&gt;&gt;U: Dashboard hoặc thông báo lỗi</pre>
+<h2>6.2 Tạo hoặc sửa khoản thu/chi</h2>
+<pre class="mermaid">sequenceDiagram
+    actor U as Admin/Owner/Employee
+    participant W as React Web
+    participant A as HTTP API
+    participant I as Identity &amp; Access
+    participant L as Income &amp; Expense
+    participant R as Persistence
+    participant D as PostgreSQL
+    U-&gt;&gt;W: Gửi form giao dịch
+    W-&gt;&gt;A: POST/PUT transaction
+    A-&gt;&gt;I: Kiểm tra session + permission
+    I-&gt;&gt;L: Actor context đã xác thực
+    L-&gt;&gt;L: Validate fields, tax, own-record rule
+    L-&gt;&gt;R: Begin transaction
+    R-&gt;&gt;D: INSERT/UPDATE transaction + audit
+    D--&gt;&gt;R: Commit
+    R--&gt;&gt;L: Record đã lưu
+    L--&gt;&gt;A: DTO
+    A--&gt;&gt;W: 200/201 hoặc error contract</pre>
+<p>Nhân viên chỉ sửa record có <code>createdBy</code> bằng user hiện tại. Admin và Chủ shop mới được soft delete.</p>
+<h2>6.3 Import Excel</h2>
+<pre class="mermaid">sequenceDiagram
+    actor U as Admin/Owner/Employee
+    participant W as React Web
+    participant A as HTTP API
+    participant X as Excel Import
+    participant L as Income &amp; Expense
+    participant R as Persistence
+    U-&gt;&gt;W: Chọn file và loại dữ liệu
+    W-&gt;&gt;A: Upload/preview request
+    A-&gt;&gt;X: Validate type, header, rows
+    X--&gt;&gt;W: Preview + lỗi từng dòng
+    U-&gt;&gt;W: Xác nhận import
+    W-&gt;&gt;A: Process batch
+    A-&gt;&gt;X: Import valid rows
+    loop mỗi dòng hợp lệ
+        X-&gt;&gt;L: Tạo income/expense qua domain rule
+    end
+    X-&gt;&gt;R: Lưu batch result + audit
+    R--&gt;&gt;W: Số thành công/thất bại</pre>
+<h2>6.4 Dashboard và báo cáo</h2>
+<pre class="mermaid">sequenceDiagram
+    actor U as Người có quyền
+    participant W as React Web
+    participant A as HTTP API
+    participant Q as Dashboard &amp; Reporting
+    participant R as Persistence
+    participant D as PostgreSQL
+    U-&gt;&gt;W: Chọn kỳ, loại, nguồn, danh mục
+    W-&gt;&gt;A: GET report query
+    A-&gt;&gt;Q: Filter + actor context
+    Q-&gt;&gt;R: Aggregate query
+    R-&gt;&gt;D: SELECT/SUM/GROUP BY active records
+    D--&gt;&gt;Q: Aggregate rows
+    Q--&gt;&gt;W: KPI, series, category breakdown
+    W--&gt;&gt;U: Chart/table; quy đổi USD→EUR nếu chọn</pre>
+<h2>6.5 Lỗi chung</h2>
+<table><thead><tr><th>Tình huống</th><th>Kết quả mong đợi</th></tr></thead><tbody><tr><td>Chưa đăng nhập</td><td><code>401</code> và điều hướng login</td></tr><tr><td>Không đủ quyền</td><td><code>403</code>; không dựa vào việc nút đã ẩn</td></tr><tr><td>Dữ liệu sai</td><td><code>400/422</code> với lỗi theo field</td></tr><tr><td>Record không tồn tại/đã xóa</td><td><code>404</code></td></tr><tr><td>Database lỗi</td><td>Transaction rollback; trả error id, không lộ SQL</td></tr></tbody></table></div><p class="src">Source: arc42 — 06 Runtime View</p></article><article class="sec" id="sec-arc42-07"><div class="md"><h1>7. Deployment View</h1>
+<h2>7.1 Hiện tại — mock local</h2>
+<pre class="mermaid">flowchart LR
+    subgraph machine[&quot;Máy phát triển&quot;]
+        browser[&quot;Browser&lt;br/&gt;&lt;i&gt;React runtime&lt;/i&gt;&quot;]
+        vite[&quot;Vite dev server&lt;br/&gt;&lt;i&gt;static assets/HMR&lt;/i&gt;&quot;]
+        mock[&quot;JavaScript mock data&lt;br/&gt;Web Storage session&quot;]
+        docker[&quot;Docker Compose&quot;]
+        pg[(&quot;PostgreSQL&lt;br/&gt;port 5432&quot;)]
+        browser --&gt;|&quot;HTTP&quot;| vite
+        browser --&gt; mock
+        docker --&gt; pg
+    end
+    mock -.-&gt;|&quot;không kết nối&quot;| pg
+    style browser fill:#1168bd,color:#fff
+    style vite fill:#3a7bd5,color:#fff
+    style mock fill:#3a7bd5,color:#fff
+    style pg fill:#999,color:#fff
+    style machine fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5</pre>
+<p>Frontend chạy bằng <code>npm run dev</code>; PostgreSQL có thể chạy độc lập bằng Docker Compose nhưng frontend không gọi database.</p>
+<h2>7.2 Kiến trúc đích — topology logic</h2>
+<pre class="mermaid">flowchart LR
+    device[&quot;Client device&lt;br/&gt;&lt;i&gt;Browser&lt;/i&gt;&quot;]
+    web[&quot;Web hosting node&lt;br/&gt;&lt;i&gt;React static assets&lt;/i&gt;&quot;]
+    api[&quot;Application node&lt;br/&gt;&lt;i&gt;ASP.NET Core application&lt;/i&gt;&quot;]
+    db[(&quot;Database node&lt;br/&gt;&lt;i&gt;PostgreSQL&lt;/i&gt;&quot;)]
+    device --&gt;|&quot;HTTPS&quot;| web
+    web --&gt;|&quot;HTTPS / REST / JSON&quot;| api
+    api --&gt;|&quot;TLS / PostgreSQL protocol&quot;| db
+    style device fill:#666,color:#fff
+    style web fill:#3a7bd5,color:#fff
+    style api fill:#1168bd,color:#fff
+    style db fill:#3a7bd5,color:#fff</pre>
+<p>Đây là topology logic, không khẳng định cloud provider, container orchestrator, reverse proxy hay CDN.</p>
+<h2>7.3 Mapping container → node</h2>
+<table><thead><tr><th>Container</th><th>Local hiện tại</th><th>Production đích</th></tr></thead><tbody><tr><td>React Web</td><td>Vite dev server + browser</td><td>Static web hosting, TBD</td></tr><tr><td>.NET Backend</td><td>Chưa có</td><td>Một hoặc nhiều ASP.NET Core application instances, TBD</td></tr><tr><td>PostgreSQL</td><td>Docker Compose</td><td>Managed/self-hosted PostgreSQL, TBD</td></tr></tbody></table>
+<h2>7.4 Deployment requirements</h2>
+<ul><li>Chỉ public HTTPS endpoints cần thiết; PostgreSQL không public Internet.</li><li>Secret không commit vào Git; dùng environment/secret manager phù hợp.</li><li>Database migration chạy có kiểm soát trước phiên bản backend cần schema mới.</li><li>Health check cần tách liveness và readiness khi backend được triển khai.</li><li>Backup/restore, TLS termination, scaling và observability phải được quyết định trước production.</li></ul></div><p class="src">Source: arc42 — 07 Deployment View</p></article><article class="sec" id="sec-arc42-08"><div class="md"><h1>8. Cross-cutting Concepts</h1>
+<p>Do not prescribe a library (JSON Web Token, Entity Framework Core, Dapper, Serilog, S3) unless the repository has already decided it — those items remain <strong>To Be Determined</strong>.</p>
+<h2>8.1 Authentication</h2>
+<p>Users log in with email/password; account must have <code>is_active</code>. Session/token <strong>mechanism To Be Determined</strong>. Logout invalidates the client credential and the server-side credential (once a session store exists — To Be Determined). Audit action: <code>LOGIN</code>. Never return <code>password_hash</code>.</p>
+<h2>8.2 Authorization</h2>
+<p>React: hide button / menu / disable. <strong>Security:</strong> Identity &amp; Access protects every write API and sensitive read APIs (reports, audit, users).</p>
+<p>Own-record rule: EMPLOYEE can update only when <code>created_by</code> matches. Delete: EMPLOYEE always receives 403.</p>
+<h2>8.3 Validation</h2>
+<p>Backend validates required fields, <code>amount &gt; 0</code>, <code>tax_percent</code> between 0–100, category existence, and import file extension/size (<strong>threshold To Be Determined</strong>). Frontend validation improves user experience but does not replace backend validation.</p>
+<h2>8.4 Error Handling</h2>
+<table><thead><tr><th>Situation</th><th>Handling</th></tr></thead><tbody><tr><td>Unauthenticated</td><td>401</td></tr><tr><td>Forbidden</td><td>403</td></tr><tr><td>Validation</td><td>400 + safe message</td></tr><tr><td>Not found / already soft-deleted</td><td>404</td></tr><tr><td>Import error</td><td>Batch <code>FAILED</code>, <code>error_details</code> JSONB</td></tr></tbody></table>
+<p>Detailed JSON error envelope: <strong>To Be Determined</strong>.</p>
+<h2>8.5 Logging vs Audit</h2>
+<p>Operational logs (request_id, technical errors): <strong>To Be Determined</strong> (logger not selected). Business audit: table <code>audit_logs</code> (actor, action, module, detail, table_name, record_id, timestamps). Columns <code>ip_address</code>, <code>request_id</code> already exist in the schema.</p>
+<p>Never log: password, hash, session secret, token.</p>
+<h2>8.6 Database Transactions</h2>
+<p>Creating income + attachment and confirming import (multiple rows + batch) run in <strong>one transaction</strong> through Persistence. Audit triggers run in the same transaction for INSERT/UPDATE/DELETE on tables that have triggers.</p>
+<h2>8.7 Soft Delete</h2>
+<p><code>deleted_at</code> (+ <code>deleted_by</code> on incomes/expenses). Active rows satisfy <code>deleted_at IS NULL</code>. User/category tables also have <code>deleted_at</code> in the schema.</p>
+<h2>8.8 Currency</h2>
+<p>Canonical <strong>USD</strong>. <code>CHECK (currency_code = &#x27;USD&#x27;)</code>. EUR = Presentation Conversion. Do not maintain two lists. Exchange-rate source: <strong>To Be Determined</strong>.</p>
+<h2>8.9 Time / Timezone</h2>
+<p>Postgres Docker uses <code>Asia/Ho_Chi_Minh</code>. <code>app_users.timezone</code> defaults to the same value. Timestamp columns use <code>timestamptz</code>. React display rule: <strong>To Be Determined</strong> (prefer user timezone).</p>
+<h2>8.10 Security</h2>
+<p>HTTPS in production. Frontend does not issue SQL. Password hashes are stored in <code>password_hash</code> — algorithm <strong>To Be Determined</strong>. Cross-Origin Resource Sharing / cookie flags: <strong>To Be Determined</strong>.</p>
+<h2>8.11 File Handling</h2>
+<p><code>attachments.storage_path</code> + metadata. <code>import_batches.stored_file_path</code> is optional in the schema. Binary data is not stored in PostgreSQL. Where the backend stores files: <strong>Architecture Decision Pending</strong>.</p>
+<h2>8.12 Data Integrity</h2>
+<p>Category FKs, CHECK between import source and batch, exactly one attachment owner, unique email/username when <code>deleted_at IS NULL</code>, report views over active records.</p></div><p class="src">Source: arc42 — 08 Cross-cutting Concepts</p></article><article class="sec" id="sec-arc42-09"><div class="md"><h1>9. Architecture Decisions</h1>
+<p>Each Architecture Decision Record contains: Context, Decision, Alternatives, Consequences, Status.</p>
+<p>Status <strong>Accepted</strong> = established by the schema / business documentation / Architecture Decision Records in this file. <strong>Proposed</strong> = a principle not yet implemented in code. Do not invent Architecture Decision Records for a specific ORM, JSON Web Token approach, or object storage provider.</p>
+<h2>ADR-001 React.js for Web Frontend</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>A web user interface is needed for income/expenses, dashboard, import, and authorization.</td></tr><tr><td><strong>Decision</strong></td><td>Web Frontend = React.js single-page application calling REST.</td></tr><tr><td><strong>Alternatives</strong></td><td>Server-rendered Razor Pages/MVC; mobile-only. Not selected because they are outside the V1 web scope.</td></tr><tr><td><strong>Consequences</strong></td><td>The frontend team can work independently from .NET; all monetary and authorization rules remain enforced by the API.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-002 .NET for Backend</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>The system needs application programming interfaces, role-based access control, import, and SQL access.</td></tr><tr><td><strong>Decision</strong></td><td>The Backend Application is written in C# on .NET.</td></tr><tr><td><strong>Alternatives</strong></td><td>Node, Java. The repository has no requirement for those choices.</td></tr><tr><td><strong>Consequences</strong></td><td>One .NET runtime; ASP.NET Core Controllers versus Minimal APIs remains <strong>To Be Determined</strong>.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-003 Modular Monolith instead of Microservices</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>One income/expense bounded context and one PostgreSQL database.</td></tr><tr><td><strong>Decision</strong></td><td>Modular Monolith; .NET Backend components live in one deployable.</td></tr><tr><td><strong>Alternatives</strong></td><td>Separate Income/Expense/Auth microservices — higher operational complexity with no current driver.</td></tr><tr><td><strong>Consequences</strong></td><td>Modules do not issue SQL directly; they share Persistence.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-004 PostgreSQL as Primary Database</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>User–transaction–batch–audit relationships and aggregate views.</td></tr><tr><td><strong>Decision</strong></td><td>PostgreSQL with schema <code>shop_finance</code>.</td></tr><tr><td><strong>Alternatives</strong></td><td>Spreadsheet-only; document database — neither fits currency/foreign-key constraints well.</td></tr><tr><td><strong>Consequences</strong></td><td>Local Docker uses port 5433; production host To Be Determined.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-005 REST/HTTPS/JSON</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>React needs a synchronous contract for CRUD + import.</td></tr><tr><td><strong>Decision</strong></td><td>REST JSON; HTTPS in production.</td></tr><tr><td><strong>Alternatives</strong></td><td>GraphQL, gRPC — no complex-client requirement justifies them.</td></tr><tr><td><strong>Consequences</strong></td><td>An OpenAPI specification does not exist yet (<strong>To Be Determined</strong>).</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-006 USD as Canonical Currency</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>The shop views both USD and EUR but must not maintain two ledgers.</td></tr><tr><td><strong>Decision</strong></td><td>Store USD; EUR is display conversion. Enforced by SQL CHECK.</td></tr><tr><td><strong>Alternatives</strong></td><td>Multi-currency rows; store both — risks inconsistent totals.</td></tr><tr><td><strong>Consequences</strong></td><td>Exchange-rate source To Be Determined; source reports remain USD.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-007 Soft Delete for Financial Transactions</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>Income/expense history must not be lost.</td></tr><tr><td><strong>Decision</strong></td><td>Use <code>deleted_at</code> / <code>deleted_by</code>; active lists filter for NULL.</td></tr><tr><td><strong>Alternatives</strong></td><td>Hard delete — loses business audit trail.</td></tr><tr><td><strong>Consequences</strong></td><td>Partial unique indexes on users/categories use <code>deleted_at IS NULL</code>.</td></tr><tr><td><strong>Status</strong></td><td>Accepted</td></tr></tbody></table>
+<h2>ADR-008 Backend-Enforced Authorization</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Context</strong></td><td>Four roles; Viewer/Employee can call APIs manually.</td></tr><tr><td><strong>Decision</strong></td><td>Identity &amp; Access is mandatory in .NET; React only improves user experience.</td></tr><tr><td><strong>Alternatives</strong></td><td>Hide UI buttons only — insufficient.</td></tr><tr><td><strong>Consequences</strong></td><td>Every write scenario in Section 6 contains a 403 path. Session mechanism To Be Determined.</td></tr><tr><td><strong>Status</strong></td><td>Accepted (principle). Session implementation: Proposed / To Be Determined</td></tr></tbody></table>
+<h2>Decisions intentionally not yet captured as ADRs</h2>
+<p>Attachment storage, local Transport Layer Security, CI, monitoring, Excel parser, password-hashing algorithm — see <a href="#sec-arc42-11">Section 11</a>.</p></div><p class="src">Source: arc42 — 09 Architecture Decisions</p></article><article class="sec" id="sec-arc42-10"><div class="md"><h1>10. Quality Requirements</h1>
+<p>Mapped to <a href="#sec-arc42-01">QG-1 … QG-5</a>. Do not invent production service-level agreements. Where no benchmark has been established, use <strong>Proposed Target</strong> or <strong>To Be Determined before production</strong>.</p>
+<p>Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Measurement.</p>
+<h2>QR-01 Authorization</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-01</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Security / Authorization (QG-2)</td></tr><tr><td><strong>Scenario</strong></td><td>A logged-in VIEWER calls <code>POST</code> to create Income (or Expense, Import)</td></tr><tr><td><strong>Environment</strong></td><td>.NET Backend + PostgreSQL; independent of React hiding the button</td></tr><tr><td><strong>Expected Response</strong></td><td>403 Forbidden; no INSERT into incomes/expenses/import_batches</td></tr><tr><td><strong>Measurement</strong></td><td>API test; audit contains no business INSERT for that user</td></tr></tbody></table>
+<h2>QR-02 Employee own-update and no-delete</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-02</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Security</td></tr><tr><td><strong>Scenario</strong></td><td>EMPLOYEE edits a record created by another user, or attempts soft delete</td></tr><tr><td><strong>Environment</strong></td><td>Authenticated API</td></tr><tr><td><strong>Expected Response</strong></td><td>403; record remains unchanged / <code>deleted_at</code> remains NULL</td></tr><tr><td><strong>Measurement</strong></td><td>Test against <code>created_by</code></td></tr></tbody></table>
+<h2>QR-03 Data Integrity — USD and active set</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-03</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Data Correctness (QG-1)</td></tr><tr><td><strong>Scenario</strong></td><td>Create Income with a currency other than USD, or Dashboard includes a soft-deleted record</td></tr><tr><td><strong>Environment</strong></td><td>API + database CHECK + views</td></tr><tr><td><strong>Expected Response</strong></td><td>Reject currency ≠ USD; key performance indicators and reports include only <code>deleted_at IS NULL</code></td></tr><tr><td><strong>Measurement</strong></td><td>SQL constraint; compare API totals with active <code>SUM(amount)</code></td></tr></tbody></table>
+<h2>QR-04 Auditability</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-04</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Auditability (QG-3)</td></tr><tr><td><strong>Scenario</strong></td><td>Successful login; soft-delete expense; confirm import; export report</td></tr><tr><td><strong>Environment</strong></td><td>Backend + <code>audit_logs</code></td></tr><tr><td><strong>Expected Response</strong></td><td>LOGIN / DELETE / IMPORT / EXPORT records with actor, module, timestamp; no password/hash</td></tr><tr><td><strong>Measurement</strong></td><td>Query <code>audit_logs</code>; review payload</td></tr></tbody></table>
+<h2>QR-05 Import atomicity</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-05</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Data Integrity</td></tr><tr><td><strong>Scenario</strong></td><td>Confirm import; some rows fail during processing</td></tr><tr><td><strong>Environment</strong></td><td>Excel Import + Persistence transaction</td></tr><tr><td><strong>Expected Response</strong></td><td><strong>Proposed</strong> policy: either the entire batch becomes FAILED with no partial transaction commit, or success_rows/failed_rows satisfy constraints; final status is COMPLETED or FAILED, never stuck in PROCESSING</td></tr><tr><td><strong>Measurement</strong></td><td><code>import_batches</code> counts; <code>success_rows + failed_rows &lt;= total_rows</code></td></tr></tbody></table>
+<h2>QR-06 Performance (dashboard)</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-06</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Performance</td></tr><tr><td><strong>Scenario</strong></td><td>User opens Dashboard using the default date range with V1 single-shop data</td></tr><tr><td><strong>Environment</strong></td><td>.NET + PostgreSQL local/production To Be Determined</td></tr><tr><td><strong>Expected Response</strong></td><td><strong>Proposed Target:</strong> 95th percentile latency under 2 seconds. <strong>To Be Determined before production</strong> if not measured</td></tr><tr><td><strong>Measurement</strong></td><td>GET dashboard API latency</td></tr></tbody></table>
+<h2>QR-07 Recoverability</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-07</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Recoverability</td></tr><tr><td><strong>Scenario</strong></td><td>PostgreSQL volume is lost</td></tr><tr><td><strong>Environment</strong></td><td>Local Docker volume; production To Be Determined</td></tr><tr><td><strong>Expected Response</strong></td><td>Local: volume <code>handmade_postgres_data</code> — backup <strong>To Be Determined</strong>. Production restore <strong>To Be Determined before production</strong></td></tr><tr><td><strong>Measurement</strong></td><td>Backup runbook exists / does not exist</td></tr></tbody></table>
+<h2>QR-08 Usability — role shell</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-08</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Usability (QG-4)</td></tr><tr><td><strong>Scenario</strong></td><td>VIEWER opens app; EMPLOYEE opens <code>#/reports</code></td></tr><tr><td><strong>Environment</strong></td><td>React + API</td></tr><tr><td><strong>Expected Response</strong></td><td>VIEWER does not see add/edit/delete/import; EMPLOYEE receives 403 for reports</td></tr><tr><td><strong>Measurement</strong></td><td>Role × menu checklist (<code>docs/03-use-cases.md</code>)</td></tr></tbody></table>
+<h2>QR-09 Maintainability — persistence boundary</h2>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>ID</strong></td><td>QR-09</td></tr><tr><td><strong>Quality Attribute</strong></td><td>Maintainability (QG-5)</td></tr><tr><td><strong>Scenario</strong></td><td>Add a field to <code>incomes</code></td></tr><tr><td><strong>Environment</strong></td><td>.NET projects/modules</td></tr><tr><td><strong>Expected Response</strong></td><td>SQL remains inside Persistence; Income Management contains no SQL driver code</td></tr><tr><td><strong>Measurement</strong></td><td>PR review / architecture test (<strong>Proposed</strong>)</td></tr></tbody></table></div><p class="src">Source: arc42 — 10 Quality Requirements</p></article><article class="sec" id="sec-arc42-11"><div class="md"><h1>11. Risks and Technical Debt</h1>
+<p>The frontend baseline for this documentation is <strong>React.js</strong>.</p>
+<h2>11.1 Architecture Risk</h2>
+<table><thead><tr><th>ID</th><th>Risk</th><th>Consequence</th><th>Direction</th></tr></thead><tbody><tr><td>R-01</td><td>Attachment / import file storage is not decided</td><td><code>storage_path</code> cannot be deployed end-to-end</td><td>Storage ADR; record as Open Decision</td></tr><tr><td>R-02</td><td>Production topology To Be Determined</td><td>No standardized HTTPS/backup/host design</td><td>Section 7 is logical only</td></tr><tr><td>R-03</td><td>Session/authentication protocol To Be Determined</td><td>Architecture Decision Record 008 cannot be fully implemented yet</td><td>Decide cookie vs token later; never bypass Identity</td></tr><tr><td>R-04</td><td>EUR exchange-rate source To Be Determined</td><td>Wrong conversion can distort displayed reports (the database remains USD)</td><td>Exchange-rate Architecture Decision Record; clearly label “display only”</td></tr><tr><td>R-05</td><td>Excel parser To Be Determined</td><td>Production import depends on an unselected library</td><td>Spike; preserve batch/status flow</td></tr><tr><td>R-06</td><td>No OpenAPI specification yet</td><td>React and .NET API contracts may drift</td><td>Specify before implementation</td></tr><tr><td>R-07</td><td>Monitoring/observability To Be Determined</td><td>Hard to verify QR-06/QR-07 in production</td><td>To Be Determined</td></tr></tbody></table>
+<h2>11.2 Technical Debt</h2>
+<table><thead><tr><th>ID</th><th>Debt</th><th>Notes</th></tr></thead><tbody><tr><td>TD-01</td><td>Schema contains audit triggers but .NET Backend does not yet exist</td><td>Align app-level LOGIN/EXPORT/IMPORT with triggers</td></tr><tr><td>TD-02</td><td>Transaction policy for partially failing imports (QR-05) is not decided: all-or-nothing vs partial</td><td>Requires a short ADR when implementing Excel Import</td></tr><tr><td>TD-03</td><td>Employee delete permission matrix has <code>canDeleteOwn = false</code></td><td>Backend must follow the use-case matrix; do not invent “own delete”</td></tr></tbody></table>
+<h2>11.3 Open Decision</h2>
+<table><thead><tr><th>Topic</th><th>Status</th></tr></thead><tbody><tr><td>ASP.NET Core API style</td><td>To Be Determined</td></tr><tr><td>SQL access (Entity Framework Core, Dapper, ADO.NET, …)</td><td>To Be Determined</td></tr><tr><td>Password hashing</td><td>To Be Determined</td></tr><tr><td>Authentication session mechanism</td><td>To Be Determined</td></tr><tr><td>File storage (disk vs object store)</td><td>To Be Determined — do not default to S3/MinIO</td></tr><tr><td>Exchange-rate source</td><td>To Be Determined</td></tr><tr><td>Excel parse library</td><td>To Be Determined</td></tr><tr><td>Production host / Transport Layer Security / backup</td><td>To Be Determined</td></tr><tr><td>Continuous Integration / Continuous Delivery, metrics, log aggregator</td><td>To Be Determined</td></tr><tr><td>JSON error envelope</td><td>To Be Determined</td></tr></tbody></table>
+<p>Consequence of ADR-001…005: implementation must follow the React + .NET + PostgreSQL baseline; until a Platform as a Service is selected, risk R-02 remains open.</p></div><p class="src">Source: arc42 — 11 Risks and Technical Debt</p></article><article class="sec" id="sec-arc42-12"><div class="md"><h1>12. Glossary</h1>
+<p>Definitions follow HandmadeFinance semantics from the documentation and schema.</p>
+<table><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody><tr><td><strong>HandmadeFinance</strong></td><td>V1 Software System for managing income and expenses for a handmade shop.</td></tr><tr><td><strong>Income</strong></td><td>Money received; table <code>incomes</code>; <code>amount</code> = pre-tax amount in USD.</td></tr><tr><td><strong>Expense</strong></td><td>Money paid out; table <code>expenses</code>; includes <code>payee</code>, <code>origin_scope</code>, <code>payment_method</code>.</td></tr><tr><td><strong>Net Result</strong></td><td>Net profit: total active Income minus total active Expense for the same period, stored/calculated in USD.</td></tr><tr><td><strong>Income Category</strong></td><td>Income classification (<code>income_categories</code>; seeds: Sales, Other Income).</td></tr><tr><td><strong>Expense Category</strong></td><td>Expense classification (<code>expense_categories</code>; raw materials, packaging, shipping, etc.).</td></tr><tr><td><strong>Canonical Currency</strong></td><td>The single currency used for storage and calculation in the database.</td></tr><tr><td><strong>USD</strong></td><td>V1 Canonical Currency; <code>currency_code</code> CHECK allows USD only.</td></tr><tr><td><strong>EUR</strong></td><td>Display currency; Presentation Conversion, not a second dataset.</td></tr><tr><td><strong>Soft Delete</strong></td><td>Logically hide a record using <code>deleted_at</code> (+ <code>deleted_by</code> on transactions); normal flows do not physically delete it.</td></tr><tr><td><strong>Audit Log</strong></td><td><code>audit_logs</code>: actor, action, module, entity, timestamp, detail; contains no secrets.</td></tr><tr><td><strong>Import Batch</strong></td><td>One Excel import execution (<code>import_batches</code>); status PENDING / PROCESSING / COMPLETED / FAILED.</td></tr><tr><td><strong>MANUAL</strong></td><td><code>data_source</code> for manual entry; <code>import_batch_id</code> is NULL.</td></tr><tr><td><strong>EXCEL_IMPORT</strong></td><td><code>data_source</code> for Excel; requires <code>import_batch_id</code>.</td></tr><tr><td><strong>Record Status</strong></td><td><code>DRAFT</code>, <code>PENDING</code>, <code>COMPLETED</code> — transaction record status.</td></tr><tr><td><strong>Admin</strong></td><td>Role <code>ADMIN</code> — full business permissions + user management.</td></tr><tr><td><strong>Shop Owner</strong></td><td>Role <code>SHOP_OWNER</code> — income/expenses/reports/audit; no user management.</td></tr><tr><td><strong>Employee</strong></td><td>Role <code>EMPLOYEE</code> — create/edit own records and import; no delete, reports, or audit log.</td></tr><tr><td><strong>Viewer</strong></td><td>Role <code>VIEWER</code> — read-only access to dashboard, income, expenses, reports, profile.</td></tr><tr><td><strong>Attachment</strong></td><td>Supporting document: metadata + <code>storage_path</code>; belongs to exactly one Income or one Expense; binary content is not stored in PostgreSQL.</td></tr><tr><td><strong>Sales Channel</strong></td><td>Sales channel: ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE.</td></tr><tr><td><strong>Payment Method</strong></td><td>CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL.</td></tr><tr><td><strong>Modular Monolith</strong></td><td>One .NET Backend with multiple logical Components and one PostgreSQL database.</td></tr><tr><td><strong>Container</strong></td><td>Deployable/runtime building block: React Frontend, .NET Backend, PostgreSQL.</td></tr><tr><td><strong>Component</strong></td><td>Logical module inside the .NET Backend (HTTP API, Identity, Income, etc.).</td></tr></tbody></table></div><p class="src">Source: arc42 — 12 Glossary</p></article>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script>
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose" });
+      mermaid.run({ querySelector: ".mermaid" });
+    }
+  </script>
+</body>
+</html>

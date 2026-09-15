@@ -1,105 +1,68 @@
 # C2 — Container
 
-Which high-level applications / data stores make up HandmadeFinance?
+> **Mục tiêu:** zoom vào HandmadeFinance và mô tả các khối chạy/lưu trữ ở kiến trúc đích.
 
-C4 flow: [C1 System Context](01-system-context.md) → **C2** → [C3 Component](03-component.md)
+```mermaid
+flowchart TB
+    operator(["👤 Administrator / Shop Owner / Employee"])
+    reader(["👤 Viewer"])
 
-This is step 2: zoom into the Software System shown on C1. The diagram represents the **Target Architecture**. The Go Backend **does not yet exist in the source**.
+    subgraph platform["HandmadeFinance [Software System Boundary]"]
+        direction TB
+        subgraph presentation["Presentation"]
+            web["Web Frontend<br/><i>[Container: React.js + Vite]</i><br/>UI, routing, forms, tables, and charts"]
+        end
+        subgraph application["Application"]
+            backend[".NET Backend<br/><i>[Container: ASP.NET Core Web API]</i><br/>Authentication, RBAC, business rules,<br/>imports, reporting, and auditing"]
+        end
+        subgraph data["Data"]
+            database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments, and audit logs")]
+        end
+    end
 
-![C2 Container — HandmadeFinance](c2-container.jpg)
+    workbook[("Excel Workbook<br/><i>[External Data]</i><br/>User-provided .xlsx / .xls file")]
 
-Image file: [c2-container.jpg](c2-container.jpg)
+    operator --> web
+    reader --> web
+    web -- "REST / HTTPS / JSON" --> backend
+    web -- "upload file import" --> backend
+    workbook -.->|"selected from the user's device"| web
+    backend -- "SQL / PostgreSQL protocol" --> database
 
-## How to read the diagram
-
-Users (**Person**) are **outside** the dashed line. The dashed line is the **System Boundary** of HandmadeFinance.
-
-The three boxes inside the boundary are **Containers**:
-
-| Container | Type | Technology | Status |
-| --------- | ---- | ---------- | ------ |
-| Web Frontend | Web Application | React.js | Target |
-| Go Backend | Backend Application | Go | Planned |
-| PostgreSQL Database | Database | PostgreSQL | Designed (schema) |
-
-The browser is not modeled as a separate Container.
-
-## People
-
-The four roles come from `frontend/js/auth.js`. In the diagram, all four use the system through the **Web Frontend**.
-
-| Actor | On the diagram | Relationship to Frontend |
-| ----- | -------------- | ------------------------ |
-| Shop Owner | Monitors and manages income and expenses | Manages and monitors income and expenses |
-| Admin | Administers users and the system | Administers the system and users |
-| Employee | Records transactions according to permissions | Records transactions according to permissions |
-| Viewer | Views data and reports | Views data and reports |
-
-## Containers
-
-### Web Frontend
-
-| | |
-|---|---|
-| **Name** | Web Frontend |
-| **Type** | Container: Web Application |
-| **Technology** | React.js |
-| **Status** | Target |
-| **Description** | HandmadeFinance user interface (income, expenses, dashboard, reports, import, users, profile). |
-
-### Go Backend
-
-| | |
-|---|---|
-| **Name** | Go Backend |
-| **Type** | Container: Backend Application |
-| **Technology** | Go |
-| **Status** | Planned / Target |
-| **Description** | Provides REST APIs, authentication / authorization, business processing, and data access. |
-
-**Not implemented yet.** The source contains no Go code or HTTP API.
-
-### PostgreSQL Database
-
-| | |
-|---|---|
-| **Name** | PostgreSQL Database |
-| **Type** | Container: Database |
-| **Technology** | PostgreSQL |
-| **Status** | Designed (schema); not yet connected to the application runtime |
-| **Description** | Stores users, permissions, income/expense transactions, categories, imports, and system audit logs. |
-
-Table details belong to the data model and are not modeled as Containers.
-
-## Relationships (Target Architecture)
-
-| Source | Destination | Relationship |
-| ------ | ----------- | ------------ |
-| Shop Owner, Admin, Employee, Viewer | Web Frontend | Use the system through a browser (one relationship per role in the diagram) |
-| Web Frontend | Go Backend | Calls REST API / HTTPS / JSON |
-| Go Backend | PostgreSQL Database | Reads/writes data / SQL |
-
-The Frontend **does not** access PostgreSQL directly in the Target Architecture.
-
-## Current State
-
-Source verification: the current mock frontend is not yet React; data lives in browser-side JavaScript. C4 documents **React.js** as the target frontend technology. The PostgreSQL schema exists for design purposes and can run independently through Docker; the mock app does not use it.
-
-```text
-Users → Web Frontend ↔ mock JS (data.js, auth.js)
-PostgreSQL: schema only, not connected to app
-Go Backend: not implemented
+    style web fill:#1168bd,color:#fff
+    style backend fill:#1168bd,color:#fff
+    style database fill:#1168bd,color:#fff
 ```
 
-## Next step
+## Trách nhiệm
 
-Zoom into the Go Backend to view its Components: [C3 — Component](03-component.md).
+| Container | Công nghệ | Trách nhiệm | Trạng thái |
+|---|---|---|---|
+| Web Frontend | React.js, Vite | UI, route guard, biểu đồ, form và bảng dữ liệu | Đã có bản mock |
+| .NET Backend | C#, ASP.NET Core Web API, REST/JSON | Điểm tin cậy cho xác thực, RBAC, nghiệp vụ và truy cập dữ liệu | Chưa triển khai |
+| PostgreSQL | PostgreSQL | Dữ liệu bền vững và quan hệ nghiệp vụ | Đã có schema, chưa kết nối |
 
-## Source of Truth
+## Quy tắc kiến trúc
 
-- Diagram: `c2-container.jpg`
-- `README.md` (repo)
-- `docs/05-data-model.md`, `docs/DATABASE.md`
-- `frontend/`
-- `database/shop_finance.sql`
-- `docker-compose.yml`
+1. Trình duyệt không truy cập PostgreSQL trực tiếp.
+2. Ẩn nút ở frontend chỉ là UX; .NET Backend phải kiểm tra quyền cho mọi request.
+3. Tiền được lưu theo USD; EUR chỉ là giá trị quy đổi để hiển thị.
+4. Xóa giao dịch là soft delete để giữ lịch sử và audit.
+5. Attachment hiện chỉ có metadata; chiến lược lưu binary ở backend chưa được quyết định.
+
+## Trạng thái hiện tại
+
+```mermaid
+flowchart LR
+    user(["👤 User"])
+    react["React Web<br/><i>implemented</i>"]
+    mock["Mock Store + Auth<br/><i>JavaScript / Web Storage</i>"]
+    pg[("PostgreSQL schema<br/><i>not connected</i>")]
+    user --> react --> mock
+    pg -.->|"data design only; no runtime connection"| mock
+    style react fill:#1168bd,color:#fff
+    style mock fill:#3a7bd5,color:#fff
+    style pg fill:#999,color:#fff
+```
+
+**Trước:** [C1 — System Context](01-system-context.md) · **Tiếp theo:** zoom vào .NET Backend → [C3 — Component](03-component.md).

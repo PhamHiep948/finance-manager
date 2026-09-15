@@ -2,7 +2,7 @@
 
 Income and expense management web app for a handmade shop: record money in, money out, track total revenue, total expenses, and net profit over time and by category. Amounts are stored in USD; the interface can convert them to EUR for display.
 
-The target stack is a **React.js** frontend (**HandmadeFinance**), a **Go** backend, and **PostgreSQL** for data storage. The mock version in this repository still runs entirely in the browser (API integration is not implemented yet).
+The target stack is a **React.js** frontend (**HandmadeFinance**), a **.NET (C#)** backend, and **PostgreSQL** for data storage. The mock version in this repository still runs entirely in the browser (API integration is not implemented yet).
 
 ![Dashboard](docs/images/admin/01-dashboard.png)
 
@@ -42,181 +42,117 @@ Demo accounts (password `123456`):
 - `staff@demo.local` — Employee
 - `viewer@demo.local` — Viewer
 
-![Login](docs/images/chung/01-dang-nhap.png)
-
 ## Mind map
 
 ![HandmadeFinance mind map](docs/mindmap.png)
 
-## Workflow
+## C4 Architecture
 
-Several separate flows share the same convention: pill shape = start/end, rectangle = step, diamond = Yes / No. A button is hidden when permission is missing; unauthorized URL access → `#/403`.
+The three C4 levels below describe the system context, containers, and main components of the .NET backend. See the complete documentation and C4 Level 4 diagrams in [docs/architecture/c4](docs/architecture/c4/README.md).
 
-### 1. Login
-
-```mermaid
-flowchart TD
-  S([Start]) --> A[Open HandmadeFinance]
-  A --> B[Enter email and password]
-  B --> C{Credentials valid and account active?}
-  C -->|No| D[Show form error]
-  D --> B
-  C -->|Yes| E[Store session]
-  E --> F[Open Dashboard]
-  F --> END([End])
-
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  classDef stepLite fill:#93C5FD,stroke:#2563EB,color:#1E3A8A
-  classDef decision fill:#EFF6FF,stroke:#2563EB,color:#1D4ED8
-  class S,END startEnd
-  class A,B,E,F step
-  class D stepLite
-  class C decision
-```
-
-### 2. Record income or expense
-
-Admin, Shop Owner, Employee. Viewer does not have an add button.
+### C1 — System Context
 
 ```mermaid
-flowchart TD
-  S([Start]) --> A[Open income or expenses from Dashboard]
-  A --> B{Has create permission?}
-  B -->|No| C[403 or hide button]
-  C --> END1([End])
-  B -->|Yes| D[Open entry modal]
-  D --> E{All required fields provided?}
-  E -->|No| D
-  E -->|Yes| F[Save in USD · source MANUAL]
-  F --> G{Attachment provided?}
-  G -->|Yes| H[Save name / type / size]
-  G -->|No| I[Write audit log]
-  H --> I
-  I --> J[Show in list]
-  J --> END2([End])
+flowchart LR
+    admin(["👤 Administrator"])
+    owner(["👤 Shop Owner"])
+    employee(["👤 Employee"])
+    viewer(["👤 Viewer"])
 
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  classDef stepLite fill:#93C5FD,stroke:#2563EB,color:#1E3A8A
-  classDef decision fill:#EFF6FF,stroke:#2563EB,color:#1D4ED8
-  class S,END1,END2 startEnd
-  class A,D,F,I,J step
-  class C,H stepLite
-  class B,E,G decision
+    subgraph boundary[" "]
+        finance["HandmadeFinance<br/><i>[Software System]</i><br/>Manages income, expenses, reports,<br/>data imports, users, and audit logs"]
+    end
+
+    admin -- "manages users and all financial data" --> finance
+    owner -- "manages finances, reports, and audit logs" --> finance
+    employee -- "records income and expenses within permissions" --> finance
+    viewer -- "views dashboards, transactions, and reports" --> finance
+
+    style finance fill:#1168bd,color:#fff
 ```
 
-### 3. Edit or soft delete
-
-Employees may edit only records they created. Only Admin and Shop Owner may soft-delete.
+### C2 — Container
 
 ```mermaid
-flowchart TD
-  S([Start]) --> A[Select a row in the list]
-  A --> B{Edit or delete?}
-  B -->|Edit| C{Has permission or is record creator?}
-  C -->|No| D[Hide button / do not save]
-  D --> END1([End])
-  C -->|Yes| E[Open modal]
-  E --> F{All required fields provided?}
-  F -->|No| E
-  F -->|Yes| G[Update · write audit log]
-  G --> END2([End])
-  B -->|Delete| H{Has soft-delete permission?}
-  H -->|No| D
-  H -->|Yes| I[Confirm]
-  I --> J{Confirmed?}
-  J -->|No| END1
-  J -->|Yes| K[deletedAt · write audit log]
-  K --> L[Remove from active list]
-  L --> END2
+flowchart TB
+    operator(["👤 Administrator / Shop Owner / Employee"])
+    reader(["👤 Viewer"])
 
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  classDef stepLite fill:#93C5FD,stroke:#2563EB,color:#1E3A8A
-  classDef decision fill:#EFF6FF,stroke:#2563EB,color:#1D4ED8
-  class S,END1,END2 startEnd
-  class A,E,G,I,K,L step
-  class D stepLite
-  class B,C,F,H,J decision
+    subgraph platform["HandmadeFinance [Software System Boundary]"]
+        direction TB
+        subgraph presentation["Presentation"]
+            web["Web Frontend<br/><i>[Container: React.js + Vite]</i><br/>UI, routing, forms, tables, and charts"]
+        end
+        subgraph application["Application"]
+            backend[".NET Backend<br/><i>[Container: ASP.NET Core Web API]</i><br/>Authentication, RBAC, business rules,<br/>imports, reporting, and auditing"]
+        end
+        subgraph data["Data"]
+            database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments, and audit logs")]
+        end
+    end
+
+    workbook[("Excel Workbook<br/><i>[External Data]</i><br/>User-provided .xlsx / .xls file")]
+
+    operator --> web
+    reader --> web
+    web -- "REST / HTTPS / JSON" --> backend
+    web -- "upload file import" --> backend
+    workbook -.->|"selected from the user's device"| web
+    backend -- "SQL / PostgreSQL protocol" --> database
+
+    style web fill:#1168bd,color:#fff
+    style backend fill:#1168bd,color:#fff
+    style database fill:#1168bd,color:#fff
 ```
 
-### 4. Excel import
-
-Admin, Shop Owner, Employee. The mock does not read the actual file contents.
+### C3 — Component (.NET Backend)
 
 ```mermaid
-flowchart TD
-  S([Start]) --> A[Open Excel Data Import]
-  A --> B{Has import permission?}
-  B -->|No| C[403]
-  C --> END1([End])
-  B -->|Yes| D[Choose income or expense]
-  D --> E[Choose file]
-  E --> F{File is .xlsx or .xls?}
-  F -->|No| E
-  F -->|Yes| G[Mock preview]
-  G --> H[Click Import]
-  H --> I{Successful?}
-  I -->|No| J[History status FAILED]
-  I -->|Yes| K[History status COMPLETED]
-  J --> END2([End])
-  K --> END2
+flowchart TB
+    subgraph rt[".NET Backend [Container]"]
+        direction TB
+        api["HTTP API<br/><i>[Component: ASP.NET Core]</i><br/>REST endpoints, request validation,<br/>response and error mapping"]
+        identity["Identity & Access<br/><i>[Component]</i><br/>Login, session/token, RBAC,<br/>and own-record policy"]
+        user["User & Profile<br/><i>[Component]</i><br/>Accounts, roles, status, and profiles"]
+        ledger["Income & Expense<br/><i>[Component]</i><br/>CRUD, categories, tax, status,<br/>and soft deletion"]
+        importer["Excel Import<br/><i>[Component]</i><br/>File validation, preview,<br/>batch import, and row-level results"]
+        reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPIs, trends, breakdowns,<br/>and export data"]
+        audit["Audit Log<br/><i>[Component]</i><br/>Records business actions<br/>for traceability"]
+        persistence["Persistence<br/><i>[Component]</i><br/>Repositories, transaction boundaries,<br/>and SQL mapping"]
+    end
 
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  classDef stepLite fill:#93C5FD,stroke:#2563EB,color:#1E3A8A
-  classDef decision fill:#EFF6FF,stroke:#2563EB,color:#1D4ED8
-  class S,END1,END2 startEnd
-  class A,D,E,G,H step
-  class C,J,K stepLite
-  class B,F,I decision
+    web["Web Frontend<br/><i>[Container: React.js]</i>"]
+    db[("PostgreSQL<br/><i>[Container: Database]</i>")]
+    file[("Excel Workbook<br/><i>[External Data]</i>")]
+
+    web --> api
+    file -.->|"uploaded through the Web Frontend"| api
+    api --> identity
+    api --> user
+    api --> ledger
+    api --> importer
+    api --> reporting
+    identity --> persistence
+    user --> persistence
+    ledger --> persistence
+    importer --> ledger
+    importer --> persistence
+    reporting --> persistence
+    user -.->|"administrative events"| audit
+    ledger -.->|"transaction events"| audit
+    importer -.->|"batch results"| audit
+    audit --> persistence
+    persistence --> db
+
+    style api fill:#1168bd,color:#fff
+    style identity fill:#1168bd,color:#fff
+    style user fill:#1168bd,color:#fff
+    style ledger fill:#0b4f9e,color:#fff
+    style importer fill:#1168bd,color:#fff
+    style reporting fill:#1168bd,color:#fff
+    style audit fill:#1168bd,color:#fff
+    style persistence fill:#1168bd,color:#fff
 ```
-
-### 5. Reports
-
-Admin, Shop Owner, Viewer. Employee cannot access reports.
-
-```mermaid
-flowchart TD
-  S([Start]) --> A[Open Reports]
-  A --> B{Has report permission?}
-  B -->|No| C[403]
-  C --> END1([End])
-  B -->|Yes| D[Filter by date / category]
-  D --> E[Display currency USD or EUR]
-  E --> F[View overview · daily · monthly · category]
-  F --> G{Export report?}
-  G -->|Yes| H[Mock print]
-  G -->|No| END2([End])
-  H --> END2
-
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  classDef stepLite fill:#93C5FD,stroke:#2563EB,color:#1E3A8A
-  classDef decision fill:#EFF6FF,stroke:#2563EB,color:#1D4ED8
-  class S,END1,END2 startEnd
-  class A,D,E,F step
-  class C,H stepLite
-  class B,G decision
-```
-
-### 6. Logout
-
-```mermaid
-flowchart TD
-  S([Start]) --> A[Select Logout]
-  A --> B[Clear session]
-  B --> C[Return to login screen]
-  C --> END([End])
-
-  classDef startEnd fill:#1D4ED8,stroke:#1D4ED8,color:#fff
-  classDef step fill:#2563EB,stroke:#1E40AF,color:#fff
-  class S,END startEnd
-  class A,B,C step
-```
-
-Amounts are stored in USD; EUR is used only as a display conversion.
 
 ## Interface
 
@@ -233,7 +169,6 @@ After login (sidebar + top bar):
 
 Screenshots by role:
 
-- [common](docs/images/chung/) — login
 - [admin](docs/images/admin/)
 - [shop-owner](docs/images/chu-shop/)
 - [employee](docs/images/nhan-vien/)
@@ -258,14 +193,14 @@ The PostgreSQL design (`database/shop_finance.sql`, `database/shop_finance.dbml`
 - import batches
 - audit logs
 
-The UI data comes from `frontend/js/data.js` (including sample Etsy order `4154185113`). There is one USD dataset; the currency toolbar displays either USD or EUR using a mock exchange rate.
+The UI data comes from `app/src/lib/data.js` (including sample Etsy order `4154185113`). There is one USD dataset; the currency toolbar displays either USD or EUR using a mock exchange rate.
 
 ## Repository structure
 
 ```text
 finance-manager/
   README.md
-  frontend/          index.html, css/, js/
+  app/               React.js mock (Vite)
   docs/              product documentation
   docs/images/       UI screenshots by role
   database/          shop_finance.sql, shop_finance.dbml
@@ -277,9 +212,11 @@ finance-manager/
 - [Scope](docs/01-scope.md)
 - [Features](docs/02-features.md)
 - [Use cases](docs/03-use-cases.md)
+- [Use Case Diagram](docs/03-use-cases.md#use-case-diagram)
 - [Information architecture](docs/04-information-architecture.md)
 - [Data model](docs/05-data-model.md)
 - [ER diagram](docs/DATABASE.md)
 - [Acceptance criteria](docs/06-acceptance-criteria.md)
 - [Mind map](docs/mindmap.png)
-- [C4 architecture (C1 → C2 → C3)](docs/architecture/c4/README.md)
+- [C4 architecture (C1 → C2 → C3 → C4)](docs/architecture/c4/README.md)
+- [arc42 architecture handbook](docs/architecture/arc42/README.md)

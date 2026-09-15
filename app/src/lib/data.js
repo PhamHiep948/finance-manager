@@ -1,6 +1,6 @@
-const FX_USD_TO_EUR = 0.92;
+export const FX_USD_TO_EUR = 0.92;
 
-const USERS = [
+export const USERS = [
   { id: 1, name: "Admin", email: "admin@demo.local", password: "123456", role: "ADMIN", status: "active", phone: "090 123 4567", avatar: "https://i.pravatar.cc/64?img=33", lastActive: "Vừa xong" },
   { id: 2, name: "Chủ shop", email: "owner@demo.local", password: "123456", role: "SHOP_OWNER", status: "active", phone: "090 222 3333", avatar: "https://i.pravatar.cc/64?img=12", lastActive: "Vừa xong" },
   { id: 3, name: "Nhân viên", email: "staff@demo.local", password: "123456", role: "EMPLOYEE", status: "active", phone: "090 333 4444", avatar: "https://i.pravatar.cc/64?img=11", lastActive: "Vừa xong" },
@@ -12,12 +12,12 @@ const USERS = [
   { id: 9, name: "Vũ Thanh Hà", email: "ha.vu@handmadeshop.vn", password: "123456", role: "VIEWER", status: "active", phone: "095 999 0000", avatar: "https://i.pravatar.cc/64?img=49", lastActive: "15 phút trước" },
 ];
 
-const INCOME_CATEGORIES = [
+export const INCOME_CATEGORIES = [
   { id: 1, name: "Bán hàng" },
   { id: 2, name: "Thu khác" },
 ];
 
-const EXPENSE_CATEGORIES = [
+export const EXPENSE_CATEGORIES = [
   { id: 1, name: "Nguyên vật liệu" },
   { id: 2, name: "Bao bì / đóng gói" },
   { id: 3, name: "Vận chuyển" },
@@ -30,7 +30,7 @@ const EXPENSE_CATEGORIES = [
   { id: 10, name: "Chi khác" },
 ];
 
-const INCOMES = [
+export const INCOMES = [
   { id: 1, incomeDate: "2026-07-12", description: "Crochet Daisy", categoryId: 1, amount: 95, currency: "USD", referenceCode: "ETS-8801", orderCode: "ETS-8801", saleRegion: "IN_EU", productQty: 2, taxPercent: 20, source: "EXCEL_IMPORT", note: "", attachment: null, createdBy: 2, createdAt: "2026-07-12T10:00:00.000Z", updatedAt: "2026-07-12T10:00:00.000Z", deletedAt: null, deletedBy: null },
   { id: 2, incomeDate: "2026-07-28", description: "Móc khóa", categoryId: 1, amount: 140, currency: "USD", referenceCode: "WH-07", orderCode: "WH-07", saleRegion: "OUTSIDE_EU", productQty: 40, taxPercent: 0, source: "MANUAL", note: "", attachment: null, createdBy: 3, createdAt: "2026-07-28T09:00:00.000Z", updatedAt: "2026-07-28T09:00:00.000Z", deletedAt: null, deletedBy: null },
   { id: 3, incomeDate: "2026-08-08", description: "Felt Heart", categoryId: 1, amount: 110, currency: "USD", referenceCode: "ETS-8902", orderCode: "ETS-8902", saleRegion: "OUTSIDE_EU", productQty: 3, taxPercent: 0, source: "EXCEL_IMPORT", note: "", attachment: null, createdBy: 2, createdAt: "2026-08-08T11:20:00.000Z", updatedAt: "2026-08-08T11:20:00.000Z", deletedAt: null, deletedBy: null },
@@ -46,7 +46,7 @@ const INCOMES = [
   { id: 13, incomeDate: "2026-09-13", description: "Lily Flower", categoryId: 1, amount: 22.1, currency: "USD", referenceCode: "4154185113", orderCode: "4154185113", saleRegion: "IN_EU", productQty: 5, unitPrice: 5.49, itemTotal: 27.45, discountAmount: 12.35, discountCode: "AGSALE43", subtotal: 15.1, shippingAmount: 7, taxAmount: 0, taxPercent: 0, source: "MANUAL", note: "Pink × 3 · White × 2 @ 5,49 US$\nShip: Meline Bormann, Ahornallee 12, 22848 Norderstedt, Germany\nTxn: 5190857082, 5190857080", attachment: null, createdBy: 2, createdAt: "2026-09-13T10:00:00.000Z", updatedAt: "2026-09-13T10:00:00.000Z", deletedAt: null, deletedBy: null },
 ];
 
-const EXPENSES = [
+export const EXPENSES = [
   { id: 1, expenseDate: "2026-07-05", description: "Mua len thô (T7)", categoryId: 1, amount: 90, currency: "USD", recipient: "Yarn Shop", originScope: "INTERNATIONAL", taxPercent: 0, amountAfterTax: 90, source: "MANUAL", note: "", attachment: null, createdBy: 3, createdAt: "2026-07-05T10:00:00.000Z", updatedAt: "2026-07-05T10:00:00.000Z", deletedAt: null, deletedBy: null },
   { id: 2, expenseDate: "2026-07-18", description: "Quảng cáo Meta ads (T7)", categoryId: 4, amount: 80, currency: "USD", recipient: "Meta", originScope: "INTERNATIONAL", taxPercent: 0, amountAfterTax: 80, source: "MANUAL", note: "", attachment: null, createdBy: 2, createdAt: "2026-07-18T13:00:00.000Z", updatedAt: "2026-07-18T13:00:00.000Z", deletedAt: null, deletedBy: null },
   { id: 3, expenseDate: "2026-08-04", description: "Hộp giấy carton (T8)", categoryId: 2, amount: 40, currency: "USD", recipient: "Xưởng bao bì", originScope: "DOMESTIC", taxPercent: 10, amountAfterTax: 44, source: "MANUAL", note: "", attachment: null, createdBy: 3, createdAt: "2026-08-04T09:30:00.000Z", updatedAt: "2026-08-04T09:30:00.000Z", deletedAt: null, deletedBy: null },
@@ -164,14 +164,14 @@ const EXPENSES = [
   });
 })();
 
-const IMPORTS = [
+export const IMPORTS = [
   { id: 1, fileName: "Import_DonHang_Etsy_T9.xlsx", type: "INCOME", status: "COMPLETED", totalRows: 48, successRows: 47, failedRows: 1, createdBy: 2, createdAt: "2026-09-11 10:20" },
   { id: 2, fileName: "ChiPhi_VanChuyen_Q3.xlsx", type: "EXPENSE", status: "COMPLETED", totalRows: 12, successRows: 12, failedRows: 0, createdBy: 2, createdAt: "2026-09-10 16:02" },
   { id: 3, fileName: "Import_Sai_Format.xlsx", type: "INCOME", status: "FAILED", totalRows: 32, successRows: 0, failedRows: 32, createdBy: 3, createdAt: "2026-09-09 09:14" },
 ];
 
-const SALES_CHANNELS = ["ETSY_STORE", "WEBSITE_DIRECT", "INSTAGRAM_SHOP", "LOCAL_MARKET", "B2B_WHOLESALE"];
-const PAYMENT_METHODS = ["CREDIT_CARD", "BANK_TRANSFER", "CASH", "PAYPAL"];
+export const SALES_CHANNELS = ["ETSY_STORE", "WEBSITE_DIRECT", "INSTAGRAM_SHOP", "LOCAL_MARKET", "B2B_WHOLESALE"];
+export const PAYMENT_METHODS = ["CREDIT_CARD", "BANK_TRANSFER", "CASH", "PAYPAL"];
 
 INCOMES.forEach((r) => {
   if (r.amountAfterTax == null) {
@@ -188,7 +188,7 @@ EXPENSES.forEach((r) => {
   if (!r.recordStatus) r.recordStatus = r.id % 7 === 3 ? "PENDING" : "COMPLETED";
 });
 
-const AUDIT_LOGS = [
+export const AUDIT_LOGS = [
   { id: 1, time: "2026-09-13 10:00", userId: 2, action: "Tạo khoản thu", target: "Khoản thu", detail: "Lily Flower · đơn 4154185113 · 22.10 USD" },
   { id: 2, time: "2026-09-15 14:02", userId: 2, action: "Tạo khoản thu", target: "Khoản thu", detail: "Đơn hàng #ETS-9011 · 85 USD" },
   { id: 3, time: "2026-09-15 13:40", userId: 3, action: "Tạo khoản chi", target: "Khoản chi", detail: "Mua 20 cuộn len thô · 180 USD" },

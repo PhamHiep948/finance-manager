@@ -1,11 +1,11 @@
-const ROLE_LABEL = {
+export const ROLE_LABEL = {
   ADMIN: "Admin",
   SHOP_OWNER: "Chủ shop",
   EMPLOYEE: "Nhân viên",
   VIEWER: "Người xem",
 };
 
-const ROLE_PERMISSIONS = {
+export const ROLE_PERMISSIONS = {
   ADMIN: {
     dashboard: true, incomeRead: true, incomeCreate: true, incomeUpdate: true, incomeDelete: true,
     expenseRead: true, expenseCreate: true, expenseUpdate: true, expenseDelete: true,
@@ -28,7 +28,7 @@ const ROLE_PERMISSIONS = {
   },
 };
 
-const PAGE_PERM = {
+export const PAGE_PERM = {
   dashboard: "dashboard",
   incomes: "incomeRead",
   "income-form": "incomeCreate",
@@ -44,46 +44,36 @@ const PAGE_PERM = {
   forbidden: "dashboard",
 };
 
-function currentUser() {
+export function readSession() {
   const raw = sessionStorage.getItem("fm_user") || localStorage.getItem("fm_user");
   return raw ? JSON.parse(raw) : null;
 }
 
-function can(perm) {
-  const u = currentUser();
-  if (!u) return false;
-  return Boolean(ROLE_PERMISSIONS[u.role]?.[perm]);
-}
-
-function canEditOwn(record, updatePerm) {
-  const u = currentUser();
-  if (!u || !can(updatePerm)) return false;
-  if (u.role === "EMPLOYEE") return record.createdBy === u.id;
-  return true;
-}
-
-function canDeleteOwn(record, deletePerm) {
-  const u = currentUser();
-  if (!u || !can(deletePerm)) return false;
-  if (u.role === "EMPLOYEE") return record.createdBy === u.id;
-  return true;
-}
-
-function saveSession(user, remember) {
+export function saveSession(user, remember) {
   const json = JSON.stringify(user);
   sessionStorage.removeItem("fm_user");
   localStorage.removeItem("fm_user");
   (remember ? localStorage : sessionStorage).setItem("fm_user", json);
 }
 
-function clearSession() {
+export function clearSession() {
   sessionStorage.removeItem("fm_user");
   localStorage.removeItem("fm_user");
 }
 
-function loginMock(email, password) {
-  const user = USERS.find((u) => u.email === email && u.password === password && u.status === "active");
-  if (!user) return null;
-  const { password: _, ...safe } = user;
-  return safe;
+export function can(user, perm) {
+  if (!user) return false;
+  return Boolean(ROLE_PERMISSIONS[user.role]?.[perm]);
+}
+
+export function canEditOwn(user, record, updatePerm) {
+  if (!user || !can(user, updatePerm)) return false;
+  if (user.role === "EMPLOYEE") return record.createdBy === user.id;
+  return true;
+}
+
+export function canDeleteOwn(user, record, deletePerm) {
+  if (!user || !can(user, deletePerm)) return false;
+  if (user.role === "EMPLOYEE") return record.createdBy === user.id;
+  return true;
 }

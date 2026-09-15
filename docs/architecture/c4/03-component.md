@@ -1,116 +1,73 @@
-# C3 — Component
+# C3 — Component — .NET Backend
 
-Which **Components** make up the Go Backend?
+> **Trạng thái:** kiến trúc đích. Các component dưới đây chưa có mã C#/.NET trong repository.
 
-This level **zooms into the Go Backend Container** from [C2](02-container.md). Web Frontend and PostgreSQL remain Containers (they are not decomposed into components here).
+```mermaid
+flowchart TB
+    subgraph rt[".NET Backend [Container]"]
+        direction TB
+        api["HTTP API<br/><i>[Component: ASP.NET Core]</i><br/>REST endpoints, request validation,<br/>response and error mapping"]
+        identity["Identity & Access<br/><i>[Component]</i><br/>Login, session/token, RBAC,<br/>and own-record policy"]
+        user["User & Profile<br/><i>[Component]</i><br/>Accounts, roles, status, and profiles"]
+        ledger["Income & Expense<br/><i>[Component]</i><br/>CRUD, categories, tax, status,<br/>and soft deletion"]
+        importer["Excel Import<br/><i>[Component]</i><br/>File validation, preview,<br/>batch import, and row-level results"]
+        reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPIs, trends, breakdowns,<br/>and export data"]
+        audit["Audit Log<br/><i>[Component]</i><br/>Records business actions<br/>for traceability"]
+        persistence["Persistence<br/><i>[Component]</i><br/>Repositories, transaction boundaries,<br/>and SQL mapping"]
+    end
 
-**Architecture status: Target.** The components below are planned Go modules. The current source does not yet contain a backend.
+    web["Web Frontend<br/><i>[Container: React.js]</i>"]
+    db[("PostgreSQL<br/><i>[Container: Database]</i>")]
+    file[("Excel Workbook<br/><i>[External Data]</i>")]
 
-![C3 Component — Go Backend](c3-component.png)
+    web --> api
+    file -.->|"uploaded through the Web Frontend"| api
+    api --> identity
+    api --> user
+    api --> ledger
+    api --> importer
+    api --> reporting
+    identity --> persistence
+    user --> persistence
+    ledger --> persistence
+    importer --> ledger
+    importer --> persistence
+    reporting --> persistence
+    user -.->|"administrative events"| audit
+    ledger -.->|"transaction events"| audit
+    importer -.->|"batch results"| audit
+    audit --> persistence
+    persistence --> db
 
-Image file: [c3-component.png](c3-component.png)
-
-C4 flow: [C1](01-system-context.md) → [C2](02-container.md) → **C3**
-
-## How to read the diagram
-
-The purple dashed boundary = **Go Backend**. On the left, Web Frontend calls HTTPS / REST / JSON. On the right, PostgreSQL receives SQL.
-
-Typical request flow:
-
-```text
-Web Frontend
-    → HTTP API & Routing
-        → Identity & Access
-        → business module (User, Category, Income, Expense, Import, Dashboard)
-            → Persistence / Data Access
-                → PostgreSQL
+    style api fill:#1168bd,color:#fff
+    style identity fill:#1168bd,color:#fff
+    style user fill:#1168bd,color:#fff
+    style ledger fill:#0b4f9e,color:#fff
+    style importer fill:#1168bd,color:#fff
+    style reporting fill:#1168bd,color:#fff
+    style audit fill:#1168bd,color:#fff
+    style persistence fill:#1168bd,color:#fff
 ```
 
-Some modules also call Category, Dashboard & Reporting, and Audit Log rather than bypassing them to access the database directly.
+## Component catalog
 
-## Neighbors (from C2)
+| Component | Sở hữu trách nhiệm | Không chịu trách nhiệm |
+|---|---|---|
+| HTTP API | Transport, validation, error contract | SQL và quyết định nghiệp vụ |
+| Identity & Access | Authentication, RBAC, own-record rule | Ẩn/hiện giao diện |
+| User & Profile | Vòng đời tài khoản và hồ sơ | Giao dịch tài chính |
+| Income & Expense | Quy tắc thu/chi, thuế, trạng thái, soft delete | Render báo cáo |
+| Excel Import | Parse/validate batch và điều phối nhập | Ghi bảng giao dịch bỏ qua domain |
+| Dashboard & Reporting | Query tổng hợp, KPI, export | Thay đổi giao dịch |
+| Audit Log | Nhật ký hành động nghiệp vụ | Dữ liệu vận hành chính |
+| Persistence | Repository, SQL, transaction | HTTP và UI authorization |
 
-| Name | Type | Role on C3 |
-| ---- | ---- | ---------- |
-| Web Frontend | Container: Web Application (React.js) | Calls REST API |
-| PostgreSQL Database | Container: Database | Stores persistent data |
+## Luồng phụ thuộc
 
-## Components (inside Go Backend)
+`HTTP API → Identity & Access → domain component → Persistence → PostgreSQL`.
 
-| Component | Type | Description on diagram |
-| --------- | ---- | ---------------------- |
-| HTTP API & Routing | Go | Receives REST/JSON requests, routes endpoints, and dispatches to business components |
-| Identity & Access | Go | Authenticates users and checks roles / access permissions |
-| User & Profile Management | Go | Manages accounts, user status, and user profiles |
-| Category Management | Go | Manages income and expense categories used by transactions |
-| Income Management | Go | Manages the income lifecycle and related business rules |
-| Expense Management | Go | Manages the expense lifecycle and related business rules |
-| Excel Import | Go | Validates, previews, and creates transactions from valid Excel data |
-| Dashboard & Reporting | Go | Aggregates metrics and provides data for dashboards and reports |
-| Audit Log | Go | Records important actions for traceability |
-| Persistence / Data Access | Go / SQL | Encapsulates SQL queries, transactions, and PostgreSQL access |
+Import gọi Income & Expense để dùng chung validation. Reporting chỉ đọc qua Persistence. Không component nghiệp vụ nào mở kết nối PostgreSQL riêng.
 
-Mapping from current UI (frontend) → target component:
+**Trước:** [C2 — Container](02-container.md) · **Tiếp theo:** [C4 — Code cho khoản thu và khoản chi](04-code.md) · **Liên quan:** [arc42 Building Block View](../arc42/05-building-block-view.md).
 
-| UI screen / module | C3 Component |
-| ------------------ | ------------ |
-| Login, button-level authorization | Identity & Access |
-| Users, profile | User & Profile Management |
-| Income / expense categories | Category Management |
-| Income Management | Income Management |
-| Expense Management | Expense Management |
-| Excel Import | Excel Import |
-| Dashboard, reports | Dashboard & Reporting |
-| Activity Log | Audit Log |
-
-## Relationships
-
-### Into / out of the Container
-
-| Source | Destination | Relationship |
-| ------ | ----------- | ------------ |
-| Web Frontend | HTTP API & Routing | HTTPS / REST / JSON |
-| Persistence / Data Access | PostgreSQL Database | SQL / PostgreSQL Protocol |
-
-### HTTP API to business components
-
-| Source | Destination | Relationship |
-| ------ | ----------- | ------------ |
-| HTTP API & Routing | Identity & Access | Authentication / authorization |
-| HTTP API & Routing | User & Profile Management | Users / profile |
-| HTTP API & Routing | Income Management | Income operations |
-| HTTP API & Routing | Expense Management | Expense operations |
-| HTTP API & Routing | Excel Import | Excel import |
-| HTTP API & Routing | Category Management | Categories |
-| HTTP API & Routing | Dashboard & Reporting | Dashboard / reports |
-
-### Business-component relationships
-
-| Source | Destination | Relationship |
-| ------ | ----------- | ------------ |
-| Income Management | Category Management | Uses income categories |
-| Expense Management | Category Management | Uses expense categories |
-| Excel Import | Income Management | Creates income records |
-| Excel Import | Expense Management | Creates expense records |
-| Income Management | Dashboard & Reporting | Sends transaction changes / aggregation impact |
-| Expense Management | Dashboard & Reporting | Sends transaction changes / aggregation impact |
-| Excel Import | Dashboard & Reporting | Sends import results |
-| User & Profile Management | Audit Log | Records administrative actions |
-| Income / Expense / Excel Import | Audit Log | Records actions |
-
-### To Persistence
-
-Identity, User & Profile, Category, Income, Expense, Excel Import, Dashboard & Reporting, and Audit Log all use **Persistence / Data Access** (read accounts/permissions, read/write transactions, read aggregate data, store audit logs). No business component connects directly to PostgreSQL.
-
-## Current State
-
-In the current source, equivalent logic lives in browser JavaScript (`frontend/js/auth.js`, `frontend/js/data.js`, `frontend/js/views.js`). C3 describes where those responsibilities will live once the Go Backend exists.
-
-## Source of Truth
-
-- Diagram: `c3-component.png`
-- Previous level: [02-container.md](02-container.md)
-- `frontend/js/auth.js`, `frontend/js/data.js`, `frontend/js/views.js`
-- `docs/02-features.md`, `docs/03-use-cases.md`
-- `database/shop_finance.sql`
+**Nguồn sự thật:** `docs/02-features.md`, `docs/03-use-cases.md`, `database/shop_finance.sql`, `app/src/lib/store.jsx`.

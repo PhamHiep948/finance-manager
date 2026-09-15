@@ -1,202 +1,132 @@
 # 5. Building Block View
 
-HandmadeFinance is decomposed into runtime building blocks (Containers), then the Go Backend is zoomed into logical modules (Components). Separate C4 documentation is not required to understand this section.
+Phần này đồng bộ với C4: Level 1 là toàn hệ thống, Level 2 là Container, Level 3 zoom vào .NET Backend.
 
-## 5.1 Level 1 — Whitebox HandmadeFinance
+## 5.1 Level 1 — HandmadeFinance
 
-```text
-HandmadeFinance
-├── React.js Web Frontend
-├── Go Backend
-└── PostgreSQL
-```
-
-Users interact only with the Frontend. The Frontend calls only Go. Only Persistence issues SQL.
-
-```mermaid
-flowchart LR
-  U[Users] --> FE[React.js Web Frontend]
-  FE -->|HTTPS REST JSON| BE[Go Backend]
-  BE -->|SQL| DB[PostgreSQL]
-```
-
-
-
-![Containers](diagrams/containers.jpg)
+HandmadeFinance là một software system phục vụ bốn vai trò: Admin, Chủ shop, Nhân viên và Người xem. Chi tiết: [C1 System Context](../c4/01-system-context.md).
 
 ## 5.2 Level 2 — Containers
 
+```mermaid
+flowchart TB
+    operator(["👤 Admin / Chủ shop / Nhân viên"])
+    reader(["👤 Người xem"])
 
+    subgraph platform["HandmadeFinance [Software System Boundary]"]
+        direction TB
+        subgraph presentation["Presentation"]
+            web["Web Frontend<br/><i>[Container: React.js + Vite]</i><br/>Giao diện, routing, form, bảng và biểu đồ"]
+        end
+        subgraph application["Application"]
+            backend[".NET Backend<br/><i>[Container: ASP.NET Core Web API]</i><br/>Xác thực, RBAC, nghiệp vụ,<br/>import, báo cáo và audit"]
+        end
+        subgraph data["Data"]
+            database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments và audit logs")]
+        end
+    end
 
-### React.js Web Frontend
+    workbook[("Excel Workbook<br/><i>[External Data]</i><br/>Tệp .xlsx / .xls do người dùng cung cấp")]
 
+    operator --> web
+    reader --> web
+    web -- "REST / HTTPS / JSON" --> backend
+    web -- "upload file import" --> backend
+    workbook -.->|"được chọn từ thiết bị"| web
+    backend -- "SQL / PostgreSQL protocol" --> database
 
-|                      |                                                                                                                                        |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Purpose**          | UI for income, expenses, dashboard, reports, import, users, and profile                                                                |
-| **Responsibilities** | Render screens according to the information architecture; hide menus/buttons by role; send REST requests; convert USD to EUR for display only (do not store EUR) |
-| **Interfaces**       | HTTPS REST JSON to HTTP API & Routing                                                                                                  |
-| **Dependencies**     | Go Backend                                                                                                                             |
-| **Technology**       | React.js                                                                                                                               |
-
-
-UI authorization **does not** replace backend 403 enforcement.
-
-### Go Backend
-
-
-|                      |                                                                      |
-| -------------------- | -------------------------------------------------------------------- |
-| **Purpose**          | REST API, business logic, authentication, authorization, data access |
-| **Responsibilities** | Validation, role-based access control, transactions, import, report aggregation, audit    |
-| **Interfaces**       | REST inbound; SQL outbound through Persistence                       |
-| **Dependencies**     | PostgreSQL                                                           |
-| **Technology**       | Go — Modular Monolith                                                |
-
-
-
-
-### PostgreSQL
-
-
-|                      |                                                                      |
-| -------------------- | -------------------------------------------------------------------- |
-| **Purpose**          | Persistent business data storage                                     |
-| **Responsibilities** | Tables, enums, `vw_`* views, audit triggers for INSERT/UPDATE/DELETE |
-| **Interfaces**       | PostgreSQL protocol / SQL                                            |
-| **Dependencies**     | Does not call the application                                        |
-| **Technology**       | PostgreSQL (`postgres:16` locally)                                   |
-
-
-The browser is **not** modeled as a separate Container.
-
-## 5.3 Level 3 — Go Backend Components
-
-```text
-Go Backend
-├── HTTP API & Routing
-├── Identity & Access
-├── User & Profile Management
-├── Category Management
-├── Income Management
-├── Expense Management
-├── Excel Import
-├── Dashboard & Reporting
-├── Audit Log
-└── Persistence / Data Access
+    style web fill:#1168bd,color:#fff
+    style backend fill:#1168bd,color:#fff
+    style database fill:#1168bd,color:#fff
 ```
 
-![Go Backend Components](diagrams/go-components.png)
+| Container | Public surface | Dữ liệu sở hữu |
+|---|---|---|
+| Web Frontend | Hash routes, forms, tables, charts | Client/session state tạm thời |
+| .NET Backend | REST/JSON endpoints | Business rules và transaction orchestration |
+| PostgreSQL | Chỉ backend được truy cập | Users, categories, incomes, expenses, imports, attachments, audits |
+
+## 5.3 Level 3 — .NET Backend Components
 
 ```mermaid
 flowchart TB
-  FE[React.js Web Frontend]
-  subgraph go["Go Backend"]
-    API[HTTP API and Routing]
-    Id[Identity and Access]
-    Inc[Income / Expense / Import / User / Category / Dashboard]
-    Aud[Audit Log]
-    P[Persistence / Data Access]
-    API --> Id
-    API --> Inc
-    Inc --> Aud
-    Id --> P
-    Inc --> P
-    Aud --> P
-  end
-  DB[(PostgreSQL)]
-  FE -->|HTTPS REST JSON| API
-  P -->|SQL| DB
+    subgraph rt[".NET Backend [Container]"]
+        direction TB
+        api["HTTP API<br/><i>[Component: ASP.NET Core]</i><br/>REST endpoints, request validation,<br/>response và error mapping"]
+        identity["Identity & Access<br/><i>[Component]</i><br/>Đăng nhập, session/token, RBAC,<br/>own-record policy"]
+        user["User & Profile<br/><i>[Component]</i><br/>Tài khoản, vai trò, trạng thái và hồ sơ"]
+        ledger["Income & Expense<br/><i>[Component]</i><br/>CRUD, danh mục, thuế, trạng thái<br/>và soft delete"]
+        importer["Excel Import<br/><i>[Component]</i><br/>Kiểm tra file, preview,<br/>batch import và kết quả từng dòng"]
+        reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPI, xu hướng, phân nhóm<br/>và dữ liệu export"]
+        audit["Audit Log<br/><i>[Component]</i><br/>Ghi nhận hành động nghiệp vụ<br/>để truy vết"]
+        persistence["Persistence<br/><i>[Component]</i><br/>Repository, transaction boundary<br/>và SQL mapping"]
+    end
+
+    web["Web Frontend<br/><i>[Container: React.js]</i>"]
+    db[("PostgreSQL<br/><i>[Container: Database]</i>")]
+    file[("Excel Workbook<br/><i>[External Data]</i>")]
+
+    web --> api
+    file -.->|"upload qua Web Frontend"| api
+    api --> identity
+    api --> user
+    api --> ledger
+    api --> importer
+    api --> reporting
+    identity --> persistence
+    user --> persistence
+    ledger --> persistence
+    importer --> ledger
+    importer --> persistence
+    reporting --> persistence
+    user -.->|"administrative events"| audit
+    ledger -.->|"transaction events"| audit
+    importer -.->|"batch results"| audit
+    audit --> persistence
+    persistence --> db
+
+    style api fill:#1168bd,color:#fff
+    style identity fill:#1168bd,color:#fff
+    style user fill:#1168bd,color:#fff
+    style ledger fill:#0b4f9e,color:#fff
+    style importer fill:#1168bd,color:#fff
+    style reporting fill:#1168bd,color:#fff
+    style audit fill:#1168bd,color:#fff
+    style persistence fill:#1168bd,color:#fff
 ```
 
+| Component | Chức năng | API gọi đến |
+|---|---|---|
+| HTTP API | Parse/validate request, map response/error | Tất cả use case endpoint |
+| Identity & Access | Login, credential/session, RBAC, own-record policy | Login và mọi endpoint bảo vệ |
+| User & Profile | User lifecycle và profile | Users, profile |
+| Income & Expense | CRUD, category, tax, status, soft delete | Incomes, expenses |
+| Excel Import | Validate/preview/process batch | Import |
+| Dashboard & Reporting | KPI, time series, category aggregate, export model | Dashboard, reports |
+| Audit Log | Append hành động cần truy vết | Audit query; nhận event nội bộ |
+| Persistence | Repository, transaction và SQL mapping | Được các component khác dùng nội bộ |
 
+## 5.4 Mapping giao diện → component
 
+| UI | Component chính |
+|---|---|
+| Login và route permission | Identity & Access |
+| Quản lý người dùng, hồ sơ | User & Profile |
+| Quản lý thu và chi | Income & Expense |
+| Import Excel | Excel Import + Income & Expense |
+| Dashboard, báo cáo | Dashboard & Reporting |
+| Nhật ký | Audit Log |
 
+## 5.5 Quy tắc dependency
 
-### HTTP API & Routing
+1. HTTP API chỉ điều phối, không viết SQL.
+2. Import không bỏ qua validation của Income & Expense.
+3. Audit được ghi trong cùng transaction nghiệp vụ khi cần tính nhất quán.
+4. Reporting không thay đổi giao dịch.
+5. Chỉ Persistence giao tiếp PostgreSQL.
 
+Sơ đồ C3 đầy đủ: [C3 — Component](../c4/03-component.md).
 
-|              |                                                                        |
-| ------------ | ---------------------------------------------------------------------- |
-| Purpose      | Receive REST/JSON, route requests, and dispatch to business components |
-| Interfaces   | REST from React                                                        |
-| Dependencies | Identity & Access; all business modules                                |
+## 5.6 Level 4 — Hai feature chính
 
-
-Every business request enters here and passes through Identity before reaching a domain module.
-
-### Identity & Access
-
-
-|                  |                                                                                                                                    |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Purpose          | Authenticate session/credentials (**detailed mechanism To Be Determined**) and check roles/permissions                                          |
-| Responsibilities | Reject VIEWER create/update/delete; Employee cannot report/audit/delete; Employee may update only when `created_by` = current user |
-| Dependencies     | Persistence (read user, role, `is_active`)                                                                                         |
-
-
-**FACT permission matrix** (`ROLE_PERMISSIONS` / UC matrix):
-
-
-| Permission                   | ADMIN | SHOP_OWNER | EMPLOYEE    | VIEWER |
-| ---------------------------- | ----- | ---------- | ----------- | ------ |
-| dashboard                    | ✓     | ✓          | ✓           | ✓      |
-| incomeRead / expenseRead     | ✓     | ✓          | ✓           | ✓      |
-| incomeCreate / expenseCreate | ✓     | ✓          | ✓           |        |
-| incomeUpdate / expenseUpdate | ✓     | ✓          | Own records |        |
-| incomeDelete / expenseDelete | ✓     | ✓          |             |        |
-| importData                   | ✓     | ✓          | ✓           |        |
-| reportRead                   | ✓     | ✓          |             | ✓      |
-| auditRead                    | ✓     | ✓          |             |        |
-| userManagement               | ✓     |            |             |        |
-
-
-Example: VIEWER `POST /api/incomes` → 403 even when calling the API directly.
-
-### User & Profile Management
-
-Manages accounts, `is_active`, and profile fields (`full_name`, `phone`, `avatar_url`). User listing is Admin-only. Users cannot change their own role from Profile.
-
-### Category Management
-
-`income_categories`, `expense_categories`. Income/Expense/Import **use categories**; they do not INSERT categories themselves except through an explicit category-management flow.
-
-### Income Management
-
-Income lifecycle: create with `source=MANUAL`, update, soft delete, read list where `deleted_at IS NULL`. Calls Category, Dashboard (aggregation impact), Audit, and Persistence.
-
-### Expense Management
-
-Same as Income, plus `payee`, `origin_scope`, `payment_method`, `amount_after_tax`.
-
-### Excel Import
-
-Validate file → parse → validate rows → preview → confirm → `import_batches` → create Income/Expense with `EXCEL_IMPORT` → Audit → `COMPLETED` or `FAILED`.
-
-### Dashboard & Reporting
-
-Aggregates active records (SQL views or equivalent queries). No separate statistics table. Exporting a report = EXPORT action + audit; it is not an electronic invoice.
-
-### Audit Log
-
-Records LOGIN, EXPORT, IMPORT and works alongside database triggers for DELETE/INSERT/UPDATE. Never records password / hash / token. Reading the audit log requires `auditRead`.
-
-### Persistence / Data Access
-
-Encapsulates SQL, transactions, and PostgreSQL access. **All** Identity, User, Category, Income, Expense, Import, Dashboard, and Audit components **must not** bypass this layer.
-
-## 5.4 Mapping UI → Component
-
-
-| Information architecture area | Component |
-| ------------------------- | --------------------- |
-| Login                     | Identity & Access     |
-| Users, profile            | User & Profile        |
-| Income/expense categories | Category              |
-| Income                    | Income                |
-| Expenses                  | Expense               |
-| Excel Import              | Excel Import          |
-| Dashboard, reports        | Dashboard & Reporting |
-| Activity log              | Audit Log             |
-
-
+Code-level target cho `Income Management` và `Expense Management` được mô tả bằng ASP.NET Core Controller, Service, Policy, Validator, Domain Entity và Repository tại [C4 Level 4](../c4/04-code.md). Đây là thiết kế đích; chưa có C# source để đối chiếu implementation.

@@ -1,212 +1,105 @@
 # 6. Runtime View
 
-Every participant must exist in [Section 5](05-building-block-view.md). React hides buttons, but **every write operation** passes through Identity.
+Các sequence dưới đây mô tả kiến trúc đích. Endpoint cụ thể và cơ chế token/session vẫn TBD.
 
-The REST paths below are **logical** (the OpenAPI specification is not finalized yet).
-
-## 6.1 Scenario — Login
-
-Actor: any role. User must have `is_active`. Audit action: `LOGIN`. Never return password/hash.
+## 6.1 Đăng nhập
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant P as Persistence
-  participant DB as PostgreSQL
-  participant Aud as Audit Log
-
-  User->>React: Email + password
-  React->>API: POST login (JSON)
-  API->>Id: Authenticate
-  Id->>P: Load user by email
-  P->>DB: SELECT app_users
-  alt Invalid credentials or inactive
-    Id-->>React: 401
-  else Success
-    Id->>P: last_login_at
-    Id->>Aud: LOGIN
-    Aud->>P: INSERT audit_logs
-    P->>DB: INSERT
-    Id-->>React: Session credential (mechanism To Be Determined)
-    React-->>User: Dashboard
-  end
+    actor U as Người dùng
+    participant W as React Web
+    participant A as HTTP API
+    participant I as Identity & Access
+    participant P as Persistence
+    participant D as PostgreSQL
+    U->>W: Nhập email và mật khẩu
+    W->>A: Gửi yêu cầu đăng nhập
+    A->>I: Validate credential
+    I->>P: Tìm tài khoản đang active
+    P->>D: SELECT user
+    D-->>P: User + password hash + role
+    P-->>I: User
+    I-->>A: Session/token hoặc lỗi
+    A-->>W: User an toàn + credential
+    W-->>U: Dashboard hoặc thông báo lỗi
 ```
 
-## 6.2 Scenario — Create Income
-
-Actor: ADMIN, SHOP_OWNER, EMPLOYEE. `source = MANUAL`. `currency_code = USD`.
+## 6.2 Tạo hoặc sửa khoản thu/chi
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant Inc as Income Management
-  participant Cat as Category Management
-  participant P as Persistence
-  participant DB as PostgreSQL
-  participant Aud as Audit Log
-  participant Rep as Dashboard and Reporting
+    actor U as Admin/Owner/Employee
+    participant W as React Web
+    participant A as HTTP API
+    participant I as Identity & Access
+    participant L as Income & Expense
+    participant R as Persistence
+    participant D as PostgreSQL
+    U->>W: Gửi form giao dịch
+    W->>A: POST/PUT transaction
+    A->>I: Kiểm tra session + permission
+    I->>L: Actor context đã xác thực
+    L->>L: Validate fields, tax, own-record rule
+    L->>R: Begin transaction
+    R->>D: INSERT/UPDATE transaction + audit
+    D-->>R: Commit
+    R-->>L: Record đã lưu
+    L-->>A: DTO
+    A-->>W: 200/201 hoặc error contract
+```
 
-  User->>React: Submit income form
-  React->>API: POST /incomes
-  API->>Id: Authorize incomeCreate
-  alt VIEWER or permission missing
-    Id-->>React: 403 Forbidden
-  else Allowed
-    API->>Inc: Create
-    Inc->>Cat: Use income category
-    Inc->>P: BEGIN; INSERT incomes
-    opt Attachment provided
-      Inc->>P: INSERT attachments (metadata + storage_path)
+Nhân viên chỉ sửa record có `createdBy` bằng user hiện tại. Admin và Chủ shop mới được soft delete.
+
+## 6.3 Import Excel
+
+```mermaid
+sequenceDiagram
+    actor U as Admin/Owner/Employee
+    participant W as React Web
+    participant A as HTTP API
+    participant X as Excel Import
+    participant L as Income & Expense
+    participant R as Persistence
+    U->>W: Chọn file và loại dữ liệu
+    W->>A: Upload/preview request
+    A->>X: Validate type, header, rows
+    X-->>W: Preview + lỗi từng dòng
+    U->>W: Xác nhận import
+    W->>A: Process batch
+    A->>X: Import valid rows
+    loop mỗi dòng hợp lệ
+        X->>L: Tạo income/expense qua domain rule
     end
-    Inc->>Aud: INSERT
-    Inc->>Rep: Record change / invalidate aggregate
-    P->>DB: COMMIT
-    Inc-->>React: 201 + body
-  end
+    X->>R: Lưu batch result + audit
+    R-->>W: Số thành công/thất bại
 ```
 
-Expense create uses Expense Management, `expenseCreate`, with `amount_after_tax` calculated according to the tax rule.
-
-## 6.3 Scenario — Update Income or Expense
-
-ADMIN/SHOP_OWNER: any record. EMPLOYEE: only when `created_by = current user`. VIEWER: 403.
+## 6.4 Dashboard và báo cáo
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant Dom as Income or Expense
-  participant P as Persistence
-  participant DB as PostgreSQL
-  participant Aud as Audit Log
-
-  User->>React: Save changes
-  React->>API: PUT /incomes/{id} or /expenses/{id}
-  API->>Id: incomeUpdate / expenseUpdate + own-check
-  alt Not allowed to edit
-    Id-->>React: 403
-  else Allowed
-    API->>Dom: Update
-    Dom->>P: UPDATE ... WHERE deleted_at IS NULL
-    Dom->>Aud: UPDATE
-    P->>DB: COMMIT
-  end
+    actor U as Người có quyền
+    participant W as React Web
+    participant A as HTTP API
+    participant Q as Dashboard & Reporting
+    participant R as Persistence
+    participant D as PostgreSQL
+    U->>W: Chọn kỳ, loại, nguồn, danh mục
+    W->>A: GET report query
+    A->>Q: Filter + actor context
+    Q->>R: Aggregate query
+    R->>D: SELECT/SUM/GROUP BY active records
+    D-->>Q: Aggregate rows
+    Q-->>W: KPI, series, category breakdown
+    W-->>U: Chart/table; quy đổi USD→EUR nếu chọn
 ```
 
-## 6.4 Scenario — Soft Delete
+## 6.5 Lỗi chung
 
-ADMIN and SHOP_OWNER only. EMPLOYEE does not have `*Delete`.
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant Dom as Income or Expense
-  participant P as Persistence
-  participant DB as PostgreSQL
-  participant Aud as Audit Log
-
-  User->>React: Confirm deletion
-  React->>API: DELETE /incomes/{id}
-  API->>Id: incomeDelete
-  alt EMPLOYEE / VIEWER
-    Id-->>React: 403
-  else Allowed
-    API->>Dom: Soft delete
-    Note over Dom,DB: SET deleted_at, deleted_by<br/>do not physically delete
-    Dom->>P: UPDATE
-    Dom->>Aud: DELETE (logical)
-    P->>DB: COMMIT
-  end
-```
-
-Subsequent lists use `deleted_at IS NULL`. Audit data remains.
-
-## 6.5 Scenario — Excel Import
-
-Actor: ADMIN, SHOP_OWNER, EMPLOYEE. VIEWER: 403. Files `.xlsx` / `.xls` (the mock information architecture may still mention `.csv`; the architecture follows feature F06 for Excel import).
-
-Parser library: **To Be Determined**.
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant Imp as Excel Import
-  participant Inc as Income Management
-  participant Exp as Expense Management
-  participant P as Persistence
-  participant DB as PostgreSQL
-  participant Aud as Audit Log
-
-  User->>React: Choose income/expense type + file
-  React->>API: Upload
-  API->>Id: importData
-  alt Forbidden
-    Id-->>React: 403
-  else Allowed
-    API->>Imp: Validate file
-    Imp->>Imp: Parse workbook
-    Imp->>Imp: Validate rows
-    Imp-->>React: Preview
-    User->>React: Confirm
-    React->>API: Confirm import
-    Imp->>P: INSERT import_batches PENDING
-    Imp->>P: status PROCESSING
-    alt Valid row
-      Imp->>Inc: Create income EXCEL_IMPORT
-      Imp->>Exp: Create expense EXCEL_IMPORT
-      Imp->>P: COMMIT batch COMPLETED
-      Imp->>Aud: IMPORT
-    else Error
-      Imp->>P: FAILED + error_details
-    end
-    Imp-->>React: Result + batch history
-  end
-```
-
-SQL constraint: `EXCEL_IMPORT` requires `import_batch_id`.
-
-## 6.6 Scenario — Dashboard / Report
-
-Dashboard: all roles. Reports: ADMIN, SHOP_OWNER, VIEWER. EMPLOYEE has `reportRead = false` → 403.
-
-Aggregates use records that are **not** soft-deleted. USD is stored; React (or an API query parameter) converts to EUR for display — EUR is **not** written to the database.
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant React as React.js
-  participant API as HTTP API
-  participant Id as Identity and Access
-  participant Rep as Dashboard and Reporting
-  participant P as Persistence
-  participant DB as PostgreSQL
-
-  User->>React: Open dashboard or report + USD/EUR + date range
-  React->>API: GET reports or dashboard
-  API->>Id: dashboard and/or reportRead
-  alt EMPLOYEE requests report
-    Id-->>React: 403
-  else Allowed
-    API->>Rep: Query
-    Rep->>P: vw_income_active / vw_expense_active / cashflow views
-    P->>DB: SELECT
-    Rep-->>React: JSON USD
-    React-->>User: Display; EUR = conversion
-  end
-```
-
-Report export uses the same `reportRead` permission and creates audit action `EXPORT`.
+| Tình huống | Kết quả mong đợi |
+|---|---|
+| Chưa đăng nhập | `401` và điều hướng login |
+| Không đủ quyền | `403`; không dựa vào việc nút đã ẩn |
+| Dữ liệu sai | `400/422` với lỗi theo field |
+| Record không tồn tại/đã xóa | `404` |
+| Database lỗi | Transaction rollback; trả error id, không lộ SQL |

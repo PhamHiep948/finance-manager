@@ -7,16 +7,16 @@ Only constraints grounded in the repository or architecture baseline (Sections 4
 | Constraint | Source | Type |
 | ---------- | ------ | ---- |
 | Web Frontend = **React.js** | Architecture baseline, ADR-001 | DECISION |
-| Backend = **Go**, Modular Monolith | Architecture baseline, ADR-002, ADR-003 | DECISION |
+| Backend = **.NET (C#)**, Modular Monolith | Architecture baseline, ADR-002, ADR-003 | DECISION |
 | API = **REST**, **HTTPS**, **JSON** | ADR-005 | DECISION |
 | Database = **PostgreSQL** | `database/shop_finance.sql`, docker-compose | FACT + DECISION |
 | Schema name `shop_finance`; local database name `handmade_finance` | SQL, `.env.example` | FACT |
-| Only Go Backend may issue SQL to PostgreSQL | Baseline, ADR-004 | DECISION |
+| Only .NET Backend may issue SQL to PostgreSQL | Baseline, ADR-004 | DECISION |
 | Persistence / Data Access is the only SQL layer | Building Block View | DECISION |
 | Local Postgres: image `postgres:16`, host port **5433**, timezone `Asia/Ho_Chi_Minh` | `docker-compose.yml` | FACT |
 | In V1, `currency_code` is only `USD` (table CHECK constraint) | SQL | FACT |
 
-Do not choose a Go HTTP framework, object-relational mapping, JSON Web Token approach, Redis, or cloud object storage unless a later Architecture Decision Record does so (currently **To Be Determined**).
+Do not choose an ASP.NET Core API style, object-relational mapping library, JSON Web Token approach, Redis, or cloud object storage unless a later Architecture Decision Record does so (currently **To Be Determined**).
 
 ## 2.2 Organizational Constraints
 

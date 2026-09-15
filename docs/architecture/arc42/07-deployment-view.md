@@ -1,63 +1,60 @@
 # 7. Deployment View
 
-Distinguish **local (FACT)** from **production (To Be Determined)**. Do not invent Amazon Web Services, Kubernetes, Nginx, or a Content Delivery Network.
-
-## 7.1 Local Development
-
-**FACT** from `docker-compose.yml` and `.env.example`:
-
-| Node | Details |
-| ---- | ------- |
-| PostgreSQL | `postgres:16`, container `handmade-finance-postgres`, database `handmade_finance`, user/password `postgres`, host port **5433** → 5432, timezone `Asia/Ho_Chi_Minh`, volume `handmade_postgres_data`, healthcheck `pg_isready` |
-| App connection string | `postgresql://postgres:postgres@localhost:5433/handmade_finance` |
-
-Go Backend and React **do not yet** have Compose services. Locally, the developer runs Frontend + Go on the workstation; Postgres runs in Docker.
+## 7.1 Hiện tại — mock local
 
 ```mermaid
 flowchart LR
-  Dev[Developer browser]
-  React[React.js local]
-  Go[Go Backend local]
-  PG[PostgreSQL Docker :5433]
-
-  Dev --> React
-  React -->|HTTPS or HTTP local REST JSON| Go
-  Go -->|DATABASE_URL| PG
+    subgraph machine["Máy phát triển"]
+        browser["Browser<br/><i>React runtime</i>"]
+        vite["Vite dev server<br/><i>static assets/HMR</i>"]
+        mock["JavaScript mock data<br/>Web Storage session"]
+        docker["Docker Compose"]
+        pg[("PostgreSQL<br/>port 5432")]
+        browser -->|"HTTP"| vite
+        browser --> mock
+        docker --> pg
+    end
+    mock -.->|"không kết nối"| pg
+    style browser fill:#1168bd,color:#fff
+    style vite fill:#3a7bd5,color:#fff
+    style mock fill:#3a7bd5,color:#fff
+    style pg fill:#999,color:#fff
+    style machine fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
 ```
 
-Local transport may use HTTP (without Transport Layer Security) — **To Be Determined** for the dev environment. Production requires HTTPS (architecture constraint).
+Frontend chạy bằng `npm run dev`; PostgreSQL có thể chạy độc lập bằng Docker Compose nhưng frontend không gọi database.
 
-## 7.2 Production Target (logical)
+## 7.2 Kiến trúc đích — topology logic
 
-No infrastructure ADR has been made yet. Logical model:
-
-```text
-Client Browser
-     ↓ HTTPS
-React.js Web Frontend
-     ↓ HTTPS / REST / JSON
-Go Backend
-     ↓ private SQL
-PostgreSQL
+```mermaid
+flowchart LR
+    device["Client device<br/><i>Browser</i>"]
+    web["Web hosting node<br/><i>React static assets</i>"]
+    api["Application node<br/><i>ASP.NET Core application</i>"]
+    db[("Database node<br/><i>PostgreSQL</i>")]
+    device -->|"HTTPS"| web
+    web -->|"HTTPS / REST / JSON"| api
+    api -->|"TLS / PostgreSQL protocol"| db
+    style device fill:#666,color:#fff
+    style web fill:#3a7bd5,color:#fff
+    style api fill:#1168bd,color:#fff
+    style db fill:#3a7bd5,color:#fff
 ```
 
-| Item | Status |
-| ---- | ------ |
-| Frontend hosting | To Be Determined |
-| Go hosting | To Be Determined |
-| PostgreSQL hosting | To Be Determined |
-| Transport Layer Security terminator | To Be Determined |
-| Backup / restore | To Be Determined |
-| Object/file storage for `storage_path` | To Be Determined |
+Đây là topology logic, không khẳng định cloud provider, container orchestrator, reverse proxy hay CDN.
 
-Do not deploy the Frontend with SQL-level permissions to the database.
+## 7.3 Mapping container → node
 
-## 7.3 Mapping Container → Node
+| Container | Local hiện tại | Production đích |
+|---|---|---|
+| React Web | Vite dev server + browser | Static web hosting, TBD |
+| .NET Backend | Chưa có | Một hoặc nhiều ASP.NET Core application instances, TBD |
+| PostgreSQL | Docker Compose | Managed/self-hosted PostgreSQL, TBD |
 
-| Container | Local | Production |
-| --------- | ----- | ---------- |
-| React.js Web Frontend | Process/dev server on developer machine | To Be Determined |
-| Go Backend | Process on developer machine | To Be Determined |
-| PostgreSQL | Docker Compose | To Be Determined |
+## 7.4 Deployment requirements
 
-Matches Section 5: three containers, with no additional gateway/message broker.
+- Chỉ public HTTPS endpoints cần thiết; PostgreSQL không public Internet.
+- Secret không commit vào Git; dùng environment/secret manager phù hợp.
+- Database migration chạy có kiểm soát trước phiên bản backend cần schema mới.
+- Health check cần tách liveness và readiness khi backend được triển khai.
+- Backup/restore, TLS termination, scaling và observability phải được quyết định trước production.

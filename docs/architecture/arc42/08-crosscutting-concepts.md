@@ -1,6 +1,6 @@
 # 8. Cross-cutting Concepts
 
-Do not prescribe a library (JSON Web Token, Gin, GORM, Zap, S3) unless the repository has already decided it — those items remain **To Be Determined**.
+Do not prescribe a library (JSON Web Token, Entity Framework Core, Dapper, Serilog, S3) unless the repository has already decided it — those items remain **To Be Determined**.
 
 ## 8.1 Authentication
 
