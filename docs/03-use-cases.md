@@ -82,16 +82,19 @@ flowchart LR
     validate["Validate Input"]:::shared
     audit["Write Audit Log"]:::shared
 
-    write["Add / Edit Income or Expense"] -->|"<<include>>"| auth
-    write -->|"<<include>>"| authorize
-    write -->|"<<include>>"| validate
-    employeeEdit["Employee Edits Transaction"] -->|"<<include>>"| own
+    write["Add / Edit Income or Expense"] --> auth
+    write --> authorize
+    write --> validate
+
+    employeeEdit["Employee Edits Transaction"] --> own
     employeeEdit --> write
-    deleteUc["Soft-delete Transaction"] -->|"<<include>>"| auth
-    deleteUc -->|"<<include>>"| authorize
-    deleteUc -->|"<<include>>"| audit
-    importUc["Import Excel"] -->|"<<include>>"| validate
-    importUc -->|"<<include>>"| audit
+
+    deleteUc["Soft-delete Transaction"] --> auth
+    deleteUc --> authorize
+    deleteUc --> audit
+
+    importUc["Import Excel"] --> validate
+    importUc --> audit
 
     classDef shared fill:#1168bd,color:#fff,stroke:#0b4884
     classDef rule fill:#e8f1fc,color:#123,stroke:#3a7bd5
