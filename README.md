@@ -203,6 +203,3 @@ The backend must enforce RBAC and the own-record policy; hiding frontend control
 - Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](database/shop_finance.sql).
 - Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Class diagrams](docs/architecture/uml/01-class-diagrams.md), [Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md).
-- API contract: OpenAPI 3.0/Swagger is **NOT IMPLEMENTED**; current endpoints are only a provisional contract.
-
-Demo accounts use password `123456`: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, and `viewer@demo.local`.
