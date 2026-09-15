@@ -1,20 +1,20 @@
 # HandmadeFinance
 
-Ứng dụng quản lý thu–chi cho cửa hàng đồ thủ công. Stack mục tiêu gồm **React.js**, **ASP.NET Core/C#** và **PostgreSQL**. Repository hiện có UI mock và thiết kế database/kiến trúc; backend cùng OpenAPI 3.0 chưa được triển khai.
+HandmadeFinance helps handmade shop owners manage income and expenses in one place, understand cash flow, and make better day-to-day financial decisions. It brings together transaction tracking, dashboards, reports, Excel imports, activity history, and role-based access for the whole team.
 
-## Giao diện
+## User Interface
 
-### Tổng quan
+### Overview
 
-![Tổng quan](docs/images/admin/01-dashboard.png)
+![Overview](docs/images/admin/01-dashboard.png)
 
-### Khoản thu
+### Income
 
-![Khoản thu](docs/images/admin/02-khoan-thu.png)
+![Income](docs/images/admin/02-khoan-thu.png)
 
-### Khoản chi
+### Expenses
 
-![Khoản chi](docs/images/admin/03-khoan-chi.png)
+![Expenses](docs/images/admin/03-khoan-chi.png)
 
 ## Mind map
 
@@ -23,66 +23,45 @@
 ## Use Case Diagram
 
 ```mermaid
-flowchart LR
-    admin(["🧍<br/>Administrator"])
-    owner(["🧍<br/>Shop Owner"])
-    employee(["🧍<br/>Employee"])
-    viewer(["🧍<br/>Viewer"])
-
-    subgraph system["HandmadeFinance · System Boundary"]
-        common["UC01 Login / UC02 Logout<br/>UC03 View Dashboard / UC17 Manage Profile<br/><i>[Shared use cases]</i>"]
-        read["UC04 View Income<br/>UC08 View Expenses"]
-        write["UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses"]
-        remove["UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses"]
-        importUc["UC12 Import Excel Data"]
-        reports["UC13 View Reports<br/>UC14 Export Reports"]
-        audit["UC15 View Audit Log"]
-        users["UC16 Manage Users"]
+flowchart TB
+    subgraph roles["Actors"]
+        direction LR
+        admin(["👤 Administrator"])
+        owner(["👤 Shop Owner"])
+        employee(["👤 Employee"])
+        viewer(["👤 Viewer"])
     end
 
-    admin --> common
-    admin --> read
-    admin --> write
-    admin --> remove
-    admin --> importUc
-    admin --> reports
-    admin --> audit
-    admin --> users
-    owner --> common
-    owner --> read
-    owner --> write
-    owner --> remove
-    owner --> importUc
-    owner --> reports
-    owner --> audit
-    employee --> common
-    employee --> read
-    employee -->|may edit own records only| write
-    employee --> importUc
-    viewer --> common
-    viewer --> read
-    viewer --> reports
+    subgraph system["HandmadeFinance — System Boundary"]
+        direction LR
+        adminCases["<b>Administrator</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log<br/>UC16 Manage Users"]
+        ownerCases["<b>Shop Owner</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log"]
+        employeeCases["<b>Employee</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Own Income<br/>UC09–10 Add/Edit Own Expenses<br/>UC12 Import Excel Data"]
+        viewerCases["<b>Viewer</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC13 View Reports · UC14 Export Reports"]
+    end
 
+    admin --> adminCases
+    owner --> ownerCases
+    employee --> employeeCases
+    viewer --> viewerCases
+
+    classDef actor fill:#666,color:#fff,stroke:#333
+    classDef primary fill:#1168bd,color:#fff,stroke:#0b4f9e
+    classDef standard fill:#3a7bd5,color:#fff,stroke:#245fa8
+    class admin,owner,employee,viewer actor
+    class adminCases,ownerCases primary
+    class employeeCases,viewerCases standard
+    style roles fill:#fff,stroke:#bbb,stroke-dasharray:5 5
     style system fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
-    style admin fill:#666,color:#fff
-    style owner fill:#666,color:#fff
-    style employee fill:#666,color:#fff
-    style viewer fill:#666,color:#fff
-    style common fill:#1168bd,color:#fff
-    style read fill:#3a7bd5,color:#fff
-    style write fill:#3a7bd5,color:#fff
-    style remove fill:#3a7bd5,color:#fff
-    style importUc fill:#3a7bd5,color:#fff
-    style reports fill:#3a7bd5,color:#fff
-    style audit fill:#3a7bd5,color:#fff
-    style users fill:#3a7bd5,color:#fff
 ```
 
-Chi tiết actor, quyền và luồng nghiệp vụ: [Actors, roles và use cases](docs/03-use-cases.md).
+
+
+For detailed actors, permissions, and business flows, see [Actors, roles, and use cases](docs/03-use-cases.md).
 
 ## C4 Architecture
 
-README chỉ trình bày C1–C3. C4 Level 4 và UML chi tiết được giữ trong thư mục tài liệu kiến trúc.
+This README presents only C1–C3. C4 Level 4 and detailed UML are maintained in the architecture documentation directory.
 
 ### C1 — System Context
 
@@ -104,6 +83,10 @@ flowchart LR
 
     style finance fill:#1168bd,color:#fff
 ```
+
+
+
+
 
 ### C2 — Container
 
@@ -138,6 +121,10 @@ flowchart TB
     style backend fill:#1168bd,color:#fff
     style database fill:#1168bd,color:#fff
 ```
+
+
+
+
 
 ### C3 — Component
 
@@ -188,38 +175,34 @@ flowchart TB
     style persistence fill:#1168bd,color:#fff
 ```
 
-Tài liệu đầy đủ: [C4 Architecture](docs/architecture/c4/README.md) và [arc42 Architecture Handbook](docs/architecture/arc42/README.md).
 
-## Phân quyền
 
-| Chức năng | Admin | Shop Owner | Employee | Viewer |
-|---|---:|---:|---:|---:|
-| Xem dashboard và thu/chi | Có | Có | Có | Có |
-| Tạo khoản thu/chi | Có | Có | Có | Không |
-| Sửa khoản thu/chi | Có | Có | Bản ghi của mình | Không |
-| Xóa mềm khoản thu/chi | Có | Có | Không | Không |
-| Import Excel | Có | Có | Có | Không |
-| Báo cáo | Có | Có | Không | Có |
-| Nhật ký hoạt động | Có | Có | Không | Không |
-| Quản lý người dùng | Có | Không | Không | Không |
+Complete documentation: [C4 Architecture](docs/architecture/c4/README.md) and [arc42 Architecture Handbook](docs/architecture/arc42/README.md).
 
-Backend phải kiểm tra RBAC và own-record policy; việc ẩn nút ở frontend chỉ phục vụ UI/UX.
+## Permissions
 
-## Tài liệu
+
+| Capability | Admin | Shop Owner | Employee | Viewer |
+| ------------------------ | ----- | ---------- | ---------------- | ------ |
+| View dashboard and transactions | Yes | Yes | Yes | Yes |
+| Create income/expenses | Yes | Yes | Yes | No |
+| Edit income/expenses | Yes | Yes | Own records only | No |
+| Soft-delete income/expenses | Yes | Yes | No | No |
+| Import Excel | Yes | Yes | Yes | No |
+| Reports | Yes | Yes | No | Yes |
+| Activity log | Yes | Yes | No | No |
+| User management | Yes | No | No | No |
+
+
+The backend must enforce RBAC and the own-record policy; hiding frontend controls serves UI/UX only.
+
+## Documentation
 
 - Requirements: [Scope](docs/01-scope.md), [Features](docs/02-features.md), [Acceptance criteria](docs/06-acceptance-criteria.md).
 - UI/UX: [Information architecture](docs/04-information-architecture.md).
 - Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](database/shop_finance.sql).
-- Folder structure: [React và backend three-tier](docs/07-folder-structure.md).
+- Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Class diagrams](docs/architecture/uml/01-class-diagrams.md), [Sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md).
-- API contract: OpenAPI 3.0/Swagger **chưa có**; các endpoint hiện tại chỉ là provisional contract.
+- API contract: OpenAPI 3.0/Swagger is **NOT IMPLEMENTED**; current endpoints are only a provisional contract.
 
-## Chạy UI mock
-
-```bash
-cd app
-npm install
-npm run dev
-```
-
-Tài khoản demo dùng mật khẩu `123456`: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, `viewer@demo.local`.
+Demo accounts use password `123456`: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, and `viewer@demo.local`.

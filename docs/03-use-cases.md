@@ -40,59 +40,36 @@ Menus / buttons are **not displayed** when the user lacks permission. Unauthoriz
 The diagram groups use cases by capability and connects each actor directly to the capabilities available to that role.
 
 ```mermaid
-flowchart LR
-    admin(["🧍<br/>Administrator"])
-    owner(["🧍<br/>Shop Owner"])
-    employee(["🧍<br/>Employee"])
-    viewer(["🧍<br/>Viewer"])
-
-    subgraph system["HandmadeFinance · System Boundary"]
-        common["UC01 Login / UC02 Logout<br/>UC03 View Dashboard / UC17 Manage Profile<br/><i>[Shared use cases]</i>"]
-        read["UC04 View Income<br/>UC08 View Expenses"]
-        write["UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses"]
-        remove["UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses"]
-        importUc["UC12 Import Excel Data"]
-        reports["UC13 View Reports<br/>UC14 Export Reports"]
-        audit["UC15 View Audit Log"]
-        users["UC16 Manage Users"]
+flowchart TB
+    subgraph roles["Actors"]
+        direction LR
+        admin(["👤 Administrator"])
+        owner(["👤 Shop Owner"])
+        employee(["👤 Employee"])
+        viewer(["👤 Viewer"])
     end
 
-    admin --> common
-    admin --> read
-    admin --> write
-    admin --> remove
-    admin --> importUc
-    admin --> reports
-    admin --> audit
-    admin --> users
-    owner --> common
-    owner --> read
-    owner --> write
-    owner --> remove
-    owner --> importUc
-    owner --> reports
-    owner --> audit
-    employee --> common
-    employee --> read
-    employee -->|may edit own records only| write
-    employee --> importUc
-    viewer --> common
-    viewer --> read
-    viewer --> reports
+    subgraph system["HandmadeFinance — System Boundary"]
+        direction LR
+        adminCases["<b>Administrator</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log<br/>UC16 Manage Users"]
+        ownerCases["<b>Shop Owner</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log"]
+        employeeCases["<b>Employee</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Own Income<br/>UC09–10 Add/Edit Own Expenses<br/>UC12 Import Excel Data"]
+        viewerCases["<b>Viewer</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC13 View Reports · UC14 Export Reports"]
+    end
 
+    admin --> adminCases
+    owner --> ownerCases
+    employee --> employeeCases
+    viewer --> viewerCases
+
+    classDef actor fill:#666,color:#fff,stroke:#333
+    classDef primary fill:#1168bd,color:#fff,stroke:#0b4f9e
+    classDef standard fill:#3a7bd5,color:#fff,stroke:#245fa8
+    class admin,owner,employee,viewer actor
+    class adminCases,ownerCases primary
+    class employeeCases,viewerCases standard
+    style roles fill:#fff,stroke:#bbb,stroke-dasharray:5 5
     style system fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
-    style admin fill:#666,color:#fff
-    style owner fill:#666,color:#fff
-    style employee fill:#666,color:#fff
-    style viewer fill:#666,color:#fff
-    style common fill:#1168bd,color:#fff
-    style read fill:#3a7bd5,color:#fff
-    style write fill:#3a7bd5,color:#fff
-    style remove fill:#3a7bd5,color:#fff
-    style importUc fill:#3a7bd5,color:#fff
-    style reports fill:#3a7bd5,color:#fff
-    style audit fill:#3a7bd5,color:#fff
-    style users fill:#3a7bd5,color:#fff
 ```
 
 ### Include relationships and constraints

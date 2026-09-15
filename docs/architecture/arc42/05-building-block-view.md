@@ -1,38 +1,38 @@
 # 5. Building Block View
 
-Phần này đồng bộ với C4: Level 1 là toàn hệ thống, Level 2 là Container, Level 3 zoom vào .NET Backend.
+This section is aligned with C4: Level 1 represents the whole system, Level 2 shows Containers, and Level 3 zooms into the .NET Backend.
 
 ## 5.1 Level 1 — HandmadeFinance
 
-HandmadeFinance là một software system phục vụ bốn vai trò: Admin, Chủ shop, Nhân viên và Người xem. Chi tiết: [C1 System Context](../c4/01-system-context.md).
+HandmadeFinance is a software system serving four roles: Administrator, Shop Owner, Employee, and Viewer. See [C1 System Context](../c4/01-system-context.md).
 
 ## 5.2 Level 2 — Containers
 
 ```mermaid
 flowchart TB
-    operator(["👤 Admin / Chủ shop / Nhân viên"])
-    reader(["👤 Người xem"])
+    operator(["👤 Administrator / Shop Owner / Employee"])
+    reader(["👤 Viewer"])
 
     subgraph platform["HandmadeFinance [Software System Boundary]"]
         direction TB
         subgraph presentation["Presentation"]
-            web["Web Frontend<br/><i>[Container: React.js + Vite]</i><br/>Giao diện, routing, form, bảng và biểu đồ"]
+            web["Web Frontend<br/><i>[Container: React.js + Vite]</i><br/>UI, routing, forms, tables, and charts"]
         end
         subgraph application["Application"]
-            backend[".NET Backend<br/><i>[Container: ASP.NET Core Web API]</i><br/>Xác thực, RBAC, nghiệp vụ,<br/>import, báo cáo và audit"]
+            backend[".NET Backend<br/><i>[Container: ASP.NET Core Web API]</i><br/>Authentication, RBAC, business rules,<br/>imports, reporting, and auditing"]
         end
         subgraph data["Data"]
-            database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments và audit logs")]
+            database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments, and audit logs")]
         end
     end
 
-    workbook[("Excel Workbook<br/><i>[External Data]</i><br/>Tệp .xlsx / .xls do người dùng cung cấp")]
+    workbook[("Excel Workbook<br/><i>[External Data]</i><br/>User-provided .xlsx / .xls file")]
 
     operator --> web
     reader --> web
     web -- "REST / HTTPS / JSON" --> backend
     web -- "upload file import" --> backend
-    workbook -.->|"được chọn từ thiết bị"| web
+    workbook -.->|"selected from the user's device"| web
     backend -- "SQL / PostgreSQL protocol" --> database
 
     style web fill:#1168bd,color:#fff
@@ -40,11 +40,11 @@ flowchart TB
     style database fill:#1168bd,color:#fff
 ```
 
-| Container | Public surface | Dữ liệu sở hữu |
+| Container | Public surface | Owned data |
 |---|---|---|
-| Web Frontend | Hash routes, forms, tables, charts | Client/session state tạm thời |
-| .NET Backend | REST/JSON endpoints | Business rules và transaction orchestration |
-| PostgreSQL | Chỉ backend được truy cập | Users, categories, incomes, expenses, imports, attachments, audits |
+| Web Frontend | Hash routes, forms, tables, charts | Temporary client/session state |
+| .NET Backend | REST/JSON endpoints | Business rules and transaction orchestration |
+| PostgreSQL | Backend access only | Users, categories, incomes, expenses, imports, attachments, audits |
 
 ## 5.3 Level 3 — .NET Backend Components
 
@@ -52,14 +52,14 @@ flowchart TB
 flowchart TB
     subgraph rt[".NET Backend [Container]"]
         direction TB
-        api["HTTP API<br/><i>[Component: ASP.NET Core]</i><br/>REST endpoints, request validation,<br/>response và error mapping"]
-        identity["Identity & Access<br/><i>[Component]</i><br/>Đăng nhập, session/token, RBAC,<br/>own-record policy"]
-        user["User & Profile<br/><i>[Component]</i><br/>Tài khoản, vai trò, trạng thái và hồ sơ"]
-        ledger["Income & Expense<br/><i>[Component]</i><br/>CRUD, danh mục, thuế, trạng thái<br/>và soft delete"]
-        importer["Excel Import<br/><i>[Component]</i><br/>Kiểm tra file, preview,<br/>batch import và kết quả từng dòng"]
-        reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPI, xu hướng, phân nhóm<br/>và dữ liệu export"]
-        audit["Audit Log<br/><i>[Component]</i><br/>Ghi nhận hành động nghiệp vụ<br/>để truy vết"]
-        persistence["Persistence<br/><i>[Component]</i><br/>Repository, transaction boundary<br/>và SQL mapping"]
+        api["HTTP API<br/><i>[Component: ASP.NET Core]</i><br/>REST endpoints, request validation,<br/>response and error mapping"]
+        identity["Identity & Access<br/><i>[Component]</i><br/>Login, session/token, RBAC,<br/>and own-record policy"]
+        user["User & Profile<br/><i>[Component]</i><br/>Accounts, roles, status, and profiles"]
+        ledger["Income & Expense<br/><i>[Component]</i><br/>CRUD, categories, tax, status,<br/>and soft deletion"]
+        importer["Excel Import<br/><i>[Component]</i><br/>File validation, preview,<br/>batch import, and row-level results"]
+        reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPIs, trends, breakdowns,<br/>and export data"]
+        audit["Audit Log<br/><i>[Component]</i><br/>Records business actions<br/>for traceability"]
+        persistence["Persistence<br/><i>[Component]</i><br/>Repositories, transaction boundaries,<br/>and SQL mapping"]
     end
 
     web["Web Frontend<br/><i>[Container: React.js]</i>"]
@@ -67,7 +67,7 @@ flowchart TB
     file[("Excel Workbook<br/><i>[External Data]</i>")]
 
     web --> api
-    file -.->|"upload qua Web Frontend"| api
+    file -.->|"uploaded through the Web Frontend"| api
     api --> identity
     api --> user
     api --> ledger
@@ -95,38 +95,38 @@ flowchart TB
     style persistence fill:#1168bd,color:#fff
 ```
 
-| Component | Chức năng | API gọi đến |
+| Component | Responsibility | API usage |
 |---|---|---|
-| HTTP API | Parse/validate request, map response/error | Tất cả use case endpoint |
-| Identity & Access | Login, credential/session, RBAC, own-record policy | Login và mọi endpoint bảo vệ |
-| User & Profile | User lifecycle và profile | Users, profile |
+| HTTP API | Parse/validate requests and map responses/errors | All use-case endpoints |
+| Identity & Access | Login, credentials/session, RBAC, own-record policy | Login and every protected endpoint |
+| User & Profile | User lifecycle and profile | Users, profile |
 | Income & Expense | CRUD, category, tax, status, soft delete | Incomes, expenses |
 | Excel Import | Validate/preview/process batch | Import |
 | Dashboard & Reporting | KPI, time series, category aggregate, export model | Dashboard, reports |
-| Audit Log | Append hành động cần truy vết | Audit query; nhận event nội bộ |
-| Persistence | Repository, transaction và SQL mapping | Được các component khác dùng nội bộ |
+| Audit Log | Append traceable actions | Audit queries; receives internal events |
+| Persistence | Repositories, transactions, and SQL mapping | Used internally by other components |
 
-## 5.4 Mapping giao diện → component
+## 5.4 UI-to-Component Mapping
 
-| UI | Component chính |
+| UI | Primary component |
 |---|---|
-| Login và route permission | Identity & Access |
-| Quản lý người dùng, hồ sơ | User & Profile |
-| Quản lý thu và chi | Income & Expense |
+| Login and route permissions | Identity & Access |
+| User and profile management | User & Profile |
+| Income and expense management | Income & Expense |
 | Import Excel | Excel Import + Income & Expense |
-| Dashboard, báo cáo | Dashboard & Reporting |
-| Nhật ký | Audit Log |
+| Dashboard and reports | Dashboard & Reporting |
+| Activity log | Audit Log |
 
-## 5.5 Quy tắc dependency
+## 5.5 Dependency Rules
 
-1. HTTP API chỉ điều phối, không viết SQL.
-2. Import không bỏ qua validation của Income & Expense.
-3. Audit được ghi trong cùng transaction nghiệp vụ khi cần tính nhất quán.
-4. Reporting không thay đổi giao dịch.
-5. Chỉ Persistence giao tiếp PostgreSQL.
+1. The HTTP API orchestrates only and writes no SQL.
+2. Import does not bypass Income & Expense validation.
+3. Audit records are written in the same business transaction when consistency is required.
+4. Reporting does not modify transactions.
+5. Only Persistence communicates with PostgreSQL.
 
-Sơ đồ C3 đầy đủ: [C3 — Component](../c4/03-component.md).
+Complete C3 diagram: [C3 — Component](../c4/03-component.md).
 
-## 5.6 Level 4 — Hai feature chính
+## 5.6 Level 4 — Two Core Features
 
-Code-level target cho `Income Management` và `Expense Management` được mô tả bằng ASP.NET Core Controller, Service, Policy, Validator, Domain Entity và Repository tại [C4 Level 4](../c4/04-code.md). Đây là thiết kế đích; chưa có C# source để đối chiếu implementation.
+The code-level target for `Income Management` and `Expense Management` is described with ASP.NET Core Controllers, Services, Policies, Validators, Domain Entities, and Repositories in [C4 Level 4](../c4/04-code.md). This is a target design; no C# source exists yet for implementation comparison.

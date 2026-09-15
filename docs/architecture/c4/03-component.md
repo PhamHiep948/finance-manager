@@ -1,6 +1,6 @@
 # C3 — Component — .NET Backend
 
-> **Trạng thái:** kiến trúc đích. Các component dưới đây chưa có mã C#/.NET trong repository.
+> **Status:** target architecture. The components below do not yet have C#/.NET source code in the repository.
 
 ```mermaid
 flowchart TB
@@ -51,23 +51,23 @@ flowchart TB
 
 ## Component catalog
 
-| Component | Sở hữu trách nhiệm | Không chịu trách nhiệm |
+| Component | Owns | Does not own |
 |---|---|---|
-| HTTP API | Transport, validation, error contract | SQL và quyết định nghiệp vụ |
-| Identity & Access | Authentication, RBAC, own-record rule | Ẩn/hiện giao diện |
-| User & Profile | Vòng đời tài khoản và hồ sơ | Giao dịch tài chính |
-| Income & Expense | Quy tắc thu/chi, thuế, trạng thái, soft delete | Render báo cáo |
-| Excel Import | Parse/validate batch và điều phối nhập | Ghi bảng giao dịch bỏ qua domain |
-| Dashboard & Reporting | Query tổng hợp, KPI, export | Thay đổi giao dịch |
-| Audit Log | Nhật ký hành động nghiệp vụ | Dữ liệu vận hành chính |
-| Persistence | Repository, SQL, transaction | HTTP và UI authorization |
+| HTTP API | Transport, validation, error contract | SQL and business decisions |
+| Identity & Access | Authentication, RBAC, own-record rule | UI visibility |
+| User & Profile | Account lifecycle and profiles | Financial transactions |
+| Income & Expense | Income/expense, tax, status, and soft-delete rules | Report rendering |
+| Excel Import | Batch parsing, validation, and import orchestration | Bypassing the domain to write transaction tables |
+| Dashboard & Reporting | Aggregate queries, KPIs, and export | Modifying transactions |
+| Audit Log | Business-action history | Primary operational data |
+| Persistence | Repositories, SQL, and transactions | HTTP and UI authorization |
 
-## Luồng phụ thuộc
+## Dependency Flow
 
 `HTTP API → Identity & Access → domain component → Persistence → PostgreSQL`.
 
-Import gọi Income & Expense để dùng chung validation. Reporting chỉ đọc qua Persistence. Không component nghiệp vụ nào mở kết nối PostgreSQL riêng.
+Import calls Income & Expense to reuse validation. Reporting reads only through Persistence. No business component opens its own PostgreSQL connection.
 
-**Trước:** [C2 — Container](02-container.md) · **Tiếp theo:** [C4 — Code cho khoản thu và khoản chi](04-code.md) · **Liên quan:** [arc42 Building Block View](../arc42/05-building-block-view.md).
+**Previous:** [C2 — Container](02-container.md) · **Next:** [C4 — Code for Income and Expense](04-code.md) · **Related:** [arc42 Building Block View](../arc42/05-building-block-view.md).
 
-**Nguồn sự thật:** `docs/02-features.md`, `docs/03-use-cases.md`, `database/shop_finance.sql`, `app/src/lib/store.jsx`.
+**Sources of truth:** `docs/02-features.md`, `docs/03-use-cases.md`, `database/shop_finance.sql`, `app/src/lib/store.jsx`.

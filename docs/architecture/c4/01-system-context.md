@@ -1,6 +1,6 @@
 # C1 — System Context
 
-> **Mục tiêu:** ai sử dụng HandmadeFinance và hệ thống chịu trách nhiệm gì, chưa đi vào công nghệ.
+> **Purpose:** show who uses HandmadeFinance and what the system is responsible for, without implementation technology.
 
 ```mermaid
 flowchart LR
@@ -21,21 +21,21 @@ flowchart LR
     style finance fill:#1168bd,color:#fff
 ```
 
-## Ranh giới hệ thống
+## System Boundary
 
-HandmadeFinance chịu trách nhiệm đăng nhập, phân quyền, dashboard, khoản thu, khoản chi, báo cáo, import Excel, audit log, quản lý người dùng và hồ sơ cá nhân.
+HandmadeFinance is responsible for login, authorization, dashboards, income, expenses, reports, Excel import, audit logs, user management, and personal profiles.
 
-Ngoài phạm vi V1: tồn kho/SKU, CRM, kế toán kép, hóa đơn điện tử, thanh toán trực tuyến, Etsy API và ERP. Vì chưa có tích hợp thật với hệ thống bên ngoài nên C1 không vẽ marketplace hoặc payment gateway.
+Outside V1 scope: inventory/SKU, CRM, double-entry accounting, electronic invoicing, online payments, the Etsy API, and ERP. Because no real external-system integration exists, C1 does not show a marketplace or payment gateway.
 
-## Người dùng và quyền chính
+## Users and Primary Permissions
 
-| Person | Quyền chính |
+| Person | Primary permissions |
 |---|---|
-| Quản trị viên | Toàn quyền, bao gồm quản lý người dùng |
-| Chủ shop | Quản lý thu chi, import, báo cáo và audit log |
-| Nhân viên | Tạo thu chi, chỉ sửa bản ghi do mình tạo, được import |
-| Người xem | Chỉ xem dashboard, thu chi, báo cáo và hồ sơ |
+| Administrator | Full access, including user management |
+| Shop Owner | Manages finances, imports, reports, and audit logs |
+| Employee | Creates transactions, edits own records only, and imports data |
+| Viewer | Read-only access to dashboards, transactions, reports, and profile |
 
-**Tiếp theo:** zoom vào Software System → [C2 — Container](02-container.md).
+**Next:** zoom into the Software System → [C2 — Container](02-container.md).
 
-**Nguồn sự thật:** `app/src/lib/auth.js`, `docs/01-scope.md`, `docs/03-use-cases.md`.
+**Sources of truth:** `app/src/lib/auth.js`, `docs/01-scope.md`, `docs/03-use-cases.md`.

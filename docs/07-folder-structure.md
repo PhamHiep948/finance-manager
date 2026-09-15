@@ -1,35 +1,35 @@
-# Cấu trúc thư mục mục tiêu — React và ASP.NET Core
+# Target Folder Structure — React and ASP.NET Core
 
-> **Phạm vi:** Bước 5 · **Trạng thái:** Thiết kế, chưa phải mã nguồn đã triển khai  
-> **Module chi tiết:** Xác thực (Authentication), khoản thu (Income), khoản chi (Expense)
+> **Scope:** Step 5 · **Status:** Design only; not implemented source code  
+> **Detailed modules:** Authentication, Income, and Expense
 
-Tài liệu này xác định nơi đặt mã nguồn và hướng phụ thuộc trước khi viết API. Cấu trúc hiện tại trong `app/` là giao diện mock chạy bằng dữ liệu JavaScript; backend `.NET` chưa tồn tại.
+This document defines source-code locations and dependency directions before the API is implemented. The current `app/` directory is a mock interface backed by JavaScript data; the `.NET` backend does not exist yet.
 
-## 1. Nguyên tắc chung
+## 1. General Principles
 
-1. Giao diện không chứa quy tắc phân quyền hoặc quy tắc tài chính có tính quyết định.
-2. Controller không chứa SQL hoặc nghiệp vụ.
-3. Service phụ thuộc repository interface, không phụ thuộc trực tiếp PostgreSQL.
-4. Infrastructure triển khai các interface do Application định nghĩa.
-5. Tên resource, DTO và endpoint phải được đồng bộ với OpenAPI khi bước 4 hoàn tất.
+1. The UI does not contain authoritative authorization or financial rules.
+2. Controllers contain neither SQL nor business logic.
+3. Services depend on repository interfaces, not directly on PostgreSQL.
+4. Infrastructure implements interfaces defined by Application.
+5. Resource, DTO, and endpoint names must be synchronized with OpenAPI after Step 4 is complete.
 
 ## 2. Frontend React
 
-### 2.1 Cấu trúc hiện tại
+### 2.1 Current Structure
 
 ```text
 app/src/
-├── components/       # Shell và Login
-├── lib/              # mock data, store, auth, format, icon, theme
-├── pages/            # màn hình và form
+├── components/       # Shell and Login
+├── lib/              # mock data, store, auth, formatting, icons, theme
+├── pages/            # screens and forms
 ├── App.jsx
 ├── index.css
 └── main.jsx
 ```
 
-`lib/store.jsx` hiện vừa giữ trạng thái (state), vừa thực hiện nghiệp vụ mock. Đây là nguồn dữ liệu tạm thời, không phải lớp gọi API.
+`lib/store.jsx` currently holds state and performs mock business operations. It is a temporary data source, not an API access layer.
 
-### 2.2 Cấu trúc mục tiêu
+### 2.2 Target Structure
 
 ```text
 app/src/
@@ -38,11 +38,11 @@ app/src/
 │   ├── routes.jsx
 │   └── providers.jsx
 ├── assets/
-├── components/                    # shared UI components (UI dùng chung)
+├── components/                    # shared UI components
 │   ├── layout/
 │   ├── feedback/
 │   └── data-display/
-├── features/                      # feature modules (module theo nghiệp vụ)
+├── features/                      # business feature modules
 │   ├── auth/
 │   │   ├── components/LoginForm.jsx
 │   │   ├── hooks/useAuth.js
@@ -63,12 +63,12 @@ app/src/
 │       ├── services/expenseService.js
 │       ├── expense.contracts.js
 │       └── expense.validation.js
-├── pages/                         # route-level pages không thuộc một feature
+├── pages/                         # route-level pages outside a specific feature
 ├── services/
 │   ├── apiClient.js               # HTTP client, token, error mapping
 │   └── endpoints.js
-├── hooks/                         # shared hooks (hook dùng chung)
-├── lib/                           # hàm thuần: money, date, format
+├── hooks/                         # shared hooks
+├── lib/                           # pure functions: money, date, formatting
 ├── styles/
 ├── test/
 │   ├── setup.js
@@ -76,28 +76,28 @@ app/src/
 └── main.jsx
 ```
 
-### 2.3 Trách nhiệm frontend
+### 2.3 Frontend Responsibilities
 
-| Thư mục | Thuật ngữ tiếng Anh | Trách nhiệm |
+| Directory | Term | Responsibility |
 |---|---|---|
-| `components/` | Shared components | UI dùng lại, không gọi API trực tiếp |
-| `features/` | Feature modules | Gom UI, hook, service và contract theo nghiệp vụ |
-| `services/` | Infrastructure services | Cấu hình HTTP, token và chuẩn hóa lỗi |
-| `*.contracts.js` | Data contracts | JSDoc/schema mô tả request-response theo OpenAPI |
-| `hooks/` | Custom hooks | Điều phối trạng thái tải, lỗi và cache phía client |
-| `lib/` | Utilities | Hàm thuần, không chứa state hoặc HTTP |
+| `components/` | Shared components | Reusable UI that does not call APIs directly |
+| `features/` | Feature modules | Groups UI, hooks, services, and contracts by business feature |
+| `services/` | Infrastructure services | HTTP and token configuration plus normalized errors |
+| `*.contracts.js` | Data contracts | JSDoc/schema descriptions of OpenAPI requests and responses |
+| `hooks/` | Custom hooks | Coordinates client loading, error, and cache state |
+| `lib/` | Utilities | Pure functions with no state or HTTP access |
 
-Luồng frontend mục tiêu:
+Target frontend flow:
 
 ```text
 Page/Component → Feature Hook → Feature Service → apiClient → ASP.NET Core API
 ```
 
-Không chuyển thư mục thật trong bước 5. Việc di chuyển chỉ thực hiện khi bắt đầu tích hợp API để tránh làm hỏng giao diện mock.
+No physical directories are moved in Step 5. Migration begins with API integration to avoid breaking the mock UI.
 
-## 3. Backend ASP.NET Core ba tầng
+## 3. Three-Tier ASP.NET Core Backend
 
-### 3.1 Solution mục tiêu
+### 3.1 Target Solution
 
 ```text
 backend/
@@ -169,25 +169,25 @@ backend/
 │       │   └── AuditLogRepository.cs
 │       └── DependencyInjection.cs
 └── tests/
-    ├── HandmadeFinance.Application.Tests/   # unit tests (kiểm thử đơn vị)
+    ├── HandmadeFinance.Application.Tests/   # unit tests
     │   ├── Authentication/
     │   ├── Incomes/
     │   └── Expenses/
-    └── HandmadeFinance.Api.Tests/           # integration tests (kiểm thử tích hợp)
+    └── HandmadeFinance.Api.Tests/           # integration tests
         ├── Authentication/
         ├── Incomes/
         └── Expenses/
 ```
 
-### 3.2 Trách nhiệm ba tầng
+### 3.2 Three-Tier Responsibilities
 
-| Tầng | Tiếng Anh | Được làm | Không được làm |
+| Layer | Term | Allowed | Not allowed |
 |---|---|---|---|
-| `Api` | Presentation layer | HTTP, model binding, authentication middleware, DTO mapping, status code | SQL, tính thuế, quyết định quyền sở hữu |
+| `Api` | Presentation layer | HTTP, model binding, authentication middleware, DTO mapping, status codes | SQL, tax calculation, ownership decisions |
 | `Application` | Application/Business layer | Use case, validation, RBAC, own-record policy, entity, repository interface | ASP.NET HTTP objects, PostgreSQL driver |
-| `Infrastructure` | Infrastructure/Data layer | EF Core/SQL, PostgreSQL mapping, password hash, token implementation, transaction | Quyết định nghiệp vụ hoặc HTTP response |
+| `Infrastructure` | Infrastructure/Data layer | EF Core/SQL, PostgreSQL mapping, password hashing, token implementation, transactions | Business decisions or HTTP responses |
 
-### 3.3 Hướng phụ thuộc
+### 3.3 Dependency Direction
 
 ```mermaid
 flowchart LR
@@ -198,30 +198,30 @@ flowchart LR
     Infrastructure --> PostgreSQL[(PostgreSQL)]
 ```
 
-- `Application` không tham chiếu `Api` hoặc `Infrastructure`.
-- `Infrastructure` triển khai `IUserRepository`, `IIncomeRepository`, `IExpenseRepository`, `IAuditLogRepository`.
-- `Api/Program.cs` là composition root (điểm lắp ghép phụ thuộc), đăng ký implementation bằng dependency injection (tiêm phụ thuộc).
+- `Application` does not reference `Api` or `Infrastructure`.
+- `Infrastructure` implements `IUserRepository`, `IIncomeRepository`, `IExpenseRepository`, and `IAuditLogRepository`.
+- `Api/Program.cs` is the composition root and registers implementations through dependency injection.
 
-## 4. Mapping từ C3 sang thư mục
+## 4. C3-to-Folder Mapping
 
-| C3 component | Vị trí chính |
+| C3 component | Primary location |
 |---|---|
 | HTTP API | `HandmadeFinance.Api/Controllers`, `Contracts`, `Middleware` |
 | Identity & Access | `Application/Authentication`, `Api/Authorization`, `Infrastructure/Authentication` |
 | Income & Expense | `Application/Incomes`, `Application/Expenses` |
-| Audit Log | App ghi `LOGIN` qua `IAuditLogRepository`; PostgreSQL trigger ghi DML của Income/Expense |
+| Audit Log | The application writes `LOGIN` through `IAuditLogRepository`; PostgreSQL triggers record Income/Expense DML |
 | Persistence | `Infrastructure/Persistence`, `Infrastructure/Repositories` |
 
-## 5. Quy ước tên
+## 5. Naming Conventions
 
-- Controller dùng danh từ số nhiều: `IncomesController`, `ExpensesController`.
-- Entity dùng số ít: `Income`, `Expense`.
-- Request/response DTO dùng hậu tố rõ ràng: `CreateIncomeRequest`, `IncomeResponse`.
-- Repository interface bắt đầu bằng `I`: `IIncomeRepository`.
-- Income/Expense Service không chèn trực tiếp audit DML; `IUnitOfWork` đặt `app.current_user_id`, còn PostgreSQL trigger ghi `INSERT/UPDATE/DELETE` trong cùng transaction.
-- Endpoint dự kiến có version: `/api/v1/...`; đây là provisional contract (hợp đồng tạm thời) cho tới khi có OpenAPI 3.0.
-- Cột SQL dùng `snake_case`; C# dùng `PascalCase`; JSON dùng `camelCase`.
+- Controllers use plural nouns: `IncomesController`, `ExpensesController`.
+- Entities use singular nouns: `Income`, `Expense`.
+- Request/response DTOs use explicit suffixes: `CreateIncomeRequest`, `IncomeResponse`.
+- Repository interfaces start with `I`: `IIncomeRepository`.
+- Income/Expense services do not insert DML audit records directly; `IUnitOfWork` sets `app.current_user_id`, and PostgreSQL triggers record `INSERT/UPDATE/DELETE` within the same transaction.
+- Expected endpoints are versioned as `/api/v1/...`; this remains a provisional contract until OpenAPI 3.0 exists.
+- SQL columns use `snake_case`; C# uses `PascalCase`; JSON uses `camelCase`.
 
-## 6. Phạm vi triển khai sau này
+## 6. Future Implementation Scope
 
-Bước 5 chỉ chốt cấu trúc. Chưa tạo solution `.NET`, chưa di chuyển frontend và chưa viết API. Bước 7 sẽ tạo mã nguồn theo cấu trúc này sau khi OpenAPI và sơ đồ chi tiết đã được duyệt.
+Step 5 defines structure only. The `.NET` solution, frontend migration, and API have not been implemented. Step 7 will create source code according to this structure after OpenAPI and the detailed diagrams are approved.

@@ -1,15 +1,15 @@
-# Sơ đồ tuần tự — Auth, Income và Expense
+# Sequence Diagrams — Authentication, Income, and Expense
 
-> **Phạm vi:** Bước 6 · **Trạng thái:** Thiết kế, chưa có API chạy thật  
-> Các endpoint `/api/v1/...` là provisional contract (hợp đồng tạm thời) cho tới khi bước 4 OpenAPI 3.0 được duyệt.
+> **Scope:** Step 6 · **Status:** Design only; no working API  
+> The `/api/v1/...` endpoints are a provisional contract until the Step 4 OpenAPI 3.0 specification is approved.
 
-Sơ đồ tuần tự (sequence diagram) mô tả thứ tự gọi giữa React, tầng Presentation, tầng Application và tầng Data. Mọi nhánh phân quyền đều được kiểm tra ở backend; việc frontend ẩn nút chỉ là UX.
+The sequence diagrams describe calls between React, Presentation, Application, and Data. Every authorization path is checked by the backend; hiding frontend controls is UX only.
 
-## 1. Đăng nhập — `POST /api/v1/auth/login`
+## 1. Login — `POST /api/v1/auth/login`
 
 ```mermaid
 sequenceDiagram
-    actor User as Người dùng
+    actor User as User
     participant Web as ReactAuthService
     participant Api as AuthController
     participant Service as AuthService
@@ -20,25 +20,25 @@ sequenceDiagram
     participant Uow as IUnitOfWork
     participant Db as PostgreSQL
 
-    User->>Web: Nhập email và mật khẩu
+    User->>Web: Enter email and password
     Web->>Api: POST /api/v1/auth/login
     Api->>Service: LoginAsync(email, password)
     Service->>Users: FindActiveByEmailAsync(email)
     Users->>Db: SELECT app_users WHERE active AND not deleted
-    Db-->>Users: User hoặc null
-    Users-->>Service: AppUser hoặc null
+    Db-->>Users: User or null
+    Users-->>Service: AppUser or null
 
-    alt Tài khoản không tồn tại hoặc không hoạt động
+    alt Account missing or inactive
         Service-->>Api: InvalidCredentials
         Api-->>Web: 401 Unauthorized
-        Web-->>User: Thông tin đăng nhập không đúng
-    else Tài khoản tồn tại
+        Web-->>User: Invalid credentials
+    else Account exists
         Service->>Hash: Verify(password, passwordHash)
-        alt Mật khẩu sai
+        alt Incorrect password
             Hash-->>Service: false
             Service-->>Api: InvalidCredentials
             Api-->>Web: 401 Unauthorized
-        else Mật khẩu đúng
+        else Correct password
             Hash-->>Service: true
             Service->>Token: Issue(user)
             Token-->>Service: AccessToken + ExpiresAt
@@ -52,14 +52,14 @@ sequenceDiagram
             Uow->>Db: COMMIT
             Service-->>Api: AuthResult
             Api-->>Web: 200 LoginResponse
-            Web-->>User: Điều hướng Dashboard
+            Web-->>User: Navigate to Dashboard
         end
     end
 ```
 
-API dùng cùng thông báo `401` cho email không tồn tại và mật khẩu sai để hạn chế account enumeration (dò tài khoản).
+The API returns the same `401` response for an unknown email and an incorrect password to reduce account-enumeration risk.
 
-## 2. Tạo khoản thu — `POST /api/v1/incomes`
+## 2. Create Income — `POST /api/v1/incomes`
 
 ```mermaid
 sequenceDiagram
@@ -73,25 +73,25 @@ sequenceDiagram
     participant Uow as IUnitOfWork
     participant Db as PostgreSQL
 
-    User->>Web: Gửi form khoản thu
+    User->>Web: Submit income form
     Web->>Api: POST /api/v1/incomes + Bearer token
 
-    alt Token thiếu hoặc không hợp lệ
+    alt Missing or invalid token
         Api-->>Web: 401 Unauthorized
-    else Actor đã xác thực
+    else Authenticated actor
         Api->>Service: CreateAsync(draft, actor)
         Service->>Policy: EnsureCanCreate(actor)
-        alt Viewer không có quyền tạo
+        alt Viewer cannot create
             Policy-->>Service: Forbidden
             Service-->>Api: Forbidden
             Api-->>Web: 403 Forbidden
-        else Có quyền tạo
+        else Authorized to create
             Service->>Validator: Validate(draft)
-            alt Dữ liệu không hợp lệ
+            alt Invalid data
                 Validator-->>Service: Field errors
                 Service-->>Api: ValidationFailure
                 Api-->>Web: 400 ProblemDetails + field errors
-            else Dữ liệu hợp lệ
+            else Valid data
                 Service->>Uow: ExecuteAsync(actor.userId)
                 Uow->>Db: BEGIN
                 Uow->>Db: SET LOCAL app.current_user_id
@@ -101,19 +101,19 @@ sequenceDiagram
                 Uow->>Db: COMMIT
                 Service-->>Api: Income
                 Api-->>Web: 201 Created + IncomeResponse
-                Web-->>User: Hiện bản ghi mới
+                Web-->>User: Display new record
             end
         end
     end
 ```
 
-Nếu insert khoản thu hoặc audit trigger thất bại, `IUnitOfWork` rollback (hoàn tác) toàn bộ transaction. Service không chèn audit DML lần thứ hai.
+If the income insert or audit trigger fails, `IUnitOfWork` rolls back the entire transaction. The Service does not insert a second DML audit record.
 
-## 3. Nhân viên sửa khoản thu — `PUT /api/v1/incomes/{id}`
+## 3. Employee Updates Income — `PUT /api/v1/incomes/{id}`
 
 ```mermaid
 sequenceDiagram
-    actor Employee as Nhân viên
+    actor Employee as Employee
     participant Web as IncomeServiceJS
     participant Api as IncomesController
     participant Service as IncomeService
@@ -123,30 +123,30 @@ sequenceDiagram
     participant Uow as IUnitOfWork
     participant Db as PostgreSQL
 
-    Employee->>Web: Gửi form chỉnh sửa
+    Employee->>Web: Submit edit form
     Web->>Api: PUT /api/v1/incomes/{id}
     Api->>Service: UpdateAsync(id, draft, actor)
     Service->>Repo: FindActiveAsync(id)
     Repo->>Db: SELECT WHERE id AND deleted_at IS NULL
 
-    alt Không tìm thấy hoặc đã xóa
+    alt Missing or already deleted
         Repo-->>Service: null
         Service-->>Api: NotFound
         Api-->>Web: 404 Not Found
-    else Tìm thấy bản ghi
+    else Record found
         Repo-->>Service: Income
         Service->>Policy: EnsureCanUpdate(actor, income)
-        alt created_by khác actor.userId
+        alt created_by differs from actor.userId
             Policy-->>Service: Forbidden
             Service-->>Api: Forbidden
             Api-->>Web: 403 Forbidden
-        else Nhân viên sở hữu bản ghi
+        else Employee owns the record
             Service->>Validator: Validate(draft)
-            alt Dữ liệu không hợp lệ
+            alt Invalid data
                 Validator-->>Service: Field errors
                 Service-->>Api: ValidationFailure
                 Api-->>Web: 400 ProblemDetails + field errors
-            else Dữ liệu hợp lệ
+            else Valid data
                 Service->>Uow: ExecuteAsync(actor.userId)
                 Uow->>Db: BEGIN
                 Uow->>Db: SET LOCAL app.current_user_id
@@ -161,9 +161,9 @@ sequenceDiagram
     end
 ```
 
-Admin và Shop Owner không bị giới hạn `created_by`; Employee chỉ sửa bản ghi của chính mình.
+Administrators and Shop Owners are not restricted by `created_by`; Employees may update only their own records.
 
-## 4. Tạo khoản chi — `POST /api/v1/expenses`
+## 4. Create Expense — `POST /api/v1/expenses`
 
 ```mermaid
 sequenceDiagram
@@ -177,23 +177,23 @@ sequenceDiagram
     participant Uow as IUnitOfWork
     participant Db as PostgreSQL
 
-    User->>Web: Gửi form khoản chi
+    User->>Web: Submit expense form
     Web->>Api: POST /api/v1/expenses
     Api->>Service: CreateAsync(draft, actor)
     Service->>Policy: EnsureCanCreate(actor)
 
-    alt Không đủ quyền
+    alt Insufficient permission
         Policy-->>Service: Forbidden
         Service-->>Api: Forbidden
         Api-->>Web: 403 Forbidden
-    else Có quyền
+    else Authorized
         Service->>Validator: Validate(draft)
-        Validator->>Validator: Kiểm tra amount, tax, scope, payee
-        alt Dữ liệu không hợp lệ
+        Validator->>Validator: Check amount, tax, scope, and payee
+        alt Invalid data
             Validator-->>Service: Field errors
             Service-->>Api: ValidationFailure
             Api-->>Web: 400 ProblemDetails + field errors
-        else Dữ liệu hợp lệ
+        else Valid data
             Service->>Uow: ExecuteAsync(actor.userId)
             Uow->>Db: BEGIN
             Uow->>Db: SET LOCAL app.current_user_id
@@ -207,13 +207,13 @@ sequenceDiagram
     end
 ```
 
-`ExpenseValidator` đối chiếu `AmountAfterTax` với quy tắc đã thống nhất trong requirements/OpenAPI; client không phải nguồn quyết định cuối cùng.
+`ExpenseValidator` checks `AmountAfterTax` against the rule agreed in requirements/OpenAPI; the client is not the authoritative source.
 
-## 5. Xóa mềm khoản chi — `DELETE /api/v1/expenses/{id}`
+## 5. Soft-Delete Expense — `DELETE /api/v1/expenses/{id}`
 
 ```mermaid
 sequenceDiagram
-    actor User as Người dùng
+    actor User as User
     participant Web as ExpenseServiceJS
     participant Api as ExpensesController
     participant Service as ExpenseService
@@ -222,24 +222,24 @@ sequenceDiagram
     participant Uow as IUnitOfWork
     participant Db as PostgreSQL
 
-    User->>Web: Xác nhận xóa
+    User->>Web: Confirm deletion
     Web->>Api: DELETE /api/v1/expenses/{id}
     Api->>Service: SoftDeleteAsync(id, actor)
     Service->>Repo: FindActiveAsync(id)
     Repo->>Db: SELECT active expense
 
-    alt Không tìm thấy hoặc đã xóa
+    alt Missing or already deleted
         Repo-->>Service: null
         Service-->>Api: NotFound
         Api-->>Web: 404 Not Found
-    else Tìm thấy
+    else Record found
         Repo-->>Service: Expense
         Service->>Policy: EnsureCanDelete(actor, expense)
-        alt Employee hoặc Viewer
+        alt Employee or Viewer
             Policy-->>Service: Forbidden
             Service-->>Api: Forbidden
             Api-->>Web: 403 Forbidden
-        else Admin hoặc Shop Owner
+        else Administrator or Shop Owner
             Service->>Uow: ExecuteAsync(actor.userId)
             Uow->>Db: BEGIN
             Uow->>Db: SET LOCAL app.current_user_id
@@ -249,24 +249,24 @@ sequenceDiagram
             Uow->>Db: COMMIT
             Service-->>Api: Completed
             Api-->>Web: 204 No Content
-            Web-->>User: Xóa dòng khỏi danh sách active
+            Web-->>User: Remove row from active list
         end
     end
 ```
 
-Endpoint dùng HTTP `DELETE`, nhưng persistence thực hiện soft delete; dữ liệu không bị xóa vật lý.
+The endpoint uses HTTP `DELETE`, but persistence performs a soft deletion; data is not physically deleted.
 
-## 6. Quy ước lỗi chung
+## 6. Common Error Conventions
 
-| HTTP | Thuật ngữ | Khi dùng |
+| HTTP | Term | Usage |
 |---|---|---|
-| `400` | Bad Request | Request/field không hợp lệ |
-| `401` | Unauthorized | Chưa xác thực hoặc token không hợp lệ |
-| `403` | Forbidden | Đã xác thực nhưng thiếu quyền |
-| `404` | Not Found | Bản ghi không tồn tại hoặc đã soft delete |
-| `409` | Conflict | Vi phạm unique/business conflict nếu có |
-| `500` | Internal Server Error | Lỗi không dự kiến; rollback và trả request/error id |
+| `400` | Bad Request | Invalid request or field |
+| `401` | Unauthorized | Unauthenticated or invalid token |
+| `403` | Forbidden | Authenticated but not authorized |
+| `404` | Not Found | Record missing or soft-deleted |
+| `409` | Conflict | Unique or business conflict, when applicable |
+| `500` | Internal Server Error | Unexpected failure; roll back and return a request/error ID |
 
-Error body dự kiến dùng RFC 7807 Problem Details; cấu trúc chính xác sẽ do OpenAPI bước 4 quyết định.
+Error bodies are expected to use RFC 7807 Problem Details; Step 4 OpenAPI will define the exact structure.
 
-**Liên quan:** [Class diagrams](01-class-diagrams.md) · [Runtime View tổng quát](../arc42/06-runtime-view.md) · [Cấu trúc thư mục](../../07-folder-structure.md)
+**Related:** [Class diagrams](01-class-diagrams.md) · [General Runtime View](../arc42/06-runtime-view.md) · [Folder structure](../../07-folder-structure.md)

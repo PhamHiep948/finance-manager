@@ -1,10 +1,10 @@
-# Sơ đồ lớp — Auth, Income và Expense
+# Class Diagrams — Authentication, Income, and Expense
 
-Sơ đồ lớp (class diagram) dùng đúng tên class dự kiến trong ba tầng. DTO (Data Transfer Object — đối tượng truyền dữ liệu) thuộc tầng API; entity, service, policy, validator và repository interface thuộc Application; repository implementation thuộc Infrastructure.
+The class diagrams use the intended class names across the three tiers. DTOs belong to the API tier; entities, services, policies, validators, and repository interfaces belong to Application; repository implementations belong to Infrastructure.
 
-Các sơ đồ dùng bố cục từ trên xuống (`direction TB`) để tránh kéo ngang trên màn hình. Cách đọc chung: **Presentation → Application → Infrastructure**; đường nét đứt biểu thị lớp triển khai interface.
+The diagrams use a top-to-bottom layout (`direction TB`) to avoid excessive horizontal width. Read them as **Presentation → Application → Infrastructure**; dashed realization arrows indicate interface implementations.
 
-## 1. Xác thực — Authentication
+## 1. Authentication
 
 ```mermaid
 classDiagram
@@ -113,14 +113,14 @@ classDiagram
     EfUnitOfWork ..|> IUnitOfWork
 ```
 
-Quy tắc:
+Rules:
 
-- Chỉ tài khoản `is_active = true` và `deleted_at IS NULL` được đăng nhập.
-- API không trả `PasswordHash`.
-- Đăng nhập thành công dùng `IUnitOfWork` đặt actor context, cập nhật `last_login_at` và ghi audit action `LOGIN` trong cùng transaction.
-- Cách phát hành JWT là implementation detail (chi tiết triển khai); OpenAPI bước 4 sẽ chốt security scheme (cơ chế bảo mật).
+- Only accounts with `is_active = true` and `deleted_at IS NULL` may log in.
+- The API never returns `PasswordHash`.
+- A successful login uses `IUnitOfWork` to set actor context, update `last_login_at`, and write the `LOGIN` audit action in the same transaction.
+- JWT issuance is an implementation detail; Step 4 OpenAPI will define the security scheme.
 
-## 2. Khoản thu — Income
+## 2. Income
 
 ```mermaid
 classDiagram
@@ -286,15 +286,15 @@ classDiagram
     EfUnitOfWork ..|> IUnitOfWork
 ```
 
-Quy tắc:
+Rules:
 
-- `ADMIN`, `SHOP_OWNER`, `EMPLOYEE` được tạo; `VIEWER` chỉ đọc.
-- `EMPLOYEE` chỉ được sửa bản ghi do chính mình tạo.
-- Chỉ `ADMIN` và `SHOP_OWNER` được soft delete (xóa mềm).
-- Soft delete cập nhật `deleted_at`, `deleted_by`, không xóa vật lý.
-- `IUnitOfWork` đặt `SET LOCAL app.current_user_id`; trigger PostgreSQL tạo `audit_logs` trong cùng transaction (giao dịch cơ sở dữ liệu).
+- `ADMIN`, `SHOP_OWNER`, and `EMPLOYEE` may create records; `VIEWER` is read-only.
+- An `EMPLOYEE` may update only records they created.
+- Only `ADMIN` and `SHOP_OWNER` may soft-delete records.
+- Soft deletion updates `deleted_at` and `deleted_by`; it does not physically delete data.
+- `IUnitOfWork` executes `SET LOCAL app.current_user_id`; PostgreSQL triggers create `audit_logs` records in the same database transaction.
 
-## 3. Khoản chi — Expense
+## 3. Expense
 
 ```mermaid
 classDiagram
@@ -434,13 +434,13 @@ classDiagram
     EfUnitOfWork ..|> IUnitOfWork
 ```
 
-Khoản chi dùng cùng dependency pattern (mẫu phụ thuộc) với khoản thu, nhưng validator kiểm tra thêm `Payee`, `OriginScope`, `PaymentMethod` và `AmountAfterTax`.
+Expense uses the same dependency pattern as Income, but its validator additionally checks `Payee`, `OriginScope`, `PaymentMethod`, and `AmountAfterTax`.
 
-## 4. Enum dùng chung
+## 4. Shared Enums
 
-Tên và giá trị phải trùng với PostgreSQL:
+Names and values must match PostgreSQL:
 
-| C# enum | PostgreSQL enum | Giá trị |
+| C# enum | PostgreSQL enum | Values |
 |---|---|---|
 | `UserRole` | `user_role` | `ADMIN`, `SHOP_OWNER`, `EMPLOYEE`, `VIEWER` |
 | `RecordStatus` | `record_status` | `DRAFT`, `PENDING`, `COMPLETED` |
@@ -450,12 +450,12 @@ Tên và giá trị phải trùng với PostgreSQL:
 | `OriginScope` | `origin_scope` | `DOMESTIC`, `INTERNATIONAL` |
 | `PaymentMethod` | `payment_method` | `CREDIT_CARD`, `BANK_TRANSFER`, `CASH`, `PAYPAL` |
 
-## 5. Ranh giới mapping
+## 5. Mapping Boundaries
 
-- `UpdateIncomeRequest` và `UpdateExpenseRequest` chứa toàn bộ trường mutable (có thể thay đổi) tương ứng với create contract, không làm mất order/fee hoặc payment data.
-- API DTO ↔ Application command/query được map trong `HandmadeFinance.Api/Mapping`.
-- Application entity ↔ database model được map trong `HandmadeFinance.Infrastructure/Persistence`.
-- Không truyền trực tiếp EF Core entity hoặc `DbContext` ra Controller.
-- `IncomeResponse` và `ExpenseResponse` không trả `DeletedAt`/`DeletedBy` trong danh sách active trừ khi OpenAPI sau này yêu cầu.
+- `UpdateIncomeRequest` and `UpdateExpenseRequest` contain every mutable field from their corresponding create contracts, preserving order/fee and payment data.
+- API DTO ↔ Application command/query mapping occurs in `HandmadeFinance.Api/Mapping`.
+- Application entity ↔ database model mapping occurs in `HandmadeFinance.Infrastructure/Persistence`.
+- EF Core entities and `DbContext` are never passed directly to Controllers.
+- `IncomeResponse` and `ExpenseResponse` omit `DeletedAt`/`DeletedBy` from active lists unless OpenAPI later requires them.
 
-**Liên quan:** [C4 Level 4](../c4/04-code.md) · [Database](../../DATABASE.md) · [Sequence diagrams](02-sequence-diagrams.md)
+**Related:** [C4 Level 4](../c4/04-code.md) · [Database](../../DATABASE.md) · [Sequence diagrams](02-sequence-diagrams.md)

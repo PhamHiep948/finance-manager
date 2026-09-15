@@ -1,6 +1,6 @@
 # C2 — Container
 
-> **Mục tiêu:** zoom vào HandmadeFinance và mô tả các khối chạy/lưu trữ ở kiến trúc đích.
+> **Purpose:** zoom into HandmadeFinance and describe runtime and storage units in the target architecture.
 
 ```mermaid
 flowchart TB
@@ -34,23 +34,23 @@ flowchart TB
     style database fill:#1168bd,color:#fff
 ```
 
-## Trách nhiệm
+## Responsibilities
 
-| Container | Công nghệ | Trách nhiệm | Trạng thái |
+| Container | Technology | Responsibility | Status |
 |---|---|---|---|
-| Web Frontend | React.js, Vite | UI, route guard, biểu đồ, form và bảng dữ liệu | Đã có bản mock |
-| .NET Backend | C#, ASP.NET Core Web API, REST/JSON | Điểm tin cậy cho xác thực, RBAC, nghiệp vụ và truy cập dữ liệu | Chưa triển khai |
-| PostgreSQL | PostgreSQL | Dữ liệu bền vững và quan hệ nghiệp vụ | Đã có schema, chưa kết nối |
+| Web Frontend | React.js, Vite | UI, route guards, charts, forms, and data tables | Mock implemented |
+| .NET Backend | C#, ASP.NET Core Web API, REST/JSON | Trust boundary for authentication, RBAC, business rules, and data access | Not implemented |
+| PostgreSQL | PostgreSQL | Persistent data and business relationships | Schema exists; not connected |
 
-## Quy tắc kiến trúc
+## Architecture Rules
 
-1. Trình duyệt không truy cập PostgreSQL trực tiếp.
-2. Ẩn nút ở frontend chỉ là UX; .NET Backend phải kiểm tra quyền cho mọi request.
-3. Tiền được lưu theo USD; EUR chỉ là giá trị quy đổi để hiển thị.
-4. Xóa giao dịch là soft delete để giữ lịch sử và audit.
-5. Attachment hiện chỉ có metadata; chiến lược lưu binary ở backend chưa được quyết định.
+1. The browser never accesses PostgreSQL directly.
+2. Hiding frontend controls is UX only; the .NET Backend must authorize every request.
+3. Money is stored in USD; EUR is a display-only conversion.
+4. Transaction deletion is soft deletion to preserve history and auditability.
+5. Attachments currently contain metadata only; backend binary storage is not yet decided.
 
-## Trạng thái hiện tại
+## Current State
 
 ```mermaid
 flowchart LR
@@ -65,4 +65,4 @@ flowchart LR
     style pg fill:#999,color:#fff
 ```
 
-**Trước:** [C1 — System Context](01-system-context.md) · **Tiếp theo:** zoom vào .NET Backend → [C3 — Component](03-component.md).
+**Previous:** [C1 — System Context](01-system-context.md) · **Next:** zoom into the .NET Backend → [C3 — Component](03-component.md).

@@ -1,47 +1,47 @@
-# Mô hình C4 — HandmadeFinance
+# C4 Model — HandmadeFinance
 
-> **Trạng thái:** Baseline kiến trúc · **Đối tượng đọc:** developer, reviewer, người bảo trì
+> **Status:** Architecture baseline · **Audience:** developers, reviewers, and maintainers
 
-Bộ tài liệu đi từ ngoài vào trong. Mỗi nút có **tên**, **loại** (`Person`, `Software System`, `Container`, `Component`), công nghệ khi cần và mô tả ngắn.
+The documentation proceeds from the outside in. Every node has a **name**, **type** (`Person`, `Software System`, `Container`, `Component`), technology where relevant, and a short description.
 
 ```mermaid
 flowchart LR
-    C1["C1 · System Context<br/><small>Ai dùng hệ thống?</small>"]
-    C2["C2 · Container<br/><small>Hệ thống gồm những khối chạy nào?</small>"]
-    C3["C3 · Component<br/><small>.NET Backend được chia thành module nào?</small>"]
-    C4["C4 · Code<br/><small>Hai feature chính được tổ chức ra sao?</small>"]
-    C1 -->|"zoom vào HandmadeFinance"| C2
-    C2 -->|"zoom vào .NET Backend"| C3
-    C3 -->|"zoom vào Income & Expense"| C4
+    C1["C1 · System Context<br/><small>Who uses the system?</small>"]
+    C2["C2 · Container<br/><small>What runtime units make up the system?</small>"]
+    C3["C3 · Component<br/><small>How is the .NET Backend decomposed?</small>"]
+    C4["C4 · Code<br/><small>How are the two core features organized?</small>"]
+    C1 -->|"zoom into HandmadeFinance"| C2
+    C2 -->|"zoom into .NET Backend"| C3
+    C3 -->|"zoom into Income & Expense"| C4
     style C1 fill:#1168bd,color:#fff,stroke:#0b4884
     style C2 fill:#1168bd,color:#fff,stroke:#0b4884
     style C3 fill:#1168bd,color:#fff,stroke:#0b4884
     style C4 fill:#1168bd,color:#fff,stroke:#0b4884
 ```
 
-| Cấp | Tài liệu | Phạm vi |
+| Level | Document | Scope |
 |---|---|---|
-| C1 | [System Context](01-system-context.md) | Bốn vai trò và ranh giới HandmadeFinance |
+| C1 | [System Context](01-system-context.md) | Four roles and the HandmadeFinance boundary |
 | C2 | [Container](02-container.md) | React Web, .NET Backend, PostgreSQL |
-| C3 | [Component](03-component.md) | Các component bên trong .NET Backend |
-| C4 | [Code — hai tính năng chính](04-code.md) | C# classes/interfaces cho quản lý khoản thu và khoản chi |
+| C3 | [Component](03-component.md) | Components inside the .NET Backend |
+| C4 | [Code — two core features](04-code.md) | C# classes/interfaces for Income and Expense management |
 
-## Trạng thái triển khai
+## Implementation Status
 
-| Khối | Trạng thái thực tế |
+| Unit | Actual status |
 |---|---|
-| React Web | Đã có giao diện mock trong `app/` |
-| Mock store/auth | Đang chạy trong trình duyệt; dùng dữ liệu JavaScript và Web Storage |
-| .NET Backend | Kiến trúc đích, chưa được triển khai |
-| PostgreSQL | Đã thiết kế schema, chưa nối với ứng dụng |
+| React Web | Mock UI exists in `app/` |
+| Mock store/auth | Runs in the browser using JavaScript data and Web Storage |
+| .NET Backend | Target architecture; not implemented |
+| PostgreSQL | Schema designed; not connected to the application |
 
-Các sơ đồ mô tả **kiến trúc đích**, đồng thời ghi rõ trạng thái hiện tại để không nhầm thiết kế với mã nguồn đã triển khai. Level 4 là code-level target vì .NET Backend chưa được triển khai.
+The diagrams describe the **target architecture** and state the current implementation status so that design is not mistaken for working source code. Level 4 is a code-level target because the .NET Backend has not been implemented.
 
-## Quy ước màu
+## Color Conventions
 
-- Xanh đậm: khối chính đang được mô tả.
-- Xanh nhạt: thành phần lân cận trong cùng hệ thống.
-- Xám: người dùng hoặc thành phần nằm ngoài boundary đang zoom.
-- Nét đứt: boundary của Software System hoặc Container.
+- Dark blue: the primary unit being described.
+- Light blue: a neighboring element in the same system.
+- Gray: a user or element outside the boundary being zoomed.
+- Dashed line: a Software System or Container boundary.
 
-Xem thêm: [Use Case Diagram](../../03-use-cases.md#use-case-diagram) · [arc42](../arc42/README.md).
+See also: [Use Case Diagram](../../03-use-cases.md#use-case-diagram) · [arc42](../arc42/README.md).

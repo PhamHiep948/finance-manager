@@ -1,22 +1,22 @@
 # 4. Solution Strategy
 
-## 4.1 Chiến lược trong một câu
+## 4.1 Strategy in One Sentence
 
-Tách UI, nghiệp vụ và lưu trữ thành `React Web → .NET modular monolith → PostgreSQL`, dùng backend làm trust boundary và dùng một mô hình nghiệp vụ chung cho thao tác tay lẫn import.
+Separate UI, business logic, and storage as `React Web → .NET modular monolith → PostgreSQL`, use the backend as the trust boundary, and apply one business model to both manual operations and imports.
 
-## 4.2 Mapping mục tiêu → giải pháp
+## 4.2 Goal-to-Solution Mapping
 
-| Mục tiêu | Chiến lược |
+| Goal | Strategy |
 |---|---|
-| UI dễ thay đổi | React giữ presentation, routing và client state |
-| Dữ liệu tin cậy | .NET Backend kiểm tra input, permission và business rule |
-| Triển khai ban đầu đơn giản | Một .NET modular monolith thay vì microservices |
-| Báo cáo nhất quán | Reporting đọc cùng nguồn PostgreSQL với giao dịch |
-| Truy vết thay đổi | Soft delete và Audit Log component |
-| Không nhân đôi quy tắc | Import gọi Income & Expense component |
-| Tiền tệ nhất quán | Lưu USD; EUR chỉ quy đổi hiển thị |
+| Changeable UI | React owns presentation, routing, and client state |
+| Trustworthy data | The .NET Backend validates input, permissions, and business rules |
+| Simple initial deployment | One .NET modular monolith instead of microservices |
+| Consistent reporting | Reporting reads the same PostgreSQL source as transactions |
+| Traceable changes | Soft deletion and the Audit Log component |
+| No duplicated rules | Import calls the Income & Expense component |
+| Consistent currency | Store USD; convert to EUR for display only |
 
-## 4.3 Dependency direction
+## 4.3 Dependency Direction
 
 ```mermaid
 flowchart LR
@@ -33,8 +33,8 @@ flowchart LR
     style persistence fill:#3a7bd5,color:#fff
 ```
 
-Transport không chứa SQL; Persistence không quyết định quyền; Frontend không phải security boundary.
+Transport contains no SQL; Persistence makes no authorization decisions; the Frontend is not a security boundary.
 
-## 4.4 Quyết định chưa khóa
+## 4.4 Open Decisions
 
-ASP.NET Core Controllers/Minimal APIs, JWT hay server session, Entity Framework Core, Dapper hoặc ADO.NET, object storage và nền tảng production đều là TBD. Không đưa chúng vào sơ đồ baseline như sự thật đã quyết định.
+ASP.NET Core Controllers/Minimal APIs, JWT versus server sessions, Entity Framework Core, Dapper or ADO.NET, object storage, and the production platform are all TBD. They must not appear in baseline diagrams as decided facts.

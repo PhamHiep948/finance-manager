@@ -1,20 +1,20 @@
 # 7. Deployment View
 
-## 7.1 Hiện tại — mock local
+## 7.1 Current State — Local Mock
 
 ```mermaid
 flowchart LR
-    subgraph machine["Máy phát triển"]
+    subgraph machine["Development machine"]
         browser["Browser<br/><i>React runtime</i>"]
         vite["Vite dev server<br/><i>static assets/HMR</i>"]
         mock["JavaScript mock data<br/>Web Storage session"]
         docker["Docker Compose"]
-        pg[("PostgreSQL<br/>port 5432")]
+        pg[("PostgreSQL<br/>container 5432 / host 5433")]
         browser -->|"HTTP"| vite
         browser --> mock
         docker --> pg
     end
-    mock -.->|"không kết nối"| pg
+    mock -.->|"not connected"| pg
     style browser fill:#1168bd,color:#fff
     style vite fill:#3a7bd5,color:#fff
     style mock fill:#3a7bd5,color:#fff
@@ -22,9 +22,9 @@ flowchart LR
     style machine fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
 ```
 
-Frontend chạy bằng `npm run dev`; PostgreSQL có thể chạy độc lập bằng Docker Compose nhưng frontend không gọi database.
+The frontend runs with `npm run dev`; PostgreSQL can run independently through Docker Compose, but the frontend does not call the database.
 
-## 7.2 Kiến trúc đích — topology logic
+## 7.2 Target Architecture — Logical Topology
 
 ```mermaid
 flowchart LR
@@ -41,20 +41,20 @@ flowchart LR
     style db fill:#3a7bd5,color:#fff
 ```
 
-Đây là topology logic, không khẳng định cloud provider, container orchestrator, reverse proxy hay CDN.
+This is a logical topology and does not select a cloud provider, container orchestrator, reverse proxy, or CDN.
 
-## 7.3 Mapping container → node
+## 7.3 Container-to-Node Mapping
 
-| Container | Local hiện tại | Production đích |
+| Container | Current local state | Target production state |
 |---|---|---|
 | React Web | Vite dev server + browser | Static web hosting, TBD |
-| .NET Backend | Chưa có | Một hoặc nhiều ASP.NET Core application instances, TBD |
-| PostgreSQL | Docker Compose | Managed/self-hosted PostgreSQL, TBD |
+| .NET Backend | Not implemented | One or more ASP.NET Core application instances, TBD |
+| PostgreSQL | Docker Compose | Managed or self-hosted PostgreSQL, TBD |
 
 ## 7.4 Deployment requirements
 
-- Chỉ public HTTPS endpoints cần thiết; PostgreSQL không public Internet.
-- Secret không commit vào Git; dùng environment/secret manager phù hợp.
-- Database migration chạy có kiểm soát trước phiên bản backend cần schema mới.
-- Health check cần tách liveness và readiness khi backend được triển khai.
-- Backup/restore, TLS termination, scaling và observability phải được quyết định trước production.
+- Expose only required public HTTPS endpoints; PostgreSQL is not public on the Internet.
+- Do not commit secrets to Git; use an appropriate environment or secret manager.
+- Run controlled database migrations before deploying a backend version that requires the new schema.
+- Separate liveness and readiness health checks when the backend is implemented.
+- Backup/restore, TLS termination, scaling, and observability must be decided before production.

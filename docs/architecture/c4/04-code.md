@@ -1,10 +1,10 @@
-# C4 Level 4 — Code — Hai tính năng chính
+# C4 Level 4 — Code — Two Core Features
 
-> **Trạng thái:** thiết kế code-level mục tiêu cho .NET Backend; repository hiện chưa có mã C#/.NET.
+> **Status:** target code-level design for the .NET Backend; the repository currently has no C#/.NET source code.
 
-Level 4 zoom từ component **Income & Expense** ở [C3](03-component.md). Hai sơ đồ chỉ định trách nhiệm và hướng phụ thuộc mong muốn, không khóa framework HTTP hoặc thư viện SQL.
+Level 4 zooms into the **Income & Expense** component from [C3](03-component.md). The diagrams define intended responsibilities and dependency directions without selecting an HTTP framework style or SQL library.
 
-## L4.1 Quản lý khoản thu
+## L4.1 Income Management
 
 ```mermaid
 flowchart TB
@@ -45,9 +45,9 @@ flowchart TB
     style postgres fill:#1168bd,color:#fff
 ```
 
-Luồng chính: `IncomesController → IncomeService → Policy/Validator/Domain → IIncomeRepository`. Persistence Unit of Work đặt actor context bằng `SET LOCAL app.current_user_id`; PostgreSQL trigger tạo audit entry trong cùng transaction, không để Service chèn thêm một bản audit DML trùng lặp.
+Primary flow: `IncomesController → IncomeService → Policy/Validator/Domain → IIncomeRepository`. The Persistence Unit of Work sets the actor context with `SET LOCAL app.current_user_id`; PostgreSQL triggers create audit entries in the same transaction, and the Service does not insert duplicate DML audit records.
 
-## L4.2 Quản lý khoản chi
+## L4.2 Expense Management
 
 ```mermaid
 flowchart TB
@@ -88,15 +88,15 @@ flowchart TB
     style postgres fill:#1168bd,color:#fff
 ```
 
-Khoản chi dùng cùng pattern với khoản thu nhưng có rule riêng cho người nhận, phạm vi nội địa/quốc tế, phương thức thanh toán và số tiền sau thuế.
+Expenses use the same pattern as income, with additional rules for payee, domestic/international scope, payment method, and post-tax amount.
 
-## Quy tắc chung cho hai feature
+## Shared Rules for Both Features
 
-1. Controller không chứa SQL hoặc business rule.
-2. Service phụ thuộc repository interface, không phụ thuộc trực tiếp PostgreSQL driver.
-3. Policy luôn được thực thi ở backend; việc frontend ẩn nút chỉ phục vụ UX.
-4. Validator được tái sử dụng cho form nhập tay và Excel Import.
-5. Soft delete cập nhật `deleted_at`, `deleted_by`; không xóa vật lý giao dịch.
-6. Domain dùng USD làm đơn vị lưu trữ; EUR chỉ là phép quy đổi hiển thị.
+1. Controllers contain neither SQL nor business rules.
+2. Services depend on repository interfaces, not directly on the PostgreSQL driver.
+3. Policies are always enforced by the backend; frontend control visibility serves UX only.
+4. Validators are reused for manual forms and Excel Import.
+5. Soft deletion updates `deleted_at` and `deleted_by`; transactions are not physically deleted.
+6. The domain stores USD; EUR is a display-only conversion.
 
-**Trước:** [C3 — Component](03-component.md) · **Chi tiết UML:** [Class và sequence cho Auth/Income/Expense](../uml/README.md) · **Cấu trúc thư mục:** [Frontend và backend ba tầng](../../07-folder-structure.md) · **Liên quan:** [Use cases](../../03-use-cases.md).
+**Previous:** [C3 — Component](03-component.md) · **Detailed UML:** [Auth/Income/Expense class and sequence diagrams](../uml/README.md) · **Folder structure:** [Frontend and three-tier backend](../../07-folder-structure.md) · **Related:** [Use cases](../../03-use-cases.md).

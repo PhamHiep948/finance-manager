@@ -4,48 +4,48 @@
 
 ```mermaid
 flowchart LR
-    admin(["👤 Quản trị viên"])
-    owner(["👤 Chủ shop"])
-    employee(["👤 Nhân viên"])
-    viewer(["👤 Người xem"])
+    admin(["👤 Administrator"])
+    owner(["👤 Shop Owner"])
+    employee(["👤 Employee"])
+    viewer(["👤 Viewer"])
 
     subgraph boundary[" "]
-        finance["HandmadeFinance<br/><i>[Software System]</i><br/>Quản lý khoản thu, khoản chi, báo cáo,<br/>import dữ liệu, người dùng và nhật ký"]
+        finance["HandmadeFinance<br/><i>[Software System]</i><br/>Manages income, expenses, reports,<br/>imports, users, and audit logs"]
     end
 
-    admin -- "quản trị người dùng và toàn bộ dữ liệu" --> finance
-    owner -- "điều hành thu chi, báo cáo và audit" --> finance
-    employee -- "ghi nhận thu chi theo quyền" --> finance
-    viewer -- "xem dashboard, giao dịch và báo cáo" --> finance
+    admin -- "manages users and all data" --> finance
+    owner -- "manages finances, reports, and audit" --> finance
+    employee -- "records transactions within permissions" --> finance
+    viewer -- "views dashboards, transactions, and reports" --> finance
 
     style finance fill:#1168bd,color:#fff
 ```
 
-Chi tiết và quy ước C4: [C1 — System Context](../c4/01-system-context.md).
+For C4 details and conventions, see [C1 — System Context](../c4/01-system-context.md).
 
-## 3.2 Phạm vi nghiệp vụ
+## 3.2 Business Scope
 
-| Trong HandmadeFinance | Ngoài phạm vi V1 |
+| Inside HandmadeFinance | Outside V1 scope |
 |---|---|
-| Đăng nhập, RBAC, hồ sơ | Real OAuth/OIDC |
-| Khoản thu, khoản chi, danh mục | Tồn kho, SKU, CRM |
-| Dashboard và báo cáo | Kế toán kép, khai thuế |
-| Import Excel, attachment metadata | Marketplace/payment integration |
-| Người dùng và audit log | ERP, hóa đơn điện tử |
+| Login, RBAC, profiles | Real OAuth/OIDC |
+| Income, expenses, categories | Inventory, SKU, CRM |
+| Dashboards and reports | Double-entry accounting, tax filing |
+| Excel import, attachment metadata | Marketplace/payment integration |
+| Users and audit logs | ERP, electronic invoicing |
 
 ## 3.3 Business interfaces
 
 | Actor | Input | Output |
 |---|---|---|
-| Admin | Người dùng, giao dịch, cấu hình trạng thái | Toàn bộ dữ liệu và audit |
-| Chủ shop | Giao dịch, bộ lọc, file import | Dashboard, báo cáo, audit |
-| Nhân viên | Giao dịch của mình, file import | Danh sách và dashboard |
-| Người xem | Bộ lọc xem dữ liệu | Dashboard, danh sách, báo cáo |
+| Admin | Users, transactions, status configuration | All data and audit records |
+| Shop Owner | Transactions, filters, import files | Dashboards, reports, and audit records |
+| Employee | Own transactions and import files | Lists and dashboards |
+| Viewer | Read-only filters | Dashboards, lists, and reports |
 
 ## 3.4 Technical context
 
-Ở kiến trúc đích, người dùng truy cập React Web qua HTTPS; Web gọi .NET Backend bằng REST/JSON; Backend dùng PostgreSQL protocol/SQL. Không có kết nối Frontend → Database.
+In the target architecture, users access React Web over HTTPS; the Web calls the .NET Backend through REST/JSON; the Backend uses the PostgreSQL protocol/SQL. There is no Frontend → Database connection.
 
 ## 3.5 Status boundary
 
-React mock hiện giữ dữ liệu trong JavaScript và phiên trong Web Storage. .NET Backend và kết nối PostgreSQL là thiết kế đích, không phải thành phần đã chạy.
+The React mock currently keeps data in JavaScript and sessions in Web Storage. The .NET Backend and PostgreSQL connection are target designs, not running components.
