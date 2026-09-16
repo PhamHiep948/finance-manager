@@ -2,5 +2,5 @@
 *.log
 .DS_Store
 node_modules/
-app/dist/
+src/frontend/dist/
 **/.vite/

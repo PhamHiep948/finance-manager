@@ -3,7 +3,7 @@
 > **Scope:** Step 5 · **Status:** Design only; not implemented source code  
 > **Detailed modules:** All HandmadeFinance V1 capabilities
 
-This document defines source-code locations and dependency directions before the API is implemented. The current `app/` directory is a mock interface backed by JavaScript data; the `.NET` backend does not exist yet.
+This document defines source-code locations and dependency directions before the API is implemented. The current `src/frontend/` directory is a mock interface backed by JavaScript data; the `.NET` backend scaffold is under `src/backend/` but its projects are not implemented yet.
 
 ## 1. General Principles
 
@@ -18,7 +18,7 @@ This document defines source-code locations and dependency directions before the
 ### 2.1 Current Structure
 
 ```text
-app/src/
+src/frontend/src/
 ├── components/       # Shell and Login
 ├── lib/              # mock data, store, auth, formatting, icons, theme
 ├── pages/            # screens and forms
@@ -32,7 +32,7 @@ app/src/
 ### 2.2 Target Structure
 
 ```text
-app/src/
+src/frontend/src/
 ├── app/
 │   ├── App.jsx
 │   ├── routes.jsx
@@ -100,7 +100,7 @@ No physical directories are moved in Step 5. Migration begins with API integrati
 Every target feature follows `components/`, `hooks/`, `pages/`, `services/`, `*.contracts.js`, and `*.validation.js` where those responsibilities apply.
 
 ```text
-app/src/features/
+src/frontend/src/features/
 ├── auth/           # Login/logout, auth context, route and role guards
 ├── dashboard/      # KPI cards, charts, recent transactions, date filters
 ├── categories/     # Income/expense category lookup hooks
@@ -116,7 +116,7 @@ app/src/features/
 Shared code is limited to code used by at least two features:
 
 ```text
-app/src/
+src/frontend/src/
 ├── components/
 │   ├── layout/          # AppShell, Sidebar, Topbar, ProtectedLayout
 │   ├── forms/           # Field, FormError, FilePicker
@@ -142,7 +142,7 @@ Feature code may depend on shared code; shared code must not import a feature. A
 ### 3.1 Target Solution
 
 ```text
-backend/
+src/backend/
 ├── HandmadeFinance.sln
 ├── src/
 │   ├── HandmadeFinance.Api/                 # Presentation layer
@@ -203,12 +203,12 @@ backend/
 │       ├── Persistence/
 │       │   ├── ShopFinanceDbContext.cs
 │       │   ├── Configurations/
+│       │   ├── Repositories/
+│       │   │   ├── UserRepository.cs
+│       │   │   ├── IncomeRepository.cs
+│       │   │   ├── ExpenseRepository.cs
+│       │   │   └── AuditLogRepository.cs
 │       │   └── Transactions/
-│       ├── Repositories/
-│       │   ├── UserRepository.cs
-│       │   ├── IncomeRepository.cs
-│       │   ├── ExpenseRepository.cs
-│       │   └── AuditLogRepository.cs
 │       └── DependencyInjection.cs
 └── tests/
     ├── HandmadeFinance.Application.Tests/   # unit tests
@@ -249,7 +249,7 @@ flowchart LR
 The three projects remain the three tiers. Folders below are mandatory implementation locations for the V1 OpenAPI operations.
 
 ```text
-backend/src/
+src/backend/src/
 ├── HandmadeFinance.Api/
 │   ├── Controllers/
 │   │   ├── AuthController.cs
@@ -301,7 +301,7 @@ backend/src/
 ```
 
 ```text
-backend/tests/
+src/backend/tests/
 ├── HandmadeFinance.Application.Tests/
 │   ├── Authentication/
 │   ├── Dashboard/
@@ -331,8 +331,8 @@ Unit tests isolate Application services with fake/mock abstractions. API tests u
 | Reports | `Application/Reports`, `Infrastructure/Reports` |
 | Imports & Attachments | `Application/Imports`, `Application/Attachments`, `Infrastructure/Imports`, `Infrastructure/Files` |
 | Audit Log | The application writes `LOGIN` through `IAuditLogRepository`; PostgreSQL triggers record Income/Expense DML |
-| Users & Profile | `Application/Users`, `Application/Profile`, `Infrastructure/Repositories/UserRepository.cs` |
-| Persistence | `Infrastructure/Persistence`, `Infrastructure/Repositories` |
+| Users & Profile | `Application/Users`, `Application/Profile`, `Infrastructure/Persistence/Repositories/UserRepository.cs` |
+| Persistence | `Infrastructure/Persistence` |
 
 ## 5. Naming Conventions
 
@@ -344,6 +344,174 @@ Unit tests isolate Application services with fake/mock abstractions. API tests u
 - Endpoints are versioned as `/api/v1/...` and defined by the [OpenAPI 3.0.4 contract](api/openapi.yaml).
 - SQL columns use `snake_case`; C# uses `PascalCase`; JSON uses `camelCase`.
 
-## 6. Future Implementation Scope
+## 6. OpenAPI-to-Folder Ownership
 
-Step 5 defines structure only. The `.NET` solution, frontend migration, and API implementation do not exist yet. Step 7 will create source code according to this structure, the approved [OpenAPI contract](api/openapi.yaml), and the detailed diagrams.
+Every OpenAPI operation has exactly one frontend feature owner, one API controller, and one Application module. Shared infrastructure supports the operation but does not own it.
+
+| OpenAPI operations | React feature | API controller | Application module |
+|---|---|---|---|
+| `login`, `logout` | `features/auth` | `AuthController` | `Authentication` |
+| `getDashboard` | `features/dashboard` | `DashboardController` | `Dashboard` |
+| `listIncomeCategories`, `listExpenseCategories` | `features/categories` | `CategoriesController` | `Categories` |
+| `listIncomes`, `getIncome`, `createIncome`, `updateIncome`, `softDeleteIncome` | `features/incomes` | `IncomesController` | `Incomes` |
+| `listExpenses`, `getExpense`, `createExpense`, `updateExpense`, `softDeleteExpense` | `features/expenses` | `ExpensesController` | `Expenses` |
+| `getReport`, `exportReport` | `features/reports` | `ReportsController` | `Reports` |
+| `previewImport`, `listImports`, `createImport`, `getImport` | `features/imports` | `ImportsController` | `Imports` |
+| `uploadIncomeAttachment`, `uploadExpenseAttachment`, `deleteAttachment` | `features/incomes`, `features/expenses` | `AttachmentsController` | `Attachments` |
+| `listAuditLogs` | `features/audit` | `AuditLogsController` | `Audit` |
+| `listUsers`, `getUser`, `createUser`, `updateUser`, `updateUserStatus` | `features/users` | `UsersController` | `Users` |
+| `getProfile`, `updateProfile`, `changePassword` | `features/profile` | `ProfileController` | `Profile` |
+
+Attachment UI remains inside the owning transaction feature. Shared upload rules and server orchestration belong to the backend `Attachments` module; the frontend must not create a second generic attachment page.
+
+## 7. Concrete Feature Templates
+
+### 7.1 React Feature Template
+
+Create only the folders required by a feature. The complete template is:
+
+```text
+features/<feature>/
+├── components/                 # feature-only presentational components
+├── hooks/                      # loading, mutation, and query coordination
+├── pages/                      # route entry points
+├── services/
+│   └── <feature>Service.js     # calls apiClient; functions use operationId names
+├── <feature>.contracts.js      # request/response shapes derived from OpenAPI
+├── <feature>.validation.js     # client UX validation, never authoritative
+├── <feature>.permissions.js    # UI visibility rules where applicable
+└── index.js                    # explicit public exports only
+```
+
+Example for Income:
+
+```text
+features/incomes/
+├── components/
+│   ├── IncomeFilters.jsx
+│   ├── IncomeTable.jsx
+│   ├── IncomeFormModal.jsx
+│   ├── IncomeDetailModal.jsx
+│   └── IncomeAttachmentList.jsx
+├── hooks/
+│   ├── useIncomes.js
+│   └── useIncomeMutation.js
+├── pages/
+│   └── IncomeListPage.jsx
+├── services/
+│   └── incomeService.js
+├── income.contracts.js
+├── income.validation.js
+├── income.permissions.js
+└── index.js
+```
+
+Rules:
+
+- Other features import only from a feature's `index.js`, never its internal files.
+- Feature components do not call `fetch` or Axios directly.
+- `apiClient` is the only owner of base URL, Bearer header, JSON parsing, and `ProblemDetails` normalization.
+- Server state is coordinated by feature hooks; components receive data and callbacks through props.
+- Client validation improves usability but never replaces API validation.
+- OpenAPI `operationId` is used as the feature-service function name.
+- Tests are colocated as `*.test.jsx`/`*.test.js` for feature behavior; cross-feature fixtures and handlers live under `src/test`.
+
+### 7.2 Backend Module Template
+
+Each Application module follows one predictable layout:
+
+```text
+HandmadeFinance.Application/<Module>/
+├── Models/                     # domain/application models, no HTTP attributes
+├── Commands/                   # create/update/delete command models and handlers/services
+├── Queries/                    # list/detail query models and handlers/services
+├── Validation/                 # business and input rules
+├── Policies/                   # RBAC and ownership decisions
+├── Mapping/                    # internal model transformations when needed
+└── I<Module>Service.cs         # use-case boundary consumed by Api
+```
+
+The API contract for the same module follows:
+
+```text
+HandmadeFinance.Api/
+├── Controllers/<Module>Controller.cs
+├── Contracts/<Module>/
+│   ├── Requests/
+│   └── Responses/
+└── Mapping/<Module>Mappings.cs
+```
+
+Persistence follows:
+
+```text
+HandmadeFinance.Infrastructure/Persistence/
+├── Configurations/<Entity>Configuration.cs
+├── Repositories/<Module>Repository.cs
+└── Transactions/EfUnitOfWork.cs
+```
+
+The Application project owns repository interfaces under `Abstractions/Persistence`; Infrastructure owns only their implementations.
+
+## 8. Project References and Enforcement
+
+Allowed project references:
+
+```text
+HandmadeFinance.Api             → HandmadeFinance.Application
+HandmadeFinance.Api             → HandmadeFinance.Infrastructure
+HandmadeFinance.Infrastructure  → HandmadeFinance.Application
+HandmadeFinance.Application     → no project in this solution
+```
+
+The `Api → Infrastructure` reference is allowed only for composition in `Program.cs`/dependency registration. Controllers must not instantiate or call Infrastructure types.
+
+Forbidden dependencies:
+
+- `Application → Api`
+- `Application → Infrastructure`
+- `Infrastructure → Api`
+- Controller → `DbContext` or repository implementation
+- React component → raw HTTP client
+- Shared React directory → a business feature
+- Infrastructure repository → HTTP DTO
+
+These rules should be enforced in Step 7 with architecture tests or project-reference tests in addition to code review.
+
+## 9. Configuration and Secret Placement
+
+```text
+backend/src/HandmadeFinance.Api/
+├── appsettings.json                 # safe defaults only
+├── appsettings.Development.json     # local non-secret settings
+└── Properties/launchSettings.json
+
+repository root/
+├── .env.example                     # documented local variable names
+└── docker-compose.yml
+```
+
+- Passwords, JWT signing keys, and production connection strings are never committed.
+- ASP.NET Core configuration/environment variables provide secrets at runtime.
+- The React bundle contains only public configuration such as API base URL; it never contains a database credential or JWT signing key.
+- Uploaded binaries are stored outside the web root; PostgreSQL stores metadata and generated storage keys.
+
+## 10. Step 5 Verification Checklist
+
+Step 5 is complete when all of the following are true:
+
+- [x] Current React structure and its mock-data status are documented.
+- [x] Target React feature-based structure covers all V1 screens.
+- [x] Shared-versus-feature ownership rules are explicit.
+- [x] Frontend dependency flow is defined.
+- [x] Three backend projects correspond to Presentation, Application/Business, and Infrastructure/Data tiers.
+- [x] All 33 OpenAPI operations have a frontend, controller, and Application owner.
+- [x] All C3 components map to folders.
+- [x] Project reference directions and forbidden dependencies are explicit.
+- [x] Unit, API integration, and PostgreSQL infrastructure test locations are defined.
+- [x] Naming, configuration, secrets, files, audit, and transaction ownership are defined.
+- [x] The document clearly distinguishes target structure from implemented source code.
+
+## 11. Future Implementation Scope
+
+Step 5 defines structure and repository placement. The frontend and database now live under `src/`, and the backend directory scaffold exists. The `.NET` solution, frontend feature migration, and API implementation do not exist yet. Step 7 will create source code according to this structure, the approved [OpenAPI contract](api/openapi.yaml), and the detailed diagrams.

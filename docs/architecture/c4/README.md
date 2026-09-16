@@ -30,7 +30,7 @@ flowchart LR
 
 | Unit | Actual status |
 |---|---|
-| React Web | Mock UI exists in `app/` |
+| React Web | Mock UI exists in `src/frontend/` |
 | Mock store/auth | Runs in the browser using JavaScript data and Web Storage |
 | .NET Backend | Target architecture; not implemented |
 | PostgreSQL | Schema designed; not connected to the application |

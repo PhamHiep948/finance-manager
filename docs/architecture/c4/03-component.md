@@ -77,4 +77,4 @@ Import calls Income & Expense to reuse validation. Reporting reads only through 
 
 **Previous:** [C2 — Container](02-container.md) · **Next:** [C4 — Code for Income and Expense](04-code.md) · **Related:** [arc42 Building Block View](../arc42/05-building-block-view.md).
 
-**Sources of truth:** `docs/02-features.md`, `docs/03-use-cases.md`, `database/shop_finance.sql`, `app/src/lib/store.jsx`.
+**Sources of truth:** `docs/02-features.md`, `docs/03-use-cases.md`, `src/database/shop_finance.sql`, `src/frontend/src/lib/store.jsx`.

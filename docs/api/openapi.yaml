@@ -8,8 +8,6 @@ info:
     Income and expense deletion is logical (soft delete), never physical deletion.
   contact:
     name: HandmadeFinance Team
-  license:
-    name: Unlicensed
 servers:
   - url: /api/v1
     description: Version 1 API relative to the deployment host

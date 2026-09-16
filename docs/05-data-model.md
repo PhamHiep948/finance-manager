@@ -4,7 +4,7 @@ Goal: an income/expense model aligned with the **HandmadeFinance** interface, us
 
 The mock UI is **aligned with this schema** (tables, categories, currency, soft delete, sales channel, payment method, record status, phone/avatar). UI data is **mock JavaScript data**; the browser does not open a PostgreSQL connection.
 
-Related sources of truth: [shop_finance.dbml](../database/shop_finance.dbml), [shop_finance.sql](../database/shop_finance.sql), [DATABASE.md](DATABASE.md).
+Related sources of truth: [shop_finance.dbml](../src/database/shop_finance.dbml), [shop_finance.sql](../src/database/shop_finance.sql), [DATABASE.md](DATABASE.md).
 
 ## Tables
 
@@ -59,4 +59,4 @@ Demo user seeds: `admin@demo.local`, `owner@demo.local`, `staff@demo.local`, `vi
 | `originScope` / `amountAfterTax` | `origin_scope` / `amount_after_tax` |
 | `attachment` `{name,type,size}` | `attachments.original_name`, `mime_type`, `file_size_bytes` |
 
-The frontend reads **mock JS** (`app/src/lib/data.js`) and maps columns as above — it does not query SQL views at runtime.
+The frontend reads **mock JS** (`src/frontend/src/lib/data.js`) and maps columns as above — it does not query SQL views at runtime.

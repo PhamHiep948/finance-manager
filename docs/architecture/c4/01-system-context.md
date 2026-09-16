@@ -38,4 +38,4 @@ Outside V1 scope: inventory/SKU, CRM, double-entry accounting, electronic invoic
 
 **Next:** zoom into the Software System → [C2 — Container](02-container.md).
 
-**Sources of truth:** `app/src/lib/auth.js`, `docs/01-scope.md`, `docs/03-use-cases.md`.
+**Sources of truth:** `src/frontend/src/lib/auth.js`, `docs/01-scope.md`, `docs/03-use-cases.md`.

@@ -1,0 +1,12 @@
+# Redocly config for HandmadeFinance OpenAPI.
+# No SPDX/commercial license is declared yet; license fields are intentionally omitted.
+extends:
+  - recommended
+
+apis:
+  handmade-finance@v1:
+    root: docs/api/openapi.yaml
+
+rules:
+  info-license: off
+  info-license-strict: off

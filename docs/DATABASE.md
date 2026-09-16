@@ -4,7 +4,7 @@ PostgreSQL schema `shop_finance` for **HandmadeFinance**.
 
 The interface uses **mock data** aligned with this model (tables, income/expense categories, currency, soft delete, sales channel, payment method, record status). The interface **does not connect** to PostgreSQL.
 
-Design files: [shop_finance.dbml](../database/shop_finance.dbml) · [shop_finance.sql](../database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
+Design files: [shop_finance.dbml](../src/database/shop_finance.dbml) · [shop_finance.sql](../src/database/shop_finance.sql) · [05-data-model.md](05-data-model.md)
 
 ## Relationships (tables)
 

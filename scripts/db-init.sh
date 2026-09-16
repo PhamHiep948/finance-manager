@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-SCHEMA_FILE="$ROOT/database/shop_finance.sql"
+SCHEMA_FILE="$ROOT/src/database/shop_finance.sql"
 
 if [[ ! -f "$SCHEMA_FILE" ]]; then
   echo "Schema file not found: $SCHEMA_FILE" >&2

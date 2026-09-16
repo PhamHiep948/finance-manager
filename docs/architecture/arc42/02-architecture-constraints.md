@@ -9,7 +9,7 @@ Only constraints grounded in the repository or architecture baseline (Sections 4
 | Web Frontend = **React.js** | Architecture baseline, ADR-001 | DECISION |
 | Backend = **.NET (C#)**, Modular Monolith | Architecture baseline, ADR-002, ADR-003 | DECISION |
 | API = **REST**, **HTTPS**, **JSON** | ADR-005 | DECISION |
-| Database = **PostgreSQL** | `database/shop_finance.sql`, docker-compose | FACT + DECISION |
+| Database = **PostgreSQL** | `src/database/shop_finance.sql`, docker-compose | FACT + DECISION |
 | Schema name `shop_finance`; local database name `handmade_finance` | SQL, `.env.example` | FACT |
 | Only .NET Backend may issue SQL to PostgreSQL | Baseline, ADR-004 | DECISION |
 | Persistence / Data Access is the only SQL layer | Building Block View | DECISION |
@@ -26,7 +26,7 @@ Production hosting and managed storage remain replaceable deployment choices. Ap
 
 | Constraint | Source |
 | ---------- | ------ |
-| PostgreSQL schema is already designed; do not invent tables outside the model | `database/` |
+| PostgreSQL schema is already designed; do not invent tables outside the model | `src/database/` |
 
 ## 2.3 Conventions
 

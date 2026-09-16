@@ -34,6 +34,14 @@ Errors use `application/problem+json` and RFC 7807-compatible `ProblemDetails`. 
 
 Paste the contents of `openapi.yaml` into [Swagger Editor](https://editor.swagger.io/) or serve it with Swagger UI/ReDoc. The future ASP.NET Core project should expose the same contract without renaming paths or schemas.
 
+Lint locally (requires Node.js):
+
+```bash
+npx.cmd @redocly/cli lint docs/api/openapi.yaml
+```
+
+Repository root `redocly.yaml` disables the unused `info.license` rules because this project has not declared a license yet.
+
 ## Import transaction policy
 
 Excel processing is all-or-nothing. Preview never inserts business records. During processing, any invalid row rolls back all income or expense inserts for that batch; the batch is retained as `FAILED` with row errors. A valid file commits every row and marks the batch `COMPLETED`.

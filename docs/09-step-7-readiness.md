@@ -8,7 +8,7 @@ Use this precedence when documents appear ambiguous:
 
 1. `api/openapi.yaml` — HTTP paths, security scheme, request/response schemas, and status codes.
 2. `03-use-cases.md` and `06-acceptance-criteria.md` — roles, ownership, and observable behavior.
-3. `database/shop_finance.sql` — persisted types, constraints, relationships, views, and triggers.
+3. `src/database/shop_finance.sql` — persisted types, constraints, relationships, views, and triggers.
 4. `07-folder-structure.md` and `architecture/uml/` — code ownership, dependencies, and call order.
 5. `architecture/arc42/09-architecture-decisions.md` — implementation technology decisions.
 

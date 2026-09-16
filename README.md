@@ -2,6 +2,17 @@
 
 HandmadeFinance helps handmade shop owners manage income and expenses in one place, understand cash flow, and make better day-to-day financial decisions. It brings together transaction tracking, dashboards, reports, Excel imports, activity history, and role-based access for the whole team.
 
+## Source layout
+
+```text
+src/
+├── frontend/   # React + Vite client (currently backed by mock data)
+├── backend/    # ASP.NET Core three-tier solution scaffold
+└── database/   # PostgreSQL SQL, DBML, and verification tests
+```
+
+The detailed target structure and dependency rules are documented in [Step 5 — Folder Structure](docs/07-folder-structure.md).
+
 ## User Interface
 
 ### Overview
@@ -200,7 +211,7 @@ The backend must enforce RBAC and the own-record policy; hiding frontend control
 
 - Requirements: [Scope](docs/01-scope.md), [Features](docs/02-features.md), [INVEST backlog](docs/08-invest-requirements.md), [Acceptance criteria](docs/06-acceptance-criteria.md).
 - UI/UX: [Information architecture](docs/04-information-architecture.md).
-- Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](database/shop_finance.sql).
+- Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](src/database/shop_finance.sql).
 - Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Core class diagrams](docs/architecture/uml/01-class-diagrams.md), [remaining module classes](docs/architecture/uml/03-additional-class-diagrams.md), [core sequences](docs/architecture/uml/02-sequence-diagrams.md), and [API traceability/sequences](docs/architecture/uml/03-api-traceability.md).
 - API contract: [OpenAPI 3.0.4 specification](docs/api/openapi.yaml) and [API documentation](docs/api/README.md).
