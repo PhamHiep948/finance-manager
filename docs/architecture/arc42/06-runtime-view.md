@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-The sequences below describe the target architecture. Specific endpoints and the token/session mechanism remain TBD.
+The sequences below describe the target architecture. Exact endpoints and Bearer JWT security are defined in the OpenAPI contract.
 
 ## 6.1 Login
 
@@ -66,12 +66,19 @@ sequenceDiagram
     X-->>W: Preview + row-level errors
     U->>W: Confirm import
     W->>A: Process batch
-    A->>X: Import valid rows
-    loop each valid row
-        X->>L: Create income/expense through domain rules
+    A->>X: Parse and validate every row
+    alt Any row invalid
+        X->>R: Save FAILED batch with row errors
+        R-->>W: Failure details with zero inserted transactions
+    else Every row valid
+        X->>R: Begin one database transaction
+        loop each validated row
+            X->>L: Build income/expense through domain rules
+            L->>R: Insert with batch ID
+        end
+        X->>R: Mark COMPLETED + audit, then commit
+        R-->>W: Success counts
     end
-    X->>R: Save batch result + audit
-    R-->>W: Success/failure counts
 ```
 
 ## 6.4 Dashboard and Reporting
@@ -91,7 +98,7 @@ sequenceDiagram
     R->>D: SELECT/SUM/GROUP BY active records
     D-->>Q: Aggregate rows
     Q-->>W: KPI, series, category breakdown
-    W-->>U: Chart/table; convert USD→EUR if selected
+    W-->>U: Chart/table with optional USD to EUR display
 ```
 
 ## 6.5 Common Errors
@@ -104,4 +111,4 @@ sequenceDiagram
 | Record missing or soft-deleted | `404` |
 | Database failure | Roll back the transaction; return an error ID without exposing SQL |
 
-Code-level sequences for Authentication, Income, and Expense are documented in [UML Sequence Diagrams](../uml/02-sequence-diagrams.md). Endpoints in that document remain a provisional contract until OpenAPI 3.0 is completed.
+Code-level sequences for Authentication, Income, and Expense are documented in [UML Sequence Diagrams](../uml/02-sequence-diagrams.md). Their HTTP contracts are defined by the [OpenAPI 3.0.4 specification](../../api/openapi.yaml).
