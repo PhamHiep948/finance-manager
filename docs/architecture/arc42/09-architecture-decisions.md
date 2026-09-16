@@ -2,7 +2,7 @@
 
 Each Architecture Decision Record contains: Context, Decision, Alternatives, Consequences, Status.
 
-Status **Accepted** = established by the schema / business documentation / Architecture Decision Records in this file. **Proposed** = a principle not yet implemented in code. Do not invent Architecture Decision Records for a specific ORM, JSON Web Token approach, or object storage provider.
+Status **Accepted** means the decision is approved for Step 7 even if code does not exist yet.
 
 ## ADR-001 React.js for Web Frontend
 
@@ -21,7 +21,7 @@ Status **Accepted** = established by the schema / business documentation / Archi
 | **Context** | The system needs application programming interfaces, role-based access control, import, and SQL access. |
 | **Decision** | The Backend Application is written in C# on .NET. |
 | **Alternatives** | Node, Java. The repository has no requirement for those choices. |
-| **Consequences** | One .NET runtime; ASP.NET Core Controllers versus Minimal APIs remains **To Be Determined**. |
+| **Consequences** | ASP.NET Core attribute Controllers implement the OpenAPI operations; the API remains one deployable. |
 | **Status** | Accepted |
 
 ## ADR-003 Modular Monolith instead of Microservices
@@ -51,7 +51,7 @@ Status **Accepted** = established by the schema / business documentation / Archi
 | **Context** | React needs a synchronous contract for CRUD + import. |
 | **Decision** | REST JSON; HTTPS in production. |
 | **Alternatives** | GraphQL, gRPC — no complex-client requirement justifies them. |
-| **Consequences** | An OpenAPI specification does not exist yet (**To Be Determined**). |
+| **Consequences** | HTTP paths and schemas must remain synchronized with the [OpenAPI 3.0.4 specification](../../api/openapi.yaml). |
 | **Status** | Accepted |
 
 ## ADR-006 USD as Canonical Currency
@@ -81,9 +81,49 @@ Status **Accepted** = established by the schema / business documentation / Archi
 | **Context** | Four roles; Viewer/Employee can call APIs manually. |
 | **Decision** | Identity & Access is mandatory in .NET; React only improves user experience. |
 | **Alternatives** | Hide UI buttons only — insufficient. |
-| **Consequences** | Every write scenario in Section 6 contains a 403 path. Session mechanism To Be Determined. |
-| **Status** | Accepted (principle). Session implementation: Proposed / To Be Determined |
+| **Consequences** | Every write scenario contains a 403 path. V1 uses short-lived Bearer JWT access tokens with no refresh token; logout removes the client token and it expires naturally. |
+| **Status** | Accepted |
 
-## Decisions intentionally not yet captured as ADRs
+## ADR-009 Data Access and Transactions
 
-Attachment storage, local Transport Layer Security, CI, monitoring, Excel parser, password-hashing algorithm — see [Section 11](11-risks-and-technical-debt.md).
+| | |
+|---|---|
+| **Context** | Step 7 needs typed PostgreSQL access while preserving the existing schema, constraints, views, and audit triggers. |
+| **Decision** | Use Entity Framework Core with the Npgsql provider. Map the existing `shop_finance` schema explicitly; use `IUnitOfWork` transactions and `SET LOCAL app.current_user_id` before audited writes. |
+| **Alternatives** | Dapper or raw ADO.NET would provide control but require more manual mapping for this project. |
+| **Consequences** | Migrations must not silently rename existing objects; integration tests use PostgreSQL rather than an in-memory provider. |
+| **Status** | Accepted |
+
+## ADR-010 Password and Token Security
+
+| | |
+|---|---|
+| **Context** | Passwords and API credentials require a concrete Step 7 implementation. |
+| **Decision** | Use ASP.NET Core `PasswordHasher<AppUser>` and JWT Bearer authentication. Access tokens contain user ID and role, are short-lived, and contain no sensitive profile data. Signing keys come from secrets/configuration, never source control. |
+| **Alternatives** | Custom hashing is unsafe; server sessions require persistence not present in V1. |
+| **Consequences** | Logout cannot revoke an already-issued V1 token server-side; reducing token lifetime limits exposure. Refresh tokens are outside V1. |
+| **Status** | Accepted |
+
+## ADR-011 File Processing and Storage
+
+| | |
+|---|---|
+| **Context** | Imports require `.xls` and `.xlsx`; attachments require durable metadata and replaceable storage. |
+| **Decision** | Use NPOI behind `IExcelParser`. Use `IFileStorage`; the local implementation writes outside the web root using generated names while PostgreSQL stores metadata. Validate extension, signature, media type, and configured size limit. |
+| **Alternatives** | Browser parsing violates the backend trust boundary; binding directly to cloud storage reduces portability. |
+| **Consequences** | Production may replace local storage without changing Application code. Import commits all rows or none. |
+| **Status** | Accepted |
+
+## ADR-012 API Errors and Observability Baseline
+
+| | |
+|---|---|
+| **Context** | React and tests need deterministic errors and request correlation. |
+| **Decision** | Use ASP.NET Core Problem Details as specified by OpenAPI. Middleware creates a trace ID, maps known Application exceptions, logs through `ILogger`, and never returns stack traces. |
+| **Alternatives** | Ad-hoc envelopes drift across controllers. |
+| **Consequences** | Every error response is testable; a production log sink remains a deployment concern. |
+| **Status** | Accepted |
+
+## Decisions deferred beyond Step 7 baseline
+
+Production hosting, managed file storage, exchange-rate provider, centralized monitoring, backup, and deployment automation remain deployment decisions; they do not block local API implementation.

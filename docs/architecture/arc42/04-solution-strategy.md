@@ -35,6 +35,6 @@ flowchart LR
 
 Transport contains no SQL; Persistence makes no authorization decisions; the Frontend is not a security boundary.
 
-## 4.4 Open Decisions
+## 4.4 Step 7 Technology Decisions
 
-ASP.NET Core Controllers/Minimal APIs, JWT versus server sessions, Entity Framework Core, Dapper or ADO.NET, object storage, and the production platform are all TBD. They must not appear in baseline diagrams as decided facts.
+The API uses ASP.NET Core attribute Controllers, JWT Bearer access tokens, Entity Framework Core with Npgsql, ASP.NET Core password hashing, NPOI for `.xls`/`.xlsx`, and an `IFileStorage` abstraction with local storage for development. Production hosting, managed storage, backups, exchange-rate provider, and centralized monitoring remain deployment decisions.

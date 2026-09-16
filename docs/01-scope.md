@@ -45,10 +45,8 @@ V1 does **not** include:
 - Detailed payroll, social insurance, or double-entry accounting.
 - E-invoices, payment gateways, or Etsy API integration.
 - AI or chatbot features.
-- Backend API.
-- Real authentication.
-- PostgreSQL-to-frontend integration.
-- Real Excel parsing / server-side file upload.
+- Refresh tokens, external identity providers, and multi-factor authentication.
+- Direct integrations with third-party accounting, payment, or marketplace APIs.
 
 ## Current reality
 

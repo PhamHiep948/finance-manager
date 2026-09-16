@@ -118,7 +118,7 @@ Rules:
 - Only accounts with `is_active = true` and `deleted_at IS NULL` may log in.
 - The API never returns `PasswordHash`.
 - A successful login uses `IUnitOfWork` to set actor context, update `last_login_at`, and write the `LOGIN` audit action in the same transaction.
-- JWT issuance is an implementation detail; Step 4 OpenAPI will define the security scheme.
+- JWT issuance is an implementation detail; the Bearer security scheme is defined in the [OpenAPI contract](../../api/openapi.yaml).
 
 ## 2. Income
 
@@ -456,6 +456,6 @@ Names and values must match PostgreSQL:
 - API DTO ↔ Application command/query mapping occurs in `HandmadeFinance.Api/Mapping`.
 - Application entity ↔ database model mapping occurs in `HandmadeFinance.Infrastructure/Persistence`.
 - EF Core entities and `DbContext` are never passed directly to Controllers.
-- `IncomeResponse` and `ExpenseResponse` omit `DeletedAt`/`DeletedBy` from active lists unless OpenAPI later requires them.
+- `IncomeResponse` and `ExpenseResponse` omit `DeletedAt`/`DeletedBy` from active lists, consistent with the [OpenAPI contract](../../api/openapi.yaml).
 
 **Related:** [C4 Level 4](../c4/04-code.md) · [Database](../../DATABASE.md) · [Sequence diagrams](02-sequence-diagrams.md)

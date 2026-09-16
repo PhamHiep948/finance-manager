@@ -17,6 +17,7 @@ flowchart TB
         end
         subgraph data["Data"]
             database[("PostgreSQL<br/><i>[Container: Database]</i><br/>Users, categories, incomes, expenses,<br/>imports, attachments, and audit logs")]
+            files[("Local File Storage<br/><i>[Container: Filesystem]</i><br/>Import workbooks and transaction attachments;<br/>replaceable through IFileStorage")]
         end
     end
 
@@ -28,10 +29,12 @@ flowchart TB
     web -- "upload file import" --> backend
     workbook -.->|"selected from the user's device"| web
     backend -- "SQL / PostgreSQL protocol" --> database
+    backend -- "generated storage key / file stream" --> files
 
     style web fill:#1168bd,color:#fff
     style backend fill:#1168bd,color:#fff
     style database fill:#1168bd,color:#fff
+    style files fill:#3a7bd5,color:#fff
 ```
 
 ## Responsibilities
@@ -41,6 +44,7 @@ flowchart TB
 | Web Frontend | React.js, Vite | UI, route guards, charts, forms, and data tables | Mock implemented |
 | .NET Backend | C#, ASP.NET Core Web API, REST/JSON | Trust boundary for authentication, RBAC, business rules, and data access | Not implemented |
 | PostgreSQL | PostgreSQL | Persistent data and business relationships | Schema exists; not connected |
+| Local File Storage | Filesystem outside the web root | Binary imports and attachments addressed by generated storage keys | Target for local Step 7 implementation |
 
 ## Architecture Rules
 
@@ -48,7 +52,7 @@ flowchart TB
 2. Hiding frontend controls is UX only; the .NET Backend must authorize every request.
 3. Money is stored in USD; EUR is a display-only conversion.
 4. Transaction deletion is soft deletion to preserve history and auditability.
-5. Attachments currently contain metadata only; backend binary storage is not yet decided.
+5. PostgreSQL stores file metadata only. Binary files use `IFileStorage`; the local implementation writes outside the web root and production may replace it.
 
 ## Current State
 

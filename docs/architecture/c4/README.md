@@ -22,7 +22,7 @@ flowchart LR
 | Level | Document | Scope |
 |---|---|---|
 | C1 | [System Context](01-system-context.md) | Four roles and the HandmadeFinance boundary |
-| C2 | [Container](02-container.md) | React Web, .NET Backend, PostgreSQL |
+| C2 | [Container](02-container.md) | React Web, .NET Backend, PostgreSQL, local file storage |
 | C3 | [Component](03-component.md) | Components inside the .NET Backend |
 | C4 | [Code — two core features](04-code.md) | C# classes/interfaces for Income and Expense management |
 
@@ -34,6 +34,7 @@ flowchart LR
 | Mock store/auth | Runs in the browser using JavaScript data and Web Storage |
 | .NET Backend | Target architecture; not implemented |
 | PostgreSQL | Schema designed; not connected to the application |
+| Local file storage | Target adapter and location designed; not implemented |
 
 The diagrams describe the **target architecture** and state the current implementation status so that design is not mistaken for working source code. Level 4 is a code-level target because the .NET Backend has not been implemented.
 

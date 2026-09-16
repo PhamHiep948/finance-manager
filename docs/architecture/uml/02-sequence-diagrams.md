@@ -1,7 +1,7 @@
 # Sequence Diagrams — Authentication, Income, and Expense
 
 > **Scope:** Step 6 · **Status:** Design only; no working API  
-> The `/api/v1/...` endpoints are a provisional contract until the Step 4 OpenAPI 3.0 specification is approved.
+> The `/api/v1/...` endpoints follow the approved [OpenAPI 3.0.4 specification](../../api/openapi.yaml).
 
 The sequence diagrams describe calls between React, Presentation, Application, and Data. Every authorization path is checked by the backend; hiding frontend controls is UX only.
 
@@ -267,6 +267,6 @@ The endpoint uses HTTP `DELETE`, but persistence performs a soft deletion; data 
 | `409` | Conflict | Unique or business conflict, when applicable |
 | `500` | Internal Server Error | Unexpected failure; roll back and return a request/error ID |
 
-Error bodies are expected to use RFC 7807 Problem Details; Step 4 OpenAPI will define the exact structure.
+Error bodies use the RFC 7807-compatible structures defined in the [OpenAPI contract](../../api/openapi.yaml).
 
 **Related:** [Class diagrams](01-class-diagrams.md) · [General Runtime View](../arc42/06-runtime-view.md) · [Folder structure](../../07-folder-structure.md)

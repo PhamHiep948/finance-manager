@@ -15,8 +15,12 @@ Only constraints grounded in the repository or architecture baseline (Sections 4
 | Persistence / Data Access is the only SQL layer | Building Block View | DECISION |
 | Local Postgres: image `postgres:16`, host port **5433**, timezone `Asia/Ho_Chi_Minh` | `docker-compose.yml` | FACT |
 | In V1, `currency_code` is only `USD` (table CHECK constraint) | SQL | FACT |
+| API style = ASP.NET Core attribute Controllers | ADR-002 | DECISION |
+| Data access = Entity Framework Core + Npgsql | ADR-009 | DECISION |
+| Authentication = short-lived JWT Bearer, no refresh token | ADR-010 | DECISION |
+| Excel parsing = NPOI; files accessed through `IFileStorage` | ADR-011 | DECISION |
 
-Do not choose an ASP.NET Core API style, object-relational mapping library, JSON Web Token approach, Redis, or cloud object storage unless a later Architecture Decision Record does so (currently **To Be Determined**).
+Production hosting and managed storage remain replaceable deployment choices. Application code depends on abstractions rather than a cloud vendor.
 
 ## 2.2 Organizational Constraints
 

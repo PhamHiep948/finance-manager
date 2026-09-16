@@ -35,42 +35,67 @@ Menus / buttons are **not displayed** when the user lacks permission. Unauthoriz
 
 ## Use Case Diagram
 
-The diagram groups use cases by capability and connects each actor directly to the capabilities available to that role.
+Every use case is a separate node. Administrator and Shop Owner are placed on the left; Employee and Viewer are placed on the right to keep the system boundary readable.
 
 ```mermaid
-flowchart TB
-    subgraph roles["Actors"]
-        direction LR
-        admin(["👤 Administrator"])
-        owner(["👤 Shop Owner"])
-        employee(["👤 Employee"])
-        viewer(["👤 Viewer"])
+flowchart LR
+    subgraph left["Actors"]
+        direction TB
+        admin(["Administrator"])
+        owner(["Shop Owner"])
     end
 
     subgraph system["HandmadeFinance — System Boundary"]
-        direction LR
-        adminCases["<b>Administrator</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log<br/>UC16 Manage Users"]
-        ownerCases["<b>Shop Owner</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Income<br/>UC09–10 Add/Edit Expenses<br/>UC07 Soft-delete Income<br/>UC11 Soft-delete Expenses<br/>UC12 Import Excel Data<br/>UC13 View Reports · UC14 Export Reports<br/>UC15 View Audit Log"]
-        employeeCases["<b>Employee</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC05–06 Add/Edit Own Income<br/>UC09–10 Add/Edit Own Expenses<br/>UC12 Import Excel Data"]
-        viewerCases["<b>Viewer</b><br/><br/>UC01 Login · UC02 Logout<br/>UC03 View Dashboard · UC17 Manage Profile<br/>UC04 View Income · UC08 View Expenses<br/>UC13 View Reports · UC14 Export Reports"]
+        direction TB
+        subgraph common["Access and overview"]
+            direction LR
+            uc01["UC01 Login"]
+            uc02["UC02 Logout"]
+            uc03["UC03 View Dashboard"]
+            uc17["UC17 Manage Profile"]
+        end
+        subgraph ledger["Transactions"]
+            direction LR
+            uc04["UC04 View Income"]
+            uc05["UC05 Add Income"]
+            uc06["UC06 Edit Income"]
+            uc07["UC07 Soft-delete Income"]
+            uc08["UC08 View Expenses"]
+            uc09["UC09 Add Expenses"]
+            uc10["UC10 Edit Expenses"]
+            uc11["UC11 Soft-delete Expenses"]
+        end
+        subgraph operations["Operations and governance"]
+            direction LR
+            uc12["UC12 Import Excel Data"]
+            uc13["UC13 View Reports"]
+            uc14["UC14 Export Reports"]
+            uc15["UC15 View Audit Log"]
+            uc16["UC16 Manage Users"]
+        end
     end
 
-    admin --> adminCases
-    owner --> ownerCases
-    employee --> employeeCases
-    viewer --> viewerCases
+    subgraph right["Actors"]
+        direction TB
+        employee(["Employee"])
+        viewer(["Viewer"])
+    end
+
+    admin --> uc01 & uc02 & uc03 & uc04 & uc05 & uc06 & uc07 & uc08 & uc09 & uc10 & uc11 & uc12 & uc13 & uc14 & uc15 & uc16 & uc17
+    owner --> uc01 & uc02 & uc03 & uc04 & uc05 & uc06 & uc07 & uc08 & uc09 & uc10 & uc11 & uc12 & uc13 & uc14 & uc15 & uc17
+    employee --> uc01 & uc02 & uc03 & uc04 & uc05 & uc06 & uc08 & uc09 & uc10 & uc12 & uc17
+    viewer --> uc01 & uc02 & uc03 & uc04 & uc08 & uc13 & uc14 & uc17
 
     classDef actor fill:#666,color:#fff,stroke:#333
-    classDef primary fill:#1168bd,color:#fff,stroke:#0b4f9e
-    classDef standard fill:#3a7bd5,color:#fff,stroke:#245fa8
+    classDef usecase fill:#1168bd,color:#fff,stroke:#0b4f9e
     class admin,owner,employee,viewer actor
-    class adminCases,ownerCases primary
-    class employeeCases,viewerCases standard
-    style roles fill:#fff,stroke:#bbb,stroke-dasharray:5 5
+    class uc01,uc02,uc03,uc04,uc05,uc06,uc07,uc08,uc09,uc10,uc11,uc12,uc13,uc14,uc15,uc16,uc17 usecase
+    style left fill:#fff,stroke:#bbb,stroke-dasharray:5 5
+    style right fill:#fff,stroke:#bbb,stroke-dasharray:5 5
     style system fill:#f8fbff,stroke:#1168bd,stroke-dasharray:5 5
 ```
 
-### Include relationships and constraints
+### Shared rules and constraints
 
 ```mermaid
 flowchart LR
@@ -90,7 +115,6 @@ flowchart LR
     deleteUc["Soft-delete Transaction"] --> auth
     deleteUc --> authorize
     deleteUc --> audit
-
     importUc["Import Excel"] --> validate
     importUc --> audit
 

@@ -13,12 +13,14 @@ flowchart TB
         importer["Excel Import<br/><i>[Component]</i><br/>File validation, preview,<br/>batch import, and row-level results"]
         reporting["Dashboard & Reporting<br/><i>[Component]</i><br/>KPIs, trends, breakdowns,<br/>and export data"]
         audit["Audit Log<br/><i>[Component]</i><br/>Records business actions<br/>for traceability"]
+        fileStore["File Storage Adapter<br/><i>[Component]</i><br/>Validates and stores binary files<br/>behind IFileStorage"]
         persistence["Persistence<br/><i>[Component]</i><br/>Repositories, transaction boundaries,<br/>and SQL mapping"]
     end
 
     web["Web Frontend<br/><i>[Container: React.js]</i>"]
     db[("PostgreSQL<br/><i>[Container: Database]</i>")]
     file[("Excel Workbook<br/><i>[External Data]</i>")]
+    disk[("Local File Storage<br/><i>[Container]</i>")]
 
     web --> api
     file -.->|"uploaded through the Web Frontend"| api
@@ -32,12 +34,15 @@ flowchart TB
     ledger --> persistence
     importer --> ledger
     importer --> persistence
+    importer --> fileStore
+    ledger --> fileStore
     reporting --> persistence
     user -.->|"administrative events"| audit
     ledger -.->|"transaction events"| audit
     importer -.->|"batch results"| audit
     audit --> persistence
     persistence --> db
+    fileStore --> disk
 
     style api fill:#1168bd,color:#fff
     style identity fill:#1168bd,color:#fff
@@ -47,6 +52,7 @@ flowchart TB
     style reporting fill:#1168bd,color:#fff
     style audit fill:#1168bd,color:#fff
     style persistence fill:#1168bd,color:#fff
+    style fileStore fill:#1168bd,color:#fff
 ```
 
 ## Component catalog
@@ -60,6 +66,7 @@ flowchart TB
 | Excel Import | Batch parsing, validation, and import orchestration | Bypassing the domain to write transaction tables |
 | Dashboard & Reporting | Aggregate queries, KPIs, and export | Modifying transactions |
 | Audit Log | Business-action history | Primary operational data |
+| File Storage Adapter | File validation, generated keys, binary persistence | Business metadata or authorization |
 | Persistence | Repositories, SQL, and transactions | HTTP and UI authorization |
 
 ## Dependency Flow

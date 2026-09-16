@@ -1,0 +1,1205 @@
+openapi: 3.0.4
+info:
+  title: HandmadeFinance API
+  version: 1.0.0
+  description: |
+    REST API contract for HandmadeFinance V1. Monetary values are stored in USD.
+    EUR conversion is presentation-only. The backend is the authorization boundary.
+    Income and expense deletion is logical (soft delete), never physical deletion.
+  contact:
+    name: HandmadeFinance Team
+  license:
+    name: Unlicensed
+servers:
+  - url: /api/v1
+    description: Version 1 API relative to the deployment host
+tags:
+  - name: Authentication
+    description: Session creation and termination
+  - name: Dashboard
+    description: Aggregated financial overview
+  - name: Categories
+    description: Active income and expense category lookups
+  - name: Income
+    description: Income transaction management
+  - name: Expenses
+    description: Expense transaction management
+  - name: Reports
+    description: Financial reporting and export
+  - name: Imports
+    description: Excel import preview and processing
+  - name: Attachments
+    description: Transaction evidence file management
+  - name: Audit
+    description: Administrative activity history
+  - name: Users
+    description: Administrator user management
+  - name: Profile
+    description: Current-user account management
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LoginResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Log out
+      operationId: logout
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '204': {description: Logout acknowledged; the client discards its short-lived access token}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard data
+      operationId: getDashboard
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      parameters:
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+      responses:
+        '200':
+          description: Dashboard KPIs and charts calculated from active records
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DashboardResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /categories/income:
+    get:
+      tags: [Categories]
+      summary: List active income categories
+      operationId: listIncomeCategories
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '200':
+          description: Active income categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Category'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /categories/expense:
+    get:
+      tags: [Categories]
+      summary: List active expense categories
+      operationId: listExpenseCategories
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '200':
+          description: Active expense categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Category'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /incomes:
+    get:
+      tags: [Income]
+      summary: List active income records
+      operationId: listIncomes
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - {$ref: '#/components/parameters/Search'}
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+        - {$ref: '#/components/parameters/RecordStatus'}
+        - {$ref: '#/components/parameters/DataSource'}
+        - name: categoryId
+          in: query
+          schema: {type: integer, format: int64, minimum: 1}
+        - name: saleRegion
+          in: query
+          schema: {$ref: '#/components/schemas/SaleRegion'}
+        - name: salesChannel
+          in: query
+          schema: {$ref: '#/components/schemas/SalesChannel'}
+      responses:
+        '200':
+          description: Paginated active income records
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedIncomeResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [Income]
+      summary: Create an income record
+      operationId: createIncome
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IncomeWriteRequest'}
+      responses:
+        '201':
+          description: Income created
+          headers:
+            Location:
+              schema: {type: string, format: uri-reference}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Income'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /incomes/{incomeId}:
+    parameters:
+      - {$ref: '#/components/parameters/IncomeId'}
+    get:
+      tags: [Income]
+      summary: Get an active income record
+      operationId: getIncome
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '200':
+          description: Income record
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Income'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [Income]
+      summary: Replace an income record
+      description: EMPLOYEE may update only a record whose createdBy equals the authenticated user ID.
+      operationId: updateIncome
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      x-own-record-role: EMPLOYEE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IncomeWriteRequest'}
+      responses:
+        '200':
+          description: Income updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Income'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Income]
+      summary: Soft-delete an income record
+      description: Sets deletedAt/deletedBy. The database row is retained and audited by a PostgreSQL trigger.
+      operationId: softDeleteIncome
+      x-roles: [ADMIN, SHOP_OWNER]
+      responses:
+        '204': {description: Income soft-deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /expenses:
+    get:
+      tags: [Expenses]
+      summary: List active expense records
+      operationId: listExpenses
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - {$ref: '#/components/parameters/Search'}
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+        - {$ref: '#/components/parameters/RecordStatus'}
+        - {$ref: '#/components/parameters/DataSource'}
+        - name: categoryId
+          in: query
+          schema: {type: integer, format: int64, minimum: 1}
+        - name: originScope
+          in: query
+          schema: {$ref: '#/components/schemas/OriginScope'}
+        - name: paymentMethod
+          in: query
+          schema: {$ref: '#/components/schemas/PaymentMethod'}
+      responses:
+        '200':
+          description: Paginated active expense records
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedExpenseResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [Expenses]
+      summary: Create an expense record
+      operationId: createExpense
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ExpenseWriteRequest'}
+      responses:
+        '201':
+          description: Expense created
+          headers:
+            Location:
+              schema: {type: string, format: uri-reference}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Expense'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /expenses/{expenseId}:
+    parameters:
+      - {$ref: '#/components/parameters/ExpenseId'}
+    get:
+      tags: [Expenses]
+      summary: Get an active expense record
+      operationId: getExpense
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '200':
+          description: Expense record
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Expense'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [Expenses]
+      summary: Replace an expense record
+      description: EMPLOYEE may update only a record whose createdBy equals the authenticated user ID.
+      operationId: updateExpense
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      x-own-record-role: EMPLOYEE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ExpenseWriteRequest'}
+      responses:
+        '200':
+          description: Expense updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Expense'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Expenses]
+      summary: Soft-delete an expense record
+      description: Sets deletedAt/deletedBy. The database row is retained and audited by a PostgreSQL trigger.
+      operationId: softDeleteExpense
+      x-roles: [ADMIN, SHOP_OWNER]
+      responses:
+        '204': {description: Expense soft-deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: Get financial report data
+      operationId: getReport
+      x-roles: [ADMIN, SHOP_OWNER, VIEWER]
+      parameters:
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+        - name: groupBy
+          in: query
+          schema: {type: string, enum: [DAY, MONTH, INCOME_CATEGORY, EXPENSE_CATEGORY], default: MONTH}
+        - name: categoryId
+          in: query
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: Report aggregates over active USD records
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReportResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /reports/export:
+    get:
+      tags: [Reports]
+      summary: Export a report
+      operationId: exportReport
+      x-roles: [ADMIN, SHOP_OWNER, VIEWER]
+      parameters:
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+        - name: format
+          in: query
+          required: true
+          schema: {type: string, enum: [PDF, XLSX]}
+      responses:
+        '200':
+          description: Generated report file
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /imports/preview:
+    post:
+      tags: [Imports]
+      summary: Validate and preview an Excel import
+      operationId: previewImport
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [importType, file]
+              properties:
+                importType: {$ref: '#/components/schemas/ImportType'}
+                file: {type: string, format: binary}
+      responses:
+        '200':
+          description: Parsed preview; no business records have been committed
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ImportPreview'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+  /imports:
+    get:
+      tags: [Imports]
+      summary: List import history
+      operationId: listImports
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - name: importType
+          in: query
+          schema: {$ref: '#/components/schemas/ImportType'}
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/ImportStatus'}
+      responses:
+        '200':
+          description: Paginated import history
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedImportResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      tags: [Imports]
+      summary: Process an Excel import
+      description: The file is processed atomically. If any row is invalid, no income or expense rows from the batch are committed and the batch is marked FAILED with row errors.
+      operationId: createImport
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [importType, file]
+              properties:
+                importType: {$ref: '#/components/schemas/ImportType'}
+                file: {type: string, format: binary}
+      responses:
+        '202':
+          description: Import accepted for processing
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ImportBatch'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+  /imports/{importId}:
+    get:
+      tags: [Imports]
+      summary: Get an import batch
+      operationId: getImport
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      parameters:
+        - name: importId
+          in: path
+          required: true
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: Import batch status and row counts
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ImportBatch'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /incomes/{incomeId}/attachments:
+    post:
+      tags: [Attachments]
+      summary: Upload an income attachment
+      operationId: uploadIncomeAttachment
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      x-own-record-role: EMPLOYEE
+      parameters:
+        - {$ref: '#/components/parameters/IncomeId'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Attachment uploaded
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Attachment'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+  /expenses/{expenseId}/attachments:
+    post:
+      tags: [Attachments]
+      summary: Upload an expense attachment
+      operationId: uploadExpenseAttachment
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      x-own-record-role: EMPLOYEE
+      parameters:
+        - {$ref: '#/components/parameters/ExpenseId'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Attachment uploaded
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Attachment'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+  /attachments/{attachmentId}:
+    delete:
+      tags: [Attachments]
+      summary: Delete an attachment
+      operationId: deleteAttachment
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
+      x-own-record-role: EMPLOYEE
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '204': {description: Attachment deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /audit-logs:
+    get:
+      tags: [Audit]
+      summary: List audit logs
+      operationId: listAuditLogs
+      x-roles: [ADMIN, SHOP_OWNER]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - name: action
+          in: query
+          schema: {$ref: '#/components/schemas/AuditAction'}
+        - name: actorUserId
+          in: query
+          schema: {type: integer, format: int64, minimum: 1}
+        - name: module
+          in: query
+          schema: {type: string, maxLength: 100}
+        - {$ref: '#/components/parameters/DateFrom'}
+        - {$ref: '#/components/parameters/DateTo'}
+      responses:
+        '200':
+          description: Paginated audit records
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedAuditResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      x-roles: [ADMIN]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+        - {$ref: '#/components/parameters/Search'}
+        - name: role
+          in: query
+          schema: {$ref: '#/components/schemas/UserRole'}
+        - name: isActive
+          in: query
+          schema: {type: boolean}
+      responses:
+        '200':
+          description: Paginated users
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PagedUserResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      tags: [Users]
+      summary: Create a user
+      operationId: createUser
+      x-roles: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateUserRequest'}
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /users/{userId}:
+    parameters:
+      - {$ref: '#/components/parameters/UserId'}
+    get:
+      tags: [Users]
+      summary: Get a user
+      operationId: getUser
+      x-roles: [ADMIN]
+      responses:
+        '200':
+          description: User account
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [Users]
+      summary: Update a user
+      operationId: updateUser
+      x-roles: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateUserRequest'}
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /users/{userId}/status:
+    patch:
+      tags: [Users]
+      summary: Activate or disable a user
+      operationId: updateUserStatus
+      x-roles: [ADMIN]
+      parameters:
+        - {$ref: '#/components/parameters/UserId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              additionalProperties: false
+              properties:
+                isActive: {type: boolean}
+      responses:
+        '200':
+          description: User status updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Get the authenticated user's profile
+      operationId: getProfile
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      responses:
+        '200':
+          description: Current profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    put:
+      tags: [Profile]
+      summary: Update the authenticated user's profile
+      description: A user cannot change their own role or active status through this endpoint.
+      operationId: updateProfile
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateProfileRequest'}
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /profile/password:
+    put:
+      tags: [Profile]
+      summary: Change the authenticated user's password
+      operationId: changePassword
+      x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ChangePasswordRequest'}
+      responses:
+        '204': {description: Password changed}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: V1 short-lived JWT access token containing the authenticated user ID and role. V1 has no refresh token.
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 1, default: 1}
+    PageSize:
+      name: pageSize
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    Search:
+      name: search
+      in: query
+      schema: {type: string, maxLength: 200}
+    DateFrom:
+      name: dateFrom
+      in: query
+      schema: {type: string, format: date}
+    DateTo:
+      name: dateTo
+      in: query
+      schema: {type: string, format: date}
+    RecordStatus:
+      name: recordStatus
+      in: query
+      schema: {$ref: '#/components/schemas/RecordStatus'}
+    DataSource:
+      name: source
+      in: query
+      schema: {$ref: '#/components/schemas/DataSource'}
+    IncomeId:
+      name: incomeId
+      in: path
+      required: true
+      schema: {type: integer, format: int64, minimum: 1}
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      schema: {type: integer, format: int64, minimum: 1}
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: {type: integer, format: int64, minimum: 1}
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ValidationProblemDetails'}
+    Unauthorized:
+      description: Authentication is missing or invalid
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    Forbidden:
+      description: The authenticated user is not allowed to perform the operation
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    NotFound:
+      description: Resource does not exist or has been soft-deleted
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    Conflict:
+      description: Unique or business-state conflict
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    PayloadTooLarge:
+      description: Uploaded file exceeds the configured limit
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    InternalError:
+      description: Unexpected server failure
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+  schemas:
+    UserRole:
+      type: string
+      enum: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
+    RecordStatus:
+      type: string
+      enum: [DRAFT, PENDING, COMPLETED]
+    DataSource:
+      type: string
+      enum: [MANUAL, EXCEL_IMPORT]
+    SaleRegion:
+      type: string
+      nullable: true
+      enum: [IN_EU, OUTSIDE_EU]
+    SalesChannel:
+      type: string
+      nullable: true
+      enum: [ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE]
+    OriginScope:
+      type: string
+      enum: [DOMESTIC, INTERNATIONAL]
+    PaymentMethod:
+      type: string
+      nullable: true
+      enum: [CREDIT_CARD, BANK_TRANSFER, CASH, PAYPAL]
+    ImportType:
+      type: string
+      enum: [INCOME, EXPENSE]
+    ImportStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+    AuditAction:
+      type: string
+      enum: [INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT]
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email: {type: string, format: email, maxLength: 255}
+        password: {type: string, format: password, minLength: 1, maxLength: 128}
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, user]
+      properties:
+        accessToken: {type: string, readOnly: true}
+        tokenType: {type: string, enum: [Bearer], readOnly: true}
+        expiresAt: {type: string, format: date-time, readOnly: true}
+        user: {$ref: '#/components/schemas/User'}
+    User:
+      type: object
+      required: [id, username, fullName, timezone, role, isActive, createdAt, updatedAt]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        username: {type: string, maxLength: 100}
+        email: {type: string, format: email, maxLength: 255, nullable: true}
+        fullName: {type: string, maxLength: 255}
+        phone: {type: string, maxLength: 30, nullable: true}
+        avatarUrl: {type: string, format: uri, nullable: true}
+        timezone: {type: string, maxLength: 64, default: Asia/Ho_Chi_Minh}
+        role: {$ref: '#/components/schemas/UserRole'}
+        isActive: {type: boolean}
+        lastLoginAt: {type: string, format: date-time, nullable: true, readOnly: true}
+        createdAt: {type: string, format: date-time, readOnly: true}
+        updatedAt: {type: string, format: date-time, readOnly: true}
+    CreateUserRequest:
+      type: object
+      required: [username, email, password, fullName, role, isActive]
+      additionalProperties: false
+      properties:
+        username: {type: string, minLength: 1, maxLength: 100}
+        email: {type: string, format: email, maxLength: 255}
+        password: {type: string, format: password, minLength: 4, maxLength: 128}
+        fullName: {type: string, minLength: 1, maxLength: 255}
+        phone: {type: string, maxLength: 30, nullable: true}
+        avatarUrl: {type: string, format: uri, nullable: true}
+        timezone: {type: string, maxLength: 64, default: Asia/Ho_Chi_Minh}
+        role: {$ref: '#/components/schemas/UserRole'}
+        isActive: {type: boolean, default: true}
+    UpdateUserRequest:
+      type: object
+      required: [username, email, fullName, role, isActive]
+      additionalProperties: false
+      properties:
+        username: {type: string, minLength: 1, maxLength: 100}
+        email: {type: string, format: email, maxLength: 255}
+        fullName: {type: string, minLength: 1, maxLength: 255}
+        phone: {type: string, maxLength: 30, nullable: true}
+        avatarUrl: {type: string, format: uri, nullable: true}
+        timezone: {type: string, maxLength: 64}
+        role: {$ref: '#/components/schemas/UserRole'}
+        isActive: {type: boolean}
+    UpdateProfileRequest:
+      type: object
+      required: [fullName, timezone]
+      additionalProperties: false
+      properties:
+        fullName: {type: string, minLength: 1, maxLength: 255}
+        phone: {type: string, maxLength: 30, nullable: true}
+        avatarUrl: {type: string, format: uri, nullable: true}
+        timezone: {type: string, maxLength: 64}
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      additionalProperties: false
+      properties:
+        currentPassword: {type: string, format: password, minLength: 1, maxLength: 128}
+        newPassword: {type: string, format: password, minLength: 4, maxLength: 128}
+
+    Category:
+      type: object
+      required: [id, name, isActive]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        name: {type: string, maxLength: 150}
+        description: {type: string, nullable: true}
+        isActive: {type: boolean}
+
+    IncomeWriteRequest:
+      type: object
+      required: [incomeDate, description, incomeCategoryId, amount, currencyCode, recordStatus, discountAmount, shippingAmount, taxAmount, taxPercent, amountAfterTax]
+      additionalProperties: false
+      properties:
+        incomeDate: {type: string, format: date}
+        description: {type: string, minLength: 1}
+        incomeCategoryId: {type: integer, format: int64, minimum: 1}
+        amount: {type: number, format: decimal, exclusiveMinimum: true, minimum: 0, multipleOf: 0.01}
+        currencyCode: {type: string, enum: [USD], default: USD}
+        referenceCode: {type: string, maxLength: 150, nullable: true}
+        orderCode: {type: string, maxLength: 150, nullable: true}
+        saleRegion: {$ref: '#/components/schemas/SaleRegion'}
+        salesChannel: {$ref: '#/components/schemas/SalesChannel'}
+        recordStatus: {$ref: '#/components/schemas/RecordStatus'}
+        productQty: {type: integer, minimum: 1, nullable: true}
+        unitPrice: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, nullable: true}
+        itemTotal: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, nullable: true}
+        discountAmount: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, default: 0}
+        discountCode: {type: string, maxLength: 80, nullable: true}
+        subtotal: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, nullable: true}
+        shippingAmount: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, default: 0}
+        taxAmount: {type: number, format: decimal, minimum: 0, multipleOf: 0.01, default: 0}
+        taxPercent: {type: number, format: decimal, minimum: 0, maximum: 100, multipleOf: 0.01, default: 0}
+        amountAfterTax: {type: number, format: decimal, minimum: 0, multipleOf: 0.01}
+        note: {type: string, nullable: true}
+    Income:
+      allOf:
+        - {$ref: '#/components/schemas/IncomeWriteRequest'}
+        - type: object
+          required: [id, source, createdAt, updatedAt, attachments]
+          properties:
+            id: {type: integer, format: int64, readOnly: true}
+            source: {$ref: '#/components/schemas/DataSource'}
+            importBatchId: {type: integer, format: int64, nullable: true, readOnly: true}
+            createdBy: {type: integer, format: int64, nullable: true, readOnly: true}
+            updatedBy: {type: integer, format: int64, nullable: true, readOnly: true}
+            createdAt: {type: string, format: date-time, readOnly: true}
+            updatedAt: {type: string, format: date-time, readOnly: true}
+            attachments:
+              type: array
+              readOnly: true
+              items: {$ref: '#/components/schemas/Attachment'}
+
+    ExpenseWriteRequest:
+      type: object
+      required: [expenseDate, description, expenseCategoryId, amount, currencyCode, originScope, recordStatus, taxPercent, amountAfterTax]
+      additionalProperties: false
+      properties:
+        expenseDate: {type: string, format: date}
+        description: {type: string, minLength: 1}
+        expenseCategoryId: {type: integer, format: int64, minimum: 1}
+        amount: {type: number, format: decimal, exclusiveMinimum: true, minimum: 0, multipleOf: 0.01}
+        currencyCode: {type: string, enum: [USD], default: USD}
+        payee: {type: string, maxLength: 255, nullable: true}
+        originScope: {$ref: '#/components/schemas/OriginScope'}
+        paymentMethod: {$ref: '#/components/schemas/PaymentMethod'}
+        recordStatus: {$ref: '#/components/schemas/RecordStatus'}
+        taxPercent: {type: number, format: decimal, minimum: 0, maximum: 100, multipleOf: 0.01, default: 0}
+        amountAfterTax: {type: number, format: decimal, exclusiveMinimum: true, minimum: 0, multipleOf: 0.01}
+        note: {type: string, nullable: true}
+    Expense:
+      allOf:
+        - {$ref: '#/components/schemas/ExpenseWriteRequest'}
+        - type: object
+          required: [id, source, createdAt, updatedAt, attachments]
+          properties:
+            id: {type: integer, format: int64, readOnly: true}
+            source: {$ref: '#/components/schemas/DataSource'}
+            importBatchId: {type: integer, format: int64, nullable: true, readOnly: true}
+            createdBy: {type: integer, format: int64, nullable: true, readOnly: true}
+            updatedBy: {type: integer, format: int64, nullable: true, readOnly: true}
+            createdAt: {type: string, format: date-time, readOnly: true}
+            updatedAt: {type: string, format: date-time, readOnly: true}
+            attachments:
+              type: array
+              readOnly: true
+              items: {$ref: '#/components/schemas/Attachment'}
+
+    Attachment:
+      type: object
+      required: [id, originalName, uploadedAt]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        originalName: {type: string, maxLength: 500, readOnly: true}
+        mimeType: {type: string, maxLength: 150, nullable: true, readOnly: true}
+        fileSizeBytes: {type: integer, format: int64, minimum: 0, nullable: true, readOnly: true}
+        uploadedBy: {type: integer, format: int64, nullable: true, readOnly: true}
+        uploadedAt: {type: string, format: date-time, readOnly: true}
+
+    ImportPreview:
+      type: object
+      required: [importType, originalFileName, totalRows, validRows, invalidRows, rows]
+      properties:
+        importType: {$ref: '#/components/schemas/ImportType'}
+        originalFileName: {type: string, maxLength: 500}
+        totalRows: {type: integer, minimum: 0}
+        validRows: {type: integer, minimum: 0}
+        invalidRows: {type: integer, minimum: 0}
+        rows:
+          type: array
+          items:
+            type: object
+            required: [rowNumber, isValid, data, errors]
+            properties:
+              rowNumber: {type: integer, minimum: 1}
+              isValid: {type: boolean}
+              data: {type: object, additionalProperties: true}
+              errors:
+                type: array
+                items: {type: string}
+    ImportBatch:
+      type: object
+      required: [id, importType, originalFileName, status, totalRows, successRows, failedRows, createdAt]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        importType: {$ref: '#/components/schemas/ImportType'}
+        originalFileName: {type: string, maxLength: 500}
+        status: {$ref: '#/components/schemas/ImportStatus'}
+        totalRows: {type: integer, minimum: 0}
+        successRows: {type: integer, minimum: 0}
+        failedRows: {type: integer, minimum: 0}
+        errorDetails: {type: object, nullable: true, additionalProperties: true}
+        importedBy: {type: integer, format: int64, nullable: true, readOnly: true}
+        createdAt: {type: string, format: date-time, readOnly: true}
+        completedAt: {type: string, format: date-time, nullable: true, readOnly: true}
+
+    AuditLog:
+      type: object
+      required: [id, action, changedAt]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        tableName: {type: string, maxLength: 100, nullable: true}
+        recordId: {type: integer, format: int64, nullable: true}
+        action: {$ref: '#/components/schemas/AuditAction'}
+        module: {type: string, maxLength: 100, nullable: true}
+        detail: {type: string, nullable: true}
+        actorUserId: {type: integer, format: int64, nullable: true}
+        oldData: {type: object, nullable: true, additionalProperties: true}
+        newData: {type: object, nullable: true, additionalProperties: true}
+        changedAt: {type: string, format: date-time, readOnly: true}
+        requestId: {type: string, format: uuid, nullable: true}
+        ipAddress: {type: string, nullable: true}
+
+    DashboardResponse:
+      type: object
+      required: [currencyCode, totalIncome, totalExpense, netResult, transactionCount, cashflow, incomeByCategory, recentTransactions]
+      properties:
+        currencyCode: {type: string, enum: [USD]}
+        totalIncome: {type: number, format: decimal}
+        totalExpense: {type: number, format: decimal}
+        netResult: {type: number, format: decimal}
+        transactionCount: {type: integer, minimum: 0}
+        cashflow:
+          type: array
+          items: {$ref: '#/components/schemas/ReportPoint'}
+        incomeByCategory:
+          type: array
+          items: {$ref: '#/components/schemas/CategoryAmount'}
+        recentTransactions:
+          type: array
+          items: {$ref: '#/components/schemas/TransactionSummary'}
+    ReportResponse:
+      type: object
+      required: [currencyCode, totalIncome, totalExpense, netResult, points]
+      properties:
+        currencyCode: {type: string, enum: [USD]}
+        totalIncome: {type: number, format: decimal}
+        totalExpense: {type: number, format: decimal}
+        netResult: {type: number, format: decimal}
+        points:
+          type: array
+          items: {$ref: '#/components/schemas/ReportPoint'}
+    ReportPoint:
+      type: object
+      required: [key, income, expense, netResult]
+      properties:
+        key: {type: string}
+        income: {type: number, format: decimal}
+        expense: {type: number, format: decimal}
+        netResult: {type: number, format: decimal}
+    CategoryAmount:
+      type: object
+      required: [categoryId, categoryName, amount]
+      properties:
+        categoryId: {type: integer, format: int64}
+        categoryName: {type: string}
+        amount: {type: number, format: decimal}
+    TransactionSummary:
+      type: object
+      required: [id, type, date, description, amount, currencyCode]
+      properties:
+        id: {type: integer, format: int64}
+        type: {type: string, enum: [INCOME, EXPENSE]}
+        date: {type: string, format: date}
+        description: {type: string}
+        amount: {type: number, format: decimal}
+        currencyCode: {type: string, enum: [USD]}
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, totalItems, totalPages]
+      properties:
+        page: {type: integer, minimum: 1}
+        pageSize: {type: integer, minimum: 1, maximum: 100}
+        totalItems: {type: integer, format: int64, minimum: 0}
+        totalPages: {type: integer, minimum: 0}
+    PagedIncomeResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Income'}}
+        meta: {$ref: '#/components/schemas/PageMeta'}
+    PagedExpenseResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Expense'}}
+        meta: {$ref: '#/components/schemas/PageMeta'}
+    PagedImportResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/ImportBatch'}}
+        meta: {$ref: '#/components/schemas/PageMeta'}
+    PagedAuditResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/AuditLog'}}
+        meta: {$ref: '#/components/schemas/PageMeta'}
+    PagedUserResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/User'}}
+        meta: {$ref: '#/components/schemas/PageMeta'}
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string, format: uri-reference}
+        title: {type: string}
+        status: {type: integer, minimum: 400, maximum: 599}
+        detail: {type: string, nullable: true}
+        instance: {type: string, format: uri-reference, nullable: true}
+        traceId: {type: string, nullable: true}
+    ValidationProblemDetails:
+      allOf:
+        - {$ref: '#/components/schemas/ProblemDetails'}
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: {type: string}
