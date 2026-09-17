@@ -232,7 +232,7 @@ export default function RecordList({ kind }) {
       ),
       category: (
         <td>
-          <span className={`badge ${catTone(r.categoryId)}`}>{catName(cats, r.categoryId)}</span>
+          <span className={`badge record-list-label ${catTone(r.categoryId)}`}>{catName(cats, r.categoryId)}</span>
         </td>
       ),
       order: <td><span className="cell-code">{r.orderCode || "—"}</span></td>,
@@ -260,14 +260,14 @@ export default function RecordList({ kind }) {
       region: (
         <td>
           {r.saleRegion
-            ? <span className={`badge ${regionCls}`}>{saleRegionLabel(r.saleRegion)}</span>
+            ? <span className={`badge record-list-label ${regionCls}`}>{saleRegionLabel(r.saleRegion)}</span>
             : <span className="muted">—</span>}
         </td>
       ),
       origin: (
         <td>
           {r.originScope
-            ? <span className={`badge ${originCls}`}>{originScopeLabel(r.originScope)}</span>
+            ? <span className={`badge record-list-label ${originCls}`}>{originScopeLabel(r.originScope)}</span>
             : <span className="muted">—</span>}
         </td>
       ),

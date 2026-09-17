@@ -756,6 +756,13 @@ th.amount { text-align: left; }
 .cat-tone-5 { background: var(--color-critical-bg); color: var(--color-critical); }
 .cat-tone-6 { background: var(--color-neutral-200); color: var(--color-neutral-800); }
 .cat-tone-7 { background: var(--color-accent-100); color: var(--color-accent-900); }
+
+/* Category and region/scope values in record tables are labels, not highlighted badges. */
+.badge.record-list-label {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+}
 .empty { text-align: center; padding: 40px 16px; color: var(--text-secondary); }
 .empty strong { display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 4px; }
 

@@ -5,13 +5,35 @@ HandmadeFinance helps handmade shop owners manage income and expenses in one pla
 ## Source layout
 
 ```text
-src/
-├── frontend/   # React + Vite client (currently backed by mock data)
-├── backend/    # ASP.NET Core three-tier solution scaffold
-└── database/   # PostgreSQL SQL, DBML, and verification tests
+finance-manager/
+├── src/
+│   ├── frontend/                     # React 19 + Vite prototype
+│   │   ├── src/
+│   │   │   ├── components/           # Login and authenticated application shell
+│   │   │   ├── pages/                # Dashboard, ledger, reports, import, audit, users, profile
+│   │   │   └── lib/                  # Mock data, browser state, permissions, formatting, UI helpers
+│   │   ├── public/                   # Static assets and sample Excel workbooks
+│   │   └── package.json              # Frontend scripts and dependencies
+│   ├── backend/                      # Target ASP.NET Core three-tier scaffold
+│   │   ├── src/
+│   │   │   ├── HandmadeFinance.Api/  # Planned presentation/API layer
+│   │   │   ├── HandmadeFinance.Application/
+│   │   │   └── HandmadeFinance.Infrastructure/
+│   │   └── tests/                    # Planned application, API, and infrastructure tests
+│   └── database/
+│       ├── shop_finance.sql          # PostgreSQL target schema, constraints, views, triggers, seeds
+│       └── shop_finance.dbml         # Database relationship model
+├── docs/
+│   ├── api/                          # OpenAPI contract and API usage documentation
+│   ├── architecture/                 # C4, arc42, class diagrams, and sequence diagrams
+│   ├── requirements/                 # Business rules and non-functional requirements
+│   ├── traceability/                 # Cross-step master traceability matrix
+│   ├── images/                       # Role-based UI screenshots
+│   └── 01-scope.md … 09-step-7-readiness.md
+└── README.md
 ```
 
-The detailed target structure and dependency rules are documented in [Step 5 — Folder Structure](docs/07-folder-structure.md).
+The frontend is currently an intentional mock-data prototype for interface development and demonstration. The backend directories are design scaffolds only—no ASP.NET Core application has been implemented yet. The PostgreSQL and OpenAPI files define target contracts and are not connected to the current frontend runtime.
 
 ## User Interface
 
@@ -37,10 +59,10 @@ The detailed target structure and dependency rules are documented in [Step 5 —
 flowchart TB
     subgraph roles["Actors"]
         direction LR
-        admin(["👤 Administrator"])
-        owner(["👤 Shop Owner"])
-        employee(["👤 Employee"])
-        viewer(["👤 Viewer"])
+        admin(["Administrator"])
+        owner(["Shop Owner"])
+        employee(["Employee"])
+        viewer(["Viewer"])
     end
 
     subgraph system["HandmadeFinance — System Boundary"]
@@ -78,10 +100,10 @@ This README presents only C1–C3. C4 Level 4 and detailed UML are maintained in
 
 ```mermaid
 flowchart LR
-    admin(["👤 Administrator"])
-    owner(["👤 Shop Owner"])
-    employee(["👤 Employee"])
-    viewer(["👤 Viewer"])
+    admin(["Administrator"])
+    owner(["Shop Owner"])
+    employee(["Employee"])
+    viewer(["Viewer"])
 
     subgraph boundary[" "]
         finance["HandmadeFinance<br/><i>[Software System]</i><br/>Manages income, expenses, reports,<br/>data imports, users, and audit logs"]
@@ -103,8 +125,8 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    operator(["👤 Administrator / Shop Owner / Employee"])
-    reader(["👤 Viewer"])
+    operator(["Administrator / Shop Owner / Employee"])
+    reader(["Viewer"])
 
     subgraph platform["HandmadeFinance [Software System Boundary]"]
         direction TB
@@ -189,6 +211,602 @@ flowchart TB
 
 
 Complete documentation: [C4 Architecture](docs/architecture/c4/README.md) and [arc42 Architecture Handbook](docs/architecture/arc42/README.md).
+
+## Data Architecture
+
+The target PostgreSQL model keeps users, financial transactions, imports, attachments, and audit events connected while preserving separate income and expense categories.
+
+```mermaid
+erDiagram
+    app_users ||--o{ income_categories : creates
+    app_users ||--o{ expense_categories : creates
+    app_users ||--o{ incomes : creates
+    app_users ||--o{ expenses : creates
+    app_users ||--o{ import_batches : imports
+    app_users ||--o{ attachments : uploads
+    app_users ||--o{ audit_logs : performs
+
+    income_categories ||--o{ incomes : classifies
+    expense_categories ||--o{ expenses : classifies
+    import_batches ||--o{ incomes : contains
+    import_batches ||--o{ expenses : contains
+    incomes ||--o{ attachments : has
+    expenses ||--o{ attachments : has
+
+    app_users {
+        bigint id PK
+        varchar email
+        user_role role
+        boolean is_active
+    }
+    income_categories {
+        bigint id PK
+        varchar name
+        bigint created_by FK
+    }
+    incomes {
+        bigint id PK
+        date income_date
+        bigint income_category_id FK
+        numeric amount
+        data_source source
+        bigint import_batch_id FK
+        bigint created_by FK
+        timestamptz deleted_at
+    }
+    expense_categories {
+        bigint id PK
+        varchar name
+        bigint created_by FK
+    }
+    expenses {
+        bigint id PK
+        date expense_date
+        bigint expense_category_id FK
+        numeric amount
+        data_source source
+        bigint import_batch_id FK
+        bigint created_by FK
+        timestamptz deleted_at
+    }
+    import_batches {
+        bigint id PK
+        import_type import_type
+        import_status status
+        bigint imported_by FK
+    }
+    attachments {
+        bigint id PK
+        bigint income_id FK
+        bigint expense_id FK
+        bigint uploaded_by FK
+    }
+    audit_logs {
+        bigint id PK
+        bigint actor_user_id FK
+        audit_action action
+        varchar module
+    }
+```
+
+See the [detailed database diagram](docs/DATABASE.md), [data model](docs/05-data-model.md), and [PostgreSQL schema](src/database/shop_finance.sql).
+
+### C4 Level 4 — Code
+
+#### L4.1 Income Management
+
+```mermaid
+flowchart TB
+    subgraph income["Income Management [Component]"]
+        direction TB
+        handler["IncomesController<br/><i>[ASP.NET Core Controller]</i><br/>Receives requests and maps DTOs<br/>and HTTP responses"]
+        service["IncomeService<br/><i>[C# class]</i><br/>Coordinates create, update,<br/>soft delete, and queries"]
+        policy["IncomePolicy<br/><i>[C# class]</i><br/>Checks roles and employee<br/>record-ownership permissions"]
+        validator["IncomeValidator<br/><i>[C# class]</i><br/>Validates dates, amounts, tax,<br/>categories, and status"]
+        model["Income<br/><i>[Domain entity]</i><br/>Income data and business rules"]
+        repository["IIncomeRepository<br/><i>[C# interface]</i><br/>AddAsync, UpdateAsync,<br/>FindActiveAsync, ListAsync"]
+        postgres["IncomeRepository<br/><i>[C# class]</i><br/>Implements the repository with SQL"]
+
+        handler --> service
+        service --> policy
+        service --> validator
+        service --> model
+        service --> repository
+        postgres -.->|"implements"| repository
+    end
+
+    api["HTTP API<br/><i>[Component]</i>"]
+    identity["Identity & Access<br/><i>[Component]</i>"]
+    audit["Audit Log<br/><i>[Component]</i><br/>DML audit is produced by PostgreSQL triggers"]
+    db[("PostgreSQL<br/><i>[Container: Database]</i>")]
+
+    api --> handler
+    policy --> identity
+    postgres --> db
+    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+
+    style handler fill:#1168bd,color:#fff
+    style service fill:#0b4f9e,color:#fff
+    style policy fill:#1168bd,color:#fff
+    style validator fill:#1168bd,color:#fff
+    style model fill:#1168bd,color:#fff
+    style repository fill:#1168bd,color:#fff
+    style postgres fill:#1168bd,color:#fff
+```
+
+#### L4.2 Expense Management
+
+```mermaid
+flowchart TB
+    subgraph expense["Expense Management [Component]"]
+        direction TB
+        handler["ExpensesController<br/><i>[ASP.NET Core Controller]</i><br/>Receives requests and maps DTOs<br/>and HTTP responses"]
+        service["ExpenseService<br/><i>[C# class]</i><br/>Coordinates create, update,<br/>soft delete, and queries"]
+        policy["ExpensePolicy<br/><i>[C# class]</i><br/>Checks roles and employee<br/>record-ownership permissions"]
+        validator["ExpenseValidator<br/><i>[C# class]</i><br/>Validates dates, payees, amounts,<br/>tax, scope, and status"]
+        model["Expense<br/><i>[Domain entity]</i><br/>Expense data and business rules"]
+        repository["IExpenseRepository<br/><i>[C# interface]</i><br/>AddAsync, UpdateAsync,<br/>FindActiveAsync, ListAsync"]
+        postgres["ExpenseRepository<br/><i>[C# class]</i><br/>Implements the repository with SQL"]
+
+        handler --> service
+        service --> policy
+        service --> validator
+        service --> model
+        service --> repository
+        postgres -.->|"implements"| repository
+    end
+
+    api["HTTP API<br/><i>[Component]</i>"]
+    identity["Identity & Access<br/><i>[Component]</i>"]
+    audit["Audit Log<br/><i>[Component]</i><br/>DML audit is produced by PostgreSQL triggers"]
+    db[("PostgreSQL<br/><i>[Container: Database]</i>")]
+
+    api --> handler
+    policy --> identity
+    postgres --> db
+    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+
+    style handler fill:#1168bd,color:#fff
+    style service fill:#0b4f9e,color:#fff
+    style policy fill:#1168bd,color:#fff
+    style validator fill:#1168bd,color:#fff
+    style model fill:#1168bd,color:#fff
+    style repository fill:#1168bd,color:#fff
+    style postgres fill:#1168bd,color:#fff
+```
+
+Source: [C4 Level 4 — Code](docs/architecture/c4/04-code.md)
+
+### Core Class Diagrams
+
+#### 1. Authentication
+
+```mermaid
+classDiagram
+    direction TB
+
+    class AuthController {
+        +LoginAsync(LoginRequest, CancellationToken) Task
+        +LogoutAsync(CancellationToken) Task
+    }
+
+    class LoginRequest {
+        +string Email
+        +string Password
+    }
+
+    class LoginResponse {
+        +string AccessToken
+        +string TokenType
+        +DateTimeOffset ExpiresAt
+        +UserResponse User
+    }
+
+    class UserResponse {
+        +long Id
+        +string Username
+        +string FullName
+        +string? Email
+        +string? Phone
+        +string? AvatarUrl
+        +string Timezone
+        +UserRole Role
+        +bool IsActive
+        +DateTimeOffset? LastLoginAt
+        +DateTimeOffset CreatedAt
+        +DateTimeOffset UpdatedAt
+    }
+
+    class IAuthService {
+        <<interface>>
+        +LoginAsync(string, string, CancellationToken) Task
+        +LogoutAsync(ActorContext, CancellationToken) Task
+    }
+
+    class AuthService {
+        +LoginAsync(string, string, CancellationToken) Task
+        +LogoutAsync(ActorContext, CancellationToken) Task
+    }
+
+    class AuthResult {
+        +string AccessToken
+        +DateTimeOffset ExpiresAt
+        +AppUser User
+    }
+
+    class AppUser {
+        +long Id
+        +string Username
+        +string? Email
+        +string PasswordHash
+        +string FullName
+        +UserRole Role
+        +bool IsActive
+        +DateTimeOffset? LastLoginAt
+        +DateTimeOffset? DeletedAt
+    }
+
+    class IUserRepository {
+        <<interface>>
+        +FindActiveByEmailAsync(string, CancellationToken) Task
+        +UpdateLastLoginAsync(long, DateTimeOffset, CancellationToken) Task
+    }
+
+    class IPasswordHasher {
+        <<interface>>
+        +Verify(string, string) bool
+    }
+
+    class ITokenIssuer {
+        <<interface>>
+        +Issue(AppUser) TokenResult
+    }
+
+    class IAuditLogRepository {
+        <<interface>>
+        +AddAsync(AuditEntry, CancellationToken) Task
+    }
+
+    class IUnitOfWork {
+        <<interface>>
+        +ExecuteAsync(long actorUserId, Func, CancellationToken) Task
+    }
+
+    class UserRepository {
+        +FindActiveByEmailAsync(string, CancellationToken) Task
+        +UpdateLastLoginAsync(long, DateTimeOffset, CancellationToken) Task
+    }
+
+    class PasswordHasher
+    class JwtTokenIssuer
+    class AuditLogRepository
+    class EfUnitOfWork
+
+    AuthController --> LoginRequest
+    AuthController --> LoginResponse
+    AuthController --> IAuthService
+    AuthService ..|> IAuthService
+    AuthService --> IUserRepository
+    AuthService --> IPasswordHasher
+    AuthService --> ITokenIssuer
+    AuthService --> IAuditLogRepository
+    AuthService --> IUnitOfWork
+    AuthService --> AuthResult
+    AuthResult --> AppUser
+    UserRepository ..|> IUserRepository
+    PasswordHasher ..|> IPasswordHasher
+    JwtTokenIssuer ..|> ITokenIssuer
+    AuditLogRepository ..|> IAuditLogRepository
+    EfUnitOfWork ..|> IUnitOfWork
+```
+
+#### 2. Income
+
+```mermaid
+classDiagram
+    direction TB
+
+    class IncomesController {
+        +ListAsync(IncomeQueryRequest, CancellationToken) Task
+        +GetByIdAsync(long, CancellationToken) Task
+        +CreateAsync(CreateIncomeRequest, CancellationToken) Task
+        +UpdateAsync(long, UpdateIncomeRequest, CancellationToken) Task
+        +SoftDeleteAsync(long, CancellationToken) Task
+    }
+
+    class CreateIncomeRequest {
+        +DateOnly IncomeDate
+        +string Description
+        +long IncomeCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? ReferenceCode
+        +string? OrderCode
+        +SaleRegion? SaleRegion
+        +SalesChannel? SalesChannel
+        +RecordStatus RecordStatus
+        +int? ProductQty
+        +decimal? UnitPrice
+        +decimal? ItemTotal
+        +decimal DiscountAmount
+        +string? DiscountCode
+        +decimal? Subtotal
+        +decimal ShippingAmount
+        +decimal TaxAmount
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +string? Note
+    }
+
+    class UpdateIncomeRequest {
+        +DateOnly IncomeDate
+        +string Description
+        +long IncomeCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? ReferenceCode
+        +string? OrderCode
+        +SaleRegion? SaleRegion
+        +SalesChannel? SalesChannel
+        +RecordStatus RecordStatus
+        +int? ProductQty
+        +decimal? UnitPrice
+        +decimal? ItemTotal
+        +decimal DiscountAmount
+        +string? DiscountCode
+        +decimal? Subtotal
+        +decimal ShippingAmount
+        +decimal TaxAmount
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +string? Note
+    }
+
+    class IncomeResponse {
+        +long Id
+        +string Description
+        +decimal Amount
+        +decimal AmountAfterTax
+        +RecordStatus RecordStatus
+        +long CreatedBy
+    }
+
+    class IncomeQuery
+
+    class IIncomeService {
+        <<interface>>
+        +ListAsync(IncomeQuery, ActorContext, CancellationToken) Task
+        +GetByIdAsync(long, ActorContext, CancellationToken) Task
+        +CreateAsync(IncomeDraft, ActorContext, CancellationToken) Task
+        +UpdateAsync(long, IncomeDraft, ActorContext, CancellationToken) Task
+        +SoftDeleteAsync(long, ActorContext, CancellationToken) Task
+    }
+
+    class IncomeService
+
+    class IncomePolicy {
+        +EnsureCanCreate(ActorContext) void
+        +EnsureCanUpdate(ActorContext, Income) void
+        +EnsureCanDelete(ActorContext, Income) void
+    }
+
+    class IncomeValidator {
+        +Validate(IncomeDraft) ValidationResult
+    }
+
+    class Income {
+        +long Id
+        +DateOnly IncomeDate
+        +string Description
+        +long IncomeCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? ReferenceCode
+        +string? OrderCode
+        +SaleRegion? SaleRegion
+        +SalesChannel? SalesChannel
+        +RecordStatus RecordStatus
+        +int? ProductQty
+        +decimal? UnitPrice
+        +decimal? ItemTotal
+        +decimal DiscountAmount
+        +string? DiscountCode
+        +decimal? Subtotal
+        +decimal ShippingAmount
+        +decimal TaxAmount
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +DataSource Source
+        +long? ImportBatchId
+        +string? Note
+        +long? CreatedBy
+        +long? UpdatedBy
+        +DateTimeOffset CreatedAt
+        +DateTimeOffset UpdatedAt
+        +DateTimeOffset? DeletedAt
+        +long? DeletedBy
+        +SoftDelete(long, DateTimeOffset) void
+    }
+
+    class IncomeDraft
+    class ActorContext {
+        +long UserId
+        +UserRole Role
+    }
+
+    class IIncomeRepository {
+        <<interface>>
+        +ListAsync(IncomeQuery, CancellationToken) Task
+        +FindActiveAsync(long, CancellationToken) Task
+        +AddAsync(Income, CancellationToken) Task
+        +UpdateAsync(Income, CancellationToken) Task
+    }
+
+    class IUnitOfWork {
+        <<interface>>
+        +ExecuteAsync(long actorUserId, Func, CancellationToken) Task
+    }
+
+    class IncomeRepository
+    class EfUnitOfWork
+
+    IncomesController --> CreateIncomeRequest
+    IncomesController --> UpdateIncomeRequest
+    IncomesController --> IncomeResponse
+    IncomesController --> IIncomeService
+    IncomeService ..|> IIncomeService
+    IncomeService --> IncomePolicy
+    IncomeService --> IncomeValidator
+    IncomeService --> IIncomeRepository
+    IncomeService --> IUnitOfWork
+    IncomeService --> Income
+    IncomePolicy --> ActorContext
+    IncomePolicy --> Income
+    IncomeRepository ..|> IIncomeRepository
+    EfUnitOfWork ..|> IUnitOfWork
+```
+
+#### 3. Expense
+
+```mermaid
+classDiagram
+    direction TB
+
+    class ExpensesController {
+        +ListAsync(ExpenseQueryRequest, CancellationToken) Task
+        +GetByIdAsync(long, CancellationToken) Task
+        +CreateAsync(CreateExpenseRequest, CancellationToken) Task
+        +UpdateAsync(long, UpdateExpenseRequest, CancellationToken) Task
+        +SoftDeleteAsync(long, CancellationToken) Task
+    }
+
+    class CreateExpenseRequest {
+        +DateOnly ExpenseDate
+        +string Description
+        +long ExpenseCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? Payee
+        +OriginScope OriginScope
+        +PaymentMethod? PaymentMethod
+        +RecordStatus RecordStatus
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +string? Note
+    }
+
+    class UpdateExpenseRequest {
+        +DateOnly ExpenseDate
+        +string Description
+        +long ExpenseCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? Payee
+        +OriginScope OriginScope
+        +PaymentMethod? PaymentMethod
+        +RecordStatus RecordStatus
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +string? Note
+    }
+
+    class ExpenseResponse {
+        +long Id
+        +string Description
+        +decimal Amount
+        +decimal AmountAfterTax
+        +RecordStatus RecordStatus
+        +long CreatedBy
+    }
+
+    class ExpenseQuery
+
+    class IExpenseService {
+        <<interface>>
+        +ListAsync(ExpenseQuery, ActorContext, CancellationToken) Task
+        +GetByIdAsync(long, ActorContext, CancellationToken) Task
+        +CreateAsync(ExpenseDraft, ActorContext, CancellationToken) Task
+        +UpdateAsync(long, ExpenseDraft, ActorContext, CancellationToken) Task
+        +SoftDeleteAsync(long, ActorContext, CancellationToken) Task
+    }
+
+    class ExpenseService
+
+    class ExpensePolicy {
+        +EnsureCanCreate(ActorContext) void
+        +EnsureCanUpdate(ActorContext, Expense) void
+        +EnsureCanDelete(ActorContext, Expense) void
+    }
+
+    class ExpenseValidator {
+        +Validate(ExpenseDraft) ValidationResult
+    }
+
+    class Expense {
+        +long Id
+        +DateOnly ExpenseDate
+        +string Description
+        +long ExpenseCategoryId
+        +decimal Amount
+        +string CurrencyCode
+        +string? Payee
+        +OriginScope OriginScope
+        +PaymentMethod? PaymentMethod
+        +RecordStatus RecordStatus
+        +decimal TaxPercent
+        +decimal AmountAfterTax
+        +DataSource Source
+        +long? ImportBatchId
+        +string? Note
+        +long? CreatedBy
+        +long? UpdatedBy
+        +DateTimeOffset CreatedAt
+        +DateTimeOffset UpdatedAt
+        +DateTimeOffset? DeletedAt
+        +long? DeletedBy
+        +SoftDelete(long, DateTimeOffset) void
+    }
+
+    class ExpenseDraft
+
+    class ActorContext {
+        +long UserId
+        +UserRole Role
+    }
+
+    class IExpenseRepository {
+        <<interface>>
+        +ListAsync(ExpenseQuery, CancellationToken) Task
+        +FindActiveAsync(long, CancellationToken) Task
+        +AddAsync(Expense, CancellationToken) Task
+        +UpdateAsync(Expense, CancellationToken) Task
+    }
+
+    class ExpenseRepository
+    class EfUnitOfWork
+
+    class IUnitOfWork {
+        <<interface>>
+        +ExecuteAsync(long actorUserId, Func, CancellationToken) Task
+    }
+
+    ExpensesController --> CreateExpenseRequest
+    ExpensesController --> UpdateExpenseRequest
+    ExpensesController --> ExpenseResponse
+    ExpensesController --> IExpenseService
+    ExpenseService ..|> IExpenseService
+    ExpenseService --> ExpensePolicy
+    ExpenseService --> ExpenseValidator
+    ExpenseService --> IExpenseRepository
+    ExpenseService --> IUnitOfWork
+    ExpenseService --> Expense
+    ExpensePolicy --> ActorContext
+    ExpensePolicy --> Expense
+    ExpenseRepository ..|> IExpenseRepository
+    EfUnitOfWork ..|> IUnitOfWork
+```
+
+Source: [Core Class Diagrams](docs/architecture/uml/01-class-diagrams.md)
 
 ## Permissions
 
