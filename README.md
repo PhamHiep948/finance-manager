@@ -210,9 +210,11 @@ The backend must enforce RBAC and the own-record policy; hiding frontend control
 ## Documentation
 
 - Requirements: [Scope](docs/01-scope.md), [Features](docs/02-features.md), [INVEST backlog](docs/08-invest-requirements.md), [Acceptance criteria](docs/06-acceptance-criteria.md).
+- Requirements catalogs: [Business rules](docs/requirements/business-rules.md) and [Non-functional requirements](docs/requirements/non-functional-requirements.md).
 - UI/UX: [Information architecture](docs/04-information-architecture.md).
 - Database: [Data model](docs/05-data-model.md), [ER diagram](docs/DATABASE.md), [PostgreSQL schema](src/database/shop_finance.sql).
 - Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Core class diagrams](docs/architecture/uml/01-class-diagrams.md), [remaining module classes](docs/architecture/uml/03-additional-class-diagrams.md), [core sequences](docs/architecture/uml/02-sequence-diagrams.md), and [API traceability/sequences](docs/architecture/uml/03-api-traceability.md).
 - API contract: [OpenAPI 3.0.4 specification](docs/api/openapi.yaml) and [API documentation](docs/api/README.md).
+- Cross-step coverage: [Master traceability matrix](docs/traceability/master-traceability.md).
 - Implementation handoff: [Step 7 readiness and test plan](docs/09-step-7-readiness.md).

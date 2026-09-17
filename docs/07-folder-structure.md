@@ -15,6 +15,24 @@ This document defines source-code locations and dependency directions before the
 
 ## 2. Frontend React
 
+### Frontend Mock Strategy
+
+The current phase intentionally uses mock data and browser/local state. These are temporary prototype adapters, not the target system architecture, and are not refactored during documentation normalization.
+
+During backend integration, the intended transition is:
+
+```text
+UI → feature service → mock adapter
+```
+
+to:
+
+```text
+UI → feature service → HTTP API adapter
+```
+
+The target service abstractions are `authService`, `dashboardService`, `categoryService`, `incomeService`, `expenseService`, `reportService`, `importService`, `auditService`, `userService`, and `profileService`. This section defines ownership only; it does not create implementation files.
+
 ### 2.1 Current Structure
 
 ```text

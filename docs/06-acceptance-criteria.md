@@ -1,5 +1,9 @@
 # Acceptance Criteria — HandmadeFinance V1
 
+> Design status: TARGET V1
+>
+> Implementation status: NOT IMPLEMENTED
+
 These criteria describe the target product behavior. Mock UI behavior may satisfy a criterion visually, but Step 7 must enforce authorization and business rules in the API.
 
 ## AC-UC01 — Login

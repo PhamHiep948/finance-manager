@@ -1,5 +1,9 @@
 # Scope V1
 
+> Design status: TARGET V1
+>
+> Implementation status: CURRENT PROTOTYPE ONLY
+
 Product name in the interface: **HandmadeFinance**.
 
 ## Problem
@@ -20,22 +24,22 @@ Expense records: description, payee, domestic / international scope, payment met
 
 Users: full name, email, phone number, avatar, role, active / disabled status.
 
-## Goals
+## Target V1 goals
 
-V1 supports:
+The target V1 supports:
 
-- Mock login (two-column HandmadeFinance layout).
+- Login through the REST API with backend authentication and authorization. The current two-column login remains the prototype UI.
 - Dashboard (KPIs, income-expense chart, revenue by category, recent transactions).
 - Income management (full-column table, add/edit modal, detail modal).
 - Expense management (same model).
 - Reports & analytics (one USD dataset; convert to EUR for display).
-- Excel data import (mock).
-- Attachments (mock metadata in detail modal).
-- Activity log (mock).
+- Excel data import with validation, preview, and persisted batch results.
+- Attachment upload and persisted metadata.
+- Persisted activity log.
 - User management (Admin).
-- Profile: account, mock password change, permission matrix.
-- Mock roles / permissions.
-- PostgreSQL **data model / schema design** aligned with the UI.
+- Profile: account, password change, and permission matrix.
+- Backend-enforced roles and permissions.
+- PostgreSQL persistence aligned with the approved API contract.
 
 ## Non-goals
 
@@ -48,7 +52,7 @@ V1 does **not** include:
 - Refresh tokens, external identity providers, and multi-factor authentication.
 - Direct integrations with third-party accounting, payment, or marketplace APIs.
 
-## Current reality
+## Current prototype
 
 | Component | Reality |
 |---|---|
@@ -59,3 +63,15 @@ V1 does **not** include:
 | Attachments | Select a local file and store **name / type / size**. No upload. |
 
 Backend is not implemented yet.
+
+## Target V1 architecture
+
+```text
+React frontend
+    → REST/HTTPS/JSON
+ASP.NET Core three-tier backend
+    → PostgreSQL
+    → file storage for imports and attachments
+```
+
+The current mock frontend is intentional and remains available for UI development and demonstration. It is not the target authentication, authorization, persistence, import, or attachment architecture.

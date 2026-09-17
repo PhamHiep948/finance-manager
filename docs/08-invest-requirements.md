@@ -1,5 +1,7 @@
 # INVEST Requirements — HandmadeFinance V1
 
+> Design status: TARGET V1
+
 Each requirement is small enough to implement and test independently. Cross-cutting authentication, authorization, validation, auditing, and error handling are acceptance constraints, not hidden features.
 
 ## INVEST checklist
@@ -34,6 +36,30 @@ Each requirement is small enough to implement and test independently. Cross-cutt
 | US15 | As an Administrator or Shop Owner, I want to inspect audit events so that important actions are traceable. | Accountability | US01 | AC-UC15 |
 | US16 | As an Administrator, I want to create, edit, enable, and disable users so that access remains controlled. | Access administration | US01 | AC-UC16 |
 | US17 | As an authenticated user, I want to maintain my profile and password without changing my role so that my account stays current and secure. | Self-service | US01 | AC-UC17 |
+
+## Per-story INVEST review
+
+`PASS` means the current design provides enough information for planning and acceptance. `TBD` is used where a project-owner decision still affects implementation scope.
+
+| Story | I | N | V | E | S | T | Notes |
+|---|---|---|---|---|---|---|---|
+| US01 | PASS | PASS | PASS | PASS | PASS | PASS | Authentication mechanism is fixed at contract level; token lifetime remains an implementation configuration. |
+| US02 | PASS | PASS | PASS | TBD | PASS | PASS | Logout token revocation versus client-side discard is not decided. |
+| US03 | PASS | PASS | PASS | PASS | PASS | PASS | Dashboard response and date filtering are defined. |
+| US04 | PASS | PASS | PASS | PASS | PASS | PASS | Read/filter/paging outcome is independently testable. |
+| US05 | PASS | PASS | PASS | PASS | PASS | PASS | Category and financial validation are explicit. |
+| US06 | PASS | PASS | PASS | PASS | PASS | PASS | Employee ownership is explicit. |
+| US07 | PASS | PASS | PASS | PASS | PASS | PASS | Soft-delete behavior is explicit. |
+| US08 | PASS | PASS | PASS | PASS | PASS | PASS | Read/filter/paging outcome is independently testable. |
+| US09 | PASS | PASS | PASS | PASS | PASS | PASS | Expense-specific validation is explicit. |
+| US10 | PASS | PASS | PASS | PASS | PASS | PASS | Employee ownership is explicit. |
+| US11 | PASS | PASS | PASS | PASS | PASS | PASS | Soft-delete behavior is explicit. |
+| US12 | PASS | PASS | PASS | TBD | PASS | PASS | Atomicity is confirmed; synchronous versus asynchronous HTTP execution is TBD. |
+| US13 | PASS | PASS | PASS | PASS | PASS | PASS | Filters and authorization are defined. |
+| US14 | PASS | PASS | PASS | TBD | PASS | PASS | Export must reuse report filters; the final filter contract is TBD. |
+| US15 | PASS | PASS | PASS | PASS | PASS | PASS | Read-only audit access and filters are defined. |
+| US16 | PASS | PASS | PASS | PASS | PASS | PASS | Admin-only account lifecycle is explicit. |
+| US17 | PASS | PASS | PASS | PASS | PASS | PASS | Allowed profile fields and password verification are explicit. |
 
 ## Cross-cutting acceptance constraints
 

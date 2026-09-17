@@ -1,5 +1,9 @@
 # Class Diagrams — Authentication, Income, and Expense
 
+> Design status: TARGET V1
+>
+> Implementation status: NOT IMPLEMENTED
+
 The class diagrams use the intended class names across the three tiers. DTOs belong to the API tier; entities, services, policies, validators, and repository interfaces belong to Application; repository implementations belong to Infrastructure.
 
 The diagrams use a top-to-bottom layout (`direction TB`) to avoid excessive horizontal width. Read them as **Presentation → Application → Infrastructure**; dashed realization arrows indicate interface implementations.
@@ -12,6 +16,7 @@ classDiagram
 
     class AuthController {
         +LoginAsync(LoginRequest, CancellationToken) Task
+        +LogoutAsync(CancellationToken) Task
     }
 
     class LoginRequest {
@@ -21,24 +26,35 @@ classDiagram
 
     class LoginResponse {
         +string AccessToken
+        +string TokenType
         +DateTimeOffset ExpiresAt
         +UserResponse User
     }
 
     class UserResponse {
         +long Id
+        +string Username
         +string FullName
-        +string Email
+        +string? Email
+        +string? Phone
+        +string? AvatarUrl
+        +string Timezone
         +UserRole Role
+        +bool IsActive
+        +DateTimeOffset? LastLoginAt
+        +DateTimeOffset CreatedAt
+        +DateTimeOffset UpdatedAt
     }
 
     class IAuthService {
         <<interface>>
         +LoginAsync(string, string, CancellationToken) Task
+        +LogoutAsync(ActorContext, CancellationToken) Task
     }
 
     class AuthService {
         +LoginAsync(string, string, CancellationToken) Task
+        +LogoutAsync(ActorContext, CancellationToken) Task
     }
 
     class AuthResult {
@@ -457,5 +473,16 @@ Names and values must match PostgreSQL:
 - Application entity ↔ database model mapping occurs in `HandmadeFinance.Infrastructure/Persistence`.
 - EF Core entities and `DbContext` are never passed directly to Controllers.
 - `IncomeResponse` and `ExpenseResponse` omit `DeletedAt`/`DeletedBy` from active lists, consistent with the [OpenAPI contract](../../api/openapi.yaml).
+
+## 6. DTO Naming Convention
+
+**Status:** TBD
+
+The OpenAPI contract currently reuses `IncomeWriteRequest` and `ExpenseWriteRequest` for create and update operations. The class design uses explicit `CreateIncomeRequest` / `UpdateIncomeRequest` and `CreateExpenseRequest` / `UpdateExpenseRequest` types.
+
+- **Option A:** generate/use one shared write DTO per resource.
+- **Option B:** retain separate create/update DTO types that map to the same OpenAPI schema while their fields remain identical.
+
+The project owner must choose the implementation convention before C# generation. Until then, OpenAPI field names and required/nullable semantics are authoritative; the class names in these diagrams are design placeholders.
 
 **Related:** [C4 Level 4](../c4/04-code.md) · [Database](../../DATABASE.md) · [Sequence diagrams](02-sequence-diagrams.md)

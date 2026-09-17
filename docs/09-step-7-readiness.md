@@ -1,5 +1,9 @@
 # Step 7 Readiness — API Implementation and Unit Tests
 
+> Design status: PARTIAL — normalization complete, owner decisions remain
+>
+> Implementation status: NOT STARTED
+
 Steps 1–6 define the target behavior and architecture. This document is the implementation handoff; it does not claim that backend source code already exists.
 
 ## Sources of truth
@@ -71,4 +75,15 @@ If implementation exposes a conflict between sources, update the design and Open
 | 5 | Full React feature structure and three-tier backend/test structure |
 | 6 | Core and remaining class diagrams, runtime sequences, and operation traceability |
 
-The remaining work is Step 7 implementation, not additional baseline design.
+## Remaining design decisions before freeze
+
+The six-step baseline is substantially complete, but implementation must not begin until the project owner resolves:
+
+- Logout token semantics: client-side discard or server-side revocation.
+- Import execution model: synchronous completion or asynchronous `202` job/polling.
+- Final report/export filter parity.
+- DTO naming convention for shared versus create/update write requests.
+- Soft-delete audit action semantics.
+- Import-to-ledger validation collaboration.
+
+Master cross-step coverage is maintained in `docs/traceability/master-traceability.md`. After these decisions update the relevant OpenAPI, UML, database, and requirement documents together, the design may be frozen and Step 7 may begin.

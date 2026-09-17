@@ -1,5 +1,9 @@
 # Actors, roles, use cases
 
+> Design status: TARGET V1
+>
+> Current implementation: React mock prototype
+
 Product name: **HandmadeFinance**.
 
 ## Actors / roles
@@ -131,19 +135,27 @@ All four roles: login, logout, dashboard, view income/expenses, profile.
 ### UC01 Login
 
 - **Actor:** all roles
-- **Preconditions:** an active mock account exists
-- **Main flow:** enter email/password → match mock user → store session → Dashboard
+- **Preconditions:** an active account exists
+- **Main flow:** enter email/password → submit `login` → backend verifies credentials and account status → return Bearer access token and safe profile → Dashboard
 - **Alternative:** invalid credentials → show error and remain on login screen
 - **Permission:** public
-- **Result:** mock session
+- **Result:** an authenticated client session backed by the returned access token
 
 ### UC02 Logout
 
 - **Actor:** all roles
 - **Preconditions:** user is logged in
-- **Main flow:** clear session → login
+- **Main flow:** invoke `logout` → clear client authentication state → login
 - **Permission:** authenticated
-- **Result:** internal pages are no longer accessible
+- **Result:** internal pages are no longer accessible from the logged-out client
+
+#### Logout Token Semantics
+
+**Status:** TBD
+
+- **Option A — client-side logout only:** the client discards the short-lived access token; an already issued token expires naturally.
+- **Option B — server-side revocation:** the server records revocation so the current token becomes unusable before expiry.
+- **Decision required:** the project owner must select the target behavior before backend implementation. The current OpenAPI wording represents Option A and must be revised if Option B is selected.
 
 ### UC03 View Dashboard
 
@@ -163,7 +175,7 @@ All four roles: login, logout, dashboard, view income/expenses, profile.
 ### UC05 Add income
 
 - **Actor:** Admin, Shop Owner, Employee
-- **Main flow:** modal form → validate → add mock record, `source = MANUAL`, create mock audit entry. Product name, pre-tax amount / tax rate / post-tax amount; order details (code, EU region, quantity, unit price, fees).
+- **Main flow:** modal form → client validation → `createIncome` → backend authorization and validation → persist with `source = MANUAL` and actor identity → audit → return the created record. Product name, pre-tax amount / tax rate / post-tax amount; order details (code, EU region, quantity, unit price, fees).
 - **Permission:** `incomeCreate`
 - **Result:** appears in the list
 
@@ -181,16 +193,40 @@ All four roles: login, logout, dashboard, view income/expenses, profile.
 - **Permission:** `incomeDelete`
 - **Result:** disappears from active list; audit remains
 
-### UC08–UC11 Expenses
+### UC08 View expenses
 
-Same model as UC04–UC07. Adds payee, domestic/international scope, payment method, tax rate, and post-tax amount. Permission `expense*`.
+- **Actor:** all roles
+- **Main flow:** list active expenses → filter/search/page → open details
+- **Permission:** `expenseRead`
+- **Result:** soft-deleted expenses are excluded; Viewer has no write controls
+
+### UC09 Add expense
+
+- **Actor:** Admin, Shop Owner, Employee
+- **Main flow:** submit expense form → validate payee, category, origin, payment method, tax, and amounts → persist with `source = MANUAL` → audit
+- **Permission:** `expenseCreate`
+- **Result:** created expense appears in the active list
+
+### UC10 Edit expense
+
+- **Actor:** Admin, Shop Owner; Employee if `createdBy` equals the current user
+- **Main flow:** open active expense → submit changes → authorize ownership → validate → update → audit
+- **Permission:** `expenseUpdate` plus Employee own-record restriction
+- **Result:** updated expense is returned and active views are refreshed
+
+### UC11 Soft-delete expense
+
+- **Actor:** Admin, Shop Owner
+- **Main flow:** confirm → set `deletedAt` and `deletedBy`; do not physically remove the row
+- **Permission:** `expenseDelete`
+- **Result:** expense leaves active views while audit history remains
 
 ### UC12 Import data
 
 - **Actor:** Admin, Shop Owner, Employee
-- **Main flow:** choose income/expense → choose `.xlsx`/`.xls` → mock preview → Import → loading → mock success/error + history
+- **Main flow:** choose income/expense → choose `.xlsx`/`.xls` → upload for validation and preview → confirm import → view persisted batch status and row results
 - **Permission:** `importData`
-- **Result:** actual Excel contents are not read
+- **Result:** target V1 parses and validates workbook contents; the current prototype simulates this flow only
 
 ### UC13 View reports
 
@@ -202,7 +238,7 @@ Same model as UC04–UC07. Adds payee, domestic/international scope, payment met
 ### UC14 Export reports
 
 - **Actor:** Admin, Shop Owner, Viewer
-- **Main flow:** print the report window using the current filters (mock)
+- **Main flow:** request PDF or XLSX export using the current report filters
 - **Permission:** `reportRead`
 - **Result:** this is not an electronic invoice
 
@@ -220,5 +256,5 @@ Same model as UC04–UC07. Adds payee, domestic/international scope, payment met
 ### UC17 Personal profile
 
 - **Actor:** all roles
-- **Main flow:** account tab (name, phone number, avatar), security (mock password change), role (read-only)
+- **Main flow:** account tab updates allowed profile fields; security verifies the current password before changing it; role remains read-only
 - **Permission:** authenticated

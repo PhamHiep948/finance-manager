@@ -1,5 +1,9 @@
 # Data Diagram
 
+> Design status: TARGET V1
+>
+> Runtime status: NOT CONNECTED
+
 PostgreSQL schema `shop_finance` for **HandmadeFinance**.
 
 The interface uses **mock data** aligned with this model (tables, income/expense categories, currency, soft delete, sales channel, payment method, record status). The interface **does not connect** to PostgreSQL.
@@ -175,6 +179,14 @@ erDiagram
   expense_categories ||--o{ expenses : category
   import_batches ||--o{ incomes : batch
   import_batches ||--o{ expenses : batch
-  incomes ||--o| attachments : file
-  expenses ||--o| attachments : file
+  incomes ||--o{ attachments : files
+  expenses ||--o{ attachments : files
 ```
+
+Each attachment references exactly one parent through the SQL check constraint, while one income or expense may own zero or many attachment rows.
+
+## Audit security constraint
+
+Audit data must never contain passwords, `password_hash`, JWTs, refresh tokens, or secrets. The current generic audit trigger serializes whole rows and therefore requires redaction for `app_users` before database implementation.
+
+**Status:** TODO BEFORE DATABASE IMPLEMENTATION.

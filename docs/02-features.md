@@ -1,6 +1,8 @@
 # Feature Catalog
 
-Status values are limited to: `Implemented Mock` | `Designed` | `Partial` | `Not Started`.
+> Design status: TARGET V1 with CURRENT PROTOTYPE status recorded separately
+
+The status column describes the current prototype. Target V1 behavior is defined by the use cases, acceptance criteria, OpenAPI contract, and architecture documents.
 
 UI product: **HandmadeFinance**.
 
@@ -19,7 +21,9 @@ UI product: **HandmadeFinance**.
 
 ## F01 Authentication
 
-Mock login, no JWT / OAuth. Two-column screen: HandmadeFinance introduction + form.
+**Current prototype:** mock login with browser storage and no JWT/OAuth. Two-column screen: HandmadeFinance introduction + form.
+
+**Target V1:** REST login returns a short-lived Bearer JWT; the backend enforces authentication and authorization. Logout token semantics remain a project-owner decision documented in `03-use-cases.md`.
 
 - F01.1 Login (email, password, remember device)
 - F01.2 Logout
@@ -52,11 +56,15 @@ Overview, by day, by month, by income category, by expense category. Switch USD/
 
 ## F06 Excel Import
 
-Import income or expense data. Files `.xlsx` / `.xls`. Mock preview, import history, mock success/error. **No real Excel parsing.**
+Import income or expense data from `.xlsx` / `.xls`.
+
+- **Current prototype:** mock preview, history, success, and error; file contents are not parsed.
+- **Target V1:** validated preview and persisted import batch processing. The synchronous/asynchronous execution model remains TBD before backend implementation.
 
 ## F07 Attachment
 
-`<input type="file">` on the form. Detail modal shows file name / illustrative image. No Base64, no server upload.
+- **Current prototype:** `<input type="file">` stores illustrative metadata only; there is no server upload.
+- **Target V1:** authorized upload backed by file storage with metadata persisted through the API.
 
 ## F08 Audit
 

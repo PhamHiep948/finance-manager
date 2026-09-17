@@ -1,5 +1,9 @@
 # Data model (PostgreSQL schema design)
 
+> Design status: TARGET V1
+>
+> Runtime status: SCHEMA DESIGN ONLY; NOT CONNECTED
+
 Goal: an income/expense model aligned with the **HandmadeFinance** interface, using schema `shop_finance`.
 
 The mock UI is **aligned with this schema** (tables, categories, currency, soft delete, sales channel, payment method, record status, phone/avatar). UI data is **mock JavaScript data**; the browser does not open a PostgreSQL connection.
@@ -15,7 +19,7 @@ Related sources of truth: [shop_finance.dbml](../src/database/shop_finance.dbml)
 | `incomes` | One row = one incoming amount. `amount` = pre-tax amount. `amount_after_tax` is derived from tax rate. Order code, EU region, sales channel, status, quantity, order fees. |
 | `expense_categories` | Expense categories |
 | `expenses` | One row = one outgoing amount. `payee`, `origin_scope`, `payment_method`, `record_status`, `tax_percent`, `amount_after_tax`. |
-| `attachments` | Attachment metadata; exactly one of `income_id` or `expense_id` |
+| `attachments` | Attachment metadata; each attachment belongs to exactly one income or expense, and each transaction may have many attachments |
 | `import_batches` | Excel import run |
 | `audit_logs` | INSERT/UPDATE/DELETE (trigger) + LOGIN/EXPORT/IMPORT (app); `module`, `detail` |
 
@@ -24,6 +28,26 @@ There are no dashboard / reports / statistics tables — KPIs are calculated fro
 ## Soft delete
 
 `deleted_at` (+ `deleted_by` on incomes/expenses). Active list: `deleted_at IS NULL`.
+
+Soft deletion is implemented as an SQL `UPDATE`. Whether the audit catalog exposes that transition as `UPDATE` or the business-level action `DELETE` is **TBD** and must be decided before database implementation.
+
+## Audit payload security
+
+Sensitive fields must not be stored in audit JSON payloads or application logs. This includes passwords, `password_hash`, JWTs, refresh tokens, signing keys, and other secrets.
+
+**Current design risk:** the generic `to_jsonb(NEW)` / `to_jsonb(OLD)` trigger can capture `app_users.password_hash`.
+
+**TODO before database implementation:** exclude or redact sensitive columns in `app_users` audit payloads and add a database-level verification test. No migration is executed by this documentation task.
+
+## Transaction boundaries
+
+| Area | Confirmed boundary | Status |
+|---|---|---|
+| Income | Persist mutation and its trigger-generated audit record in one transaction | Confirmed |
+| Expense | Persist mutation and its trigger-generated audit record in one transaction | Confirmed |
+| User management | Account mutation and administrative audit behavior | Detailed boundary TBD |
+| Excel import | Invalid rows insert zero income/expense records; a valid batch commits all imported records | Confirmed all-or-nothing; HTTP execution model TBD |
+| Attachment | Metadata/file compensation and retry behavior | Final transaction/compensation design TBD |
 
 ## Currency
 

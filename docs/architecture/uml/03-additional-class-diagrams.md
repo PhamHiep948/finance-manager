@@ -1,5 +1,9 @@
 # Class Diagrams — Remaining V1 Modules
 
+> Design status: TARGET V1
+>
+> Implementation status: NOT IMPLEMENTED
+
 These diagrams complete the class-level design beyond Authentication, Income, and Expense. Names map directly to the target folders and OpenAPI `operationId` values.
 
 ## Dashboard, Categories, and Reports
@@ -84,6 +88,12 @@ classDiagram
 ```
 
 The import service parses before the write transaction and commits every validated transaction plus the completed batch atomically. A failed batch stores errors but no imported transactions. Attachment metadata and file operations are coordinated so failed metadata writes remove newly stored files.
+
+### Import validation collaboration
+
+**Status:** TBD
+
+`ImportService → ITransactionRepository` is provisional orchestration notation, not permission to bypass ledger rules. Import must reuse approved income/expense validation and business rules through validators, policies, a shared application/domain layer, or another owner-approved approach. The final method-level dependency must be selected before implementation.
 
 ## Audit, Users, and Profile
 

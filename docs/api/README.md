@@ -1,5 +1,9 @@
 # HandmadeFinance API Documentation
 
+> Design status: TARGET V1
+>
+> Implementation status: NOT IMPLEMENTED
+
 ## Overview
 
 This is the API contract for HandmadeFinance. The contract is defined in `openapi.yaml` and is the source of truth for HTTP paths, methods, request and response bodies, authentication, errors, and role access.
@@ -36,7 +40,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 Login does not require a token. All other operations use Bearer JWT unless an operation sets `security: []`.
 
-V1 does not define a refresh token. After logout, the client discards its access token. Token revocation is not part of this contract.
+V1 does not define a refresh token. The current contract describes client-side token discard, but final logout token semantics are **TBD**. The project owner must choose client-only logout or server-side token revocation before backend implementation.
 
 ## Content types
 
@@ -184,6 +188,23 @@ Repository root `redocly.yaml` disables unused `info.license` rules because this
 - If any row is invalid, the batch does not insert income or expense records.
 - The batch is still stored with status `FAILED` and row errors.
 - If the file is valid, every row is committed and the batch is marked `COMPLETED`.
+
+## Report Export Filter Parity
+
+**Requirement:** an export must represent the same active filters as the visible report.
+
+**Status:** TBD
+
+Candidate filters already used by report design include `dateFrom`, `dateTo`, `groupBy`, and `categoryId`. The project owner must confirm the final filter set before implementation; until then the export contract must not be assumed to have full parity merely because date filters are present.
+
+## Import Execution Model
+
+**Status:** TBD
+
+- **Option A — synchronous:** the request waits until processing finishes and returns the final batch state.
+- **Option B — asynchronous:** `POST /imports` creates/queues a batch, returns `202 Accepted`, and the client polls `getImport`.
+
+The current OpenAPI uses `202 Accepted`, while the sequence documentation shows processing completed before the response. The project owner must select one model before backend implementation, then update OpenAPI and sequence diagrams together.
 
 ## Implementation status
 

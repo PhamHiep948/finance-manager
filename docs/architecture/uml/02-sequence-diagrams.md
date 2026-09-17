@@ -3,6 +3,8 @@
 > **Scope:** Step 6 · **Status:** Design only; no working API  
 > The `/api/v1/...` endpoints follow the approved [OpenAPI 3.0.4 specification](../../api/openapi.yaml).
 
+> Import and remaining-module sequences are maintained in `03-api-traceability.md`. Where that document marks an execution or validation strategy TBD, the sequence is illustrative and not an implementation decision.
+
 The sequence diagrams describe calls between React, Presentation, Application, and Data. Every authorization path is checked by the backend; hiding frontend controls is UX only.
 
 ## 1. Login — `POST /api/v1/auth/login`

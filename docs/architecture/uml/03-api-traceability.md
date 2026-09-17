@@ -1,5 +1,9 @@
 # API Design Traceability
 
+> Design status: TARGET V1 with documented TBD decisions
+>
+> Implementation status: NOT IMPLEMENTED
+
 Every OpenAPI operation maps to an owning module, Application service, authorization rule, and sequence pattern. This is the implementation index for Step 7.
 
 | OpenAPI operation | Use case | Application owner | Authorization | Sequence |
@@ -72,6 +76,8 @@ The read pattern applies to Dashboard, Categories, transaction lists/details, re
 
 ## S04–S05 — Import preview and atomic processing
 
+> **Execution-model note:** Import atomicity is confirmed, but synchronous versus asynchronous HTTP execution is TBD. The diagrams below illustrate validation and atomic persistence; they do not resolve whether processing completes before the `202 Accepted` response.
+
 ```mermaid
 sequenceDiagram
     actor User as AdminOwnerEmployee
@@ -109,7 +115,8 @@ sequenceDiagram
     participant Db as PostgreSQL
     User->>Api: POST /api/v1/imports
     Api->>App: ProcessAsync(file, type, actor)
-    App->>Parser: Parse and validate all rows
+    App->>Parser: Parse all rows
+    App->>App: Apply approved import/domain validation rules (strategy TBD)
     alt Any row invalid
         App->>Batch: Save FAILED batch and row errors
         App-->>Api: Failed ImportBatch
@@ -245,3 +252,5 @@ sequenceDiagram
 ```
 
 **Related:** [Core sequences](02-sequence-diagrams.md) · [All class diagrams](03-additional-class-diagrams.md) · [OpenAPI](../../api/openapi.yaml)
+
+The cross-step requirement-to-screen-to-API-to-database mapping is maintained in [Master Traceability](../../traceability/master-traceability.md).
