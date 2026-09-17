@@ -185,6 +185,86 @@ public sealed class ApiContractTests : IClassFixture<WebApplicationFactory<Progr
         Assert.True(response.GetProperty("meta").GetProperty("totalItems").GetInt32()>=1);
     }
 
+    [Theory]
+    [InlineData("CSV")] [InlineData("TXT")] [InlineData("JSON")] [InlineData("")] [InlineData("pdfx")]
+    public async Task Report_export_rejects_every_unsupported_format(string format)
+    {
+        using var client=await AuthenticatedClient();var response=await client.GetAsync($"/api/v1/reports/export?format={Uri.EscapeDataString(format)}");Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("2026-01-02","2026-01-01")] [InlineData("2027-01-01","2026-12-31")] [InlineData("9999-12-31","0001-01-01")]
+    public async Task Report_export_rejects_inverted_ranges(string from,string to)
+    {
+        using var client=await AuthenticatedClient();var response=await client.GetAsync($"/api/v1/reports/export?format=PDF&dateFrom={from}&dateTo={to}");Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("data.csv")] [InlineData("data.txt")] [InlineData("data.pdf")] [InlineData("data.json")] [InlineData("data")]
+    public async Task Import_preview_rejects_non_excel_extensions(string fileName)
+    {
+        using var client=await AuthenticatedClient();using var form=Upload(fileName,[1]);Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsync("/api/v1/imports/preview",form)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("OTHER")] [InlineData("REPORT")] [InlineData("USER")] [InlineData("")]
+    public async Task Import_preview_rejects_unknown_import_types(string importType)
+    {
+        using var client=await AuthenticatedClient();using var form=Upload("data.xlsx",[1],importType);Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsync("/api/v1/imports/preview",form)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(0,20)] [InlineData(-1,20)] [InlineData(1,0)] [InlineData(1,-1)] [InlineData(1,101)]
+    public async Task Import_history_rejects_invalid_paging(int page,int pageSize)
+    {
+        using var client=await AuthenticatedClient();Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync($"/api/v1/imports?page={page}&pageSize={pageSize}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_detail_returns_404_for_missing_batch()
+    {
+        using var client=await AuthenticatedClient();Assert.Equal(HttpStatusCode.NotFound,(await client.GetAsync("/api/v1/imports/9223372036854775807")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_preview_rejects_empty_excel_file()
+    {
+        using var client=await AuthenticatedClient();using var form=Upload("empty.xlsx",[]);Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsync("/api/v1/imports/preview",form)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(0,20)] [InlineData(-1,20)] [InlineData(1,0)] [InlineData(1,101)]
+    public async Task Audit_rejects_invalid_paging(int page,int pageSize)
+    {
+        using var client=await AuthenticatedClient();Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync($"/api/v1/audit-logs?page={page}&pageSize={pageSize}")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("2026-01-02","2026-01-01")] [InlineData("2026-09-18","2026-09-17")]
+    public async Task Audit_rejects_inverted_date_range(string from,string to)
+    {
+        using var client=await AuthenticatedClient();Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync($"/api/v1/audit-logs?dateFrom={from}&dateTo={to}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Attachment_delete_returns_404_for_missing_id()
+    {
+        using var client=await AuthenticatedClient();Assert.Equal(HttpStatusCode.NotFound,(await client.DeleteAsync("/api/v1/attachments/9223372036854775807")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Tampered_token_is_rejected()
+    {
+        using var client=await AuthenticatedClient();var token=client.DefaultRequestHeaders.Authorization!.Parameter!;client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",token[..^1]+(token[^1]=='A'?'B':'A'));Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/profile")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")] [InlineData("abc")] [InlineData("a.b")] [InlineData("not-a-token")]
+    public async Task Malformed_bearer_tokens_are_rejected(string token)
+    {
+        using var client=_factory.CreateClient();client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization",$"Bearer {token}");Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/profile")).StatusCode);
+    }
+
     private async Task<HttpClient> AuthenticatedClient()
     {
         var client = _factory.CreateClient();
@@ -195,6 +275,6 @@ public sealed class ApiContractTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     private static LedgerBody ValidLedger() => new("2026-09-17", "Order", 1, 100m, 10m, 110m, "USD");
-    private static MultipartFormDataContent Upload(string name,byte[] content){var form=new MultipartFormDataContent();form.Add(new StringContent("INCOME"),"importType");form.Add(new ByteArrayContent(content),"file",name);return form;}
+    private static MultipartFormDataContent Upload(string name,byte[] content,string importType="INCOME"){var form=new MultipartFormDataContent();form.Add(new StringContent(importType),"importType");form.Add(new ByteArrayContent(content),"file",name);return form;}
     private sealed record LedgerBody(string Date,string Description,long CategoryId,decimal Amount,decimal TaxPercent,decimal AmountAfterTax,string CurrencyCode);
 }

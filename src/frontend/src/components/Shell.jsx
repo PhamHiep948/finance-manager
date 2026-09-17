@@ -96,7 +96,6 @@ export default function Shell() {
             if (!visible.length) return null;
             return (
               <div key={group.label} className="nav-group-new">
-                <span className="nav-group-label-new">{group.label}</span>
                 {visible.map((n) => (
                   <NavLink
                     key={n.to}

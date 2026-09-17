@@ -1,0 +1,16 @@
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\bin\Debug\net9.0\HandmadeFinance.Infrastructure.deps.json
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\bin\Debug\net9.0\HandmadeFinance.Infrastructure.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\bin\Debug\net9.0\HandmadeFinance.Infrastructure.pdb
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\bin\Debug\net9.0\HandmadeFinance.Application.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\bin\Debug\net9.0\HandmadeFinance.Application.pdb
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.csproj.AssemblyReference.cache
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.AssemblyInfoInputs.cache
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.AssemblyInfo.cs
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.csproj.CoreCompileInputs.cache
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.sourcelink.json
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\Handmade.09A1DF8D.Up2Date
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\refint\HandmadeFinance.Infrastructure.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\HandmadeFinance.Infrastructure.pdb
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Infrastructure\obj\Debug\net9.0\ref\HandmadeFinance.Infrastructure.dll

@@ -2243,7 +2243,7 @@ td:has(.cell-product-name) {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
 
 .nav-group-label-new {

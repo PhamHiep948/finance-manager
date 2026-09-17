@@ -1,0 +1,12 @@
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\bin\Debug\net9.0\HandmadeFinance.Application.deps.json
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\bin\Debug\net9.0\HandmadeFinance.Application.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\bin\Debug\net9.0\HandmadeFinance.Application.pdb
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.AssemblyInfoInputs.cache
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.AssemblyInfo.cs
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.csproj.CoreCompileInputs.cache
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.sourcelink.json
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\refint\HandmadeFinance.Application.dll
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\HandmadeFinance.Application.pdb
+D:\ThucTapVSF\finance-manager\src\backend\src\HandmadeFinance.Application\obj\Debug\net9.0\ref\HandmadeFinance.Application.dll
