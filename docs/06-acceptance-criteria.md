@@ -15,6 +15,7 @@ These criteria describe the target product behavior. Mock UI behavior may satisf
 ## AC-UC02 — Logout
 
 - Authenticated logout returns `204` and clears the Bearer token and client authentication state; the short-lived access token expires naturally because V1 has no refresh token.
+- Access tokens expire 30 minutes after issue; V1 has no server-side blacklist/revocation endpoint. Future revocation does not change the V1 acceptance criteria.
 - A logged-out client is redirected to Login when it requests a protected route.
 
 ## AC-UC03 — Dashboard
@@ -47,6 +48,7 @@ These criteria describe the target product behavior. Mock UI behavior may satisf
 - Only Administrator and Shop Owner can delete income.
 - Deletion sets `deletedAt` and `deletedBy`, returns `204`, and never physically removes the row.
 - The record leaves active lists and aggregates while its audit history remains.
+- The business audit action is `SOFT_DELETE`; a future authorized restore uses `RESTORE`. Audit snapshots contain actor, entity, time, redacted before/after, and correlation ID when available.
 
 ## AC-UC08 — View expenses
 
@@ -72,13 +74,15 @@ These criteria describe the target product behavior. Mock UI behavior may satisf
 - Only Administrator and Shop Owner can soft-delete expenses.
 - Deletion sets `deletedAt` and `deletedBy`, returns `204`, and excludes the record from active views and reports.
 - The database row and audit history remain available.
+- The business audit action is `SOFT_DELETE`; a future authorized restore uses `RESTORE`.
 
 ## AC-UC12 — Import Excel data
 
 - Administrator, Shop Owner, and Employee can upload `.xlsx` or `.xls`; Viewer receives `403`.
 - Preview validates file type, size, headers, row fields, categories, and conflicts without inserting transactions.
+- Files larger than 10 MB or containing more than 5,000 data rows are rejected before ledger commit.
 - Processing is atomic: any invalid row inserts no transactions and marks the batch `FAILED` with row errors.
-- If every row is valid, all rows are inserted with `source=EXCEL_IMPORT`, the batch is `COMPLETED`, and an import audit event is written.
+- Processing is synchronous. If every row is valid, all rows are inserted with `source=EXCEL_IMPORT`, the batch is `COMPLETED`, and the `200` response contains `totalRows`, `validRows`, `importedRows`, `failedRows`, and `validationErrors`.
 
 ## AC-UC13 — View reports
 

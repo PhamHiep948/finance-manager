@@ -53,7 +53,7 @@ flowchart LR
 | `data_source` | MANUAL, EXCEL_IMPORT | Manual / Excel |
 | `import_type` | INCOME, EXPENSE | Income / expense |
 | `import_status` | PENDING, PROCESSING, COMPLETED, FAILED | Import-batch status |
-| `audit_action` | INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT | Audit log |
+| `audit_action` | SQL currently stores INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT; TARGET business API maps entity changes to CREATE, UPDATE, SOFT_DELETE, RESTORE | Audit log; schema mapping required before implementation |
 | `sale_region` | IN_EU, OUTSIDE_EU | Inside EU / Outside EU |
 | `origin_scope` | DOMESTIC, INTERNATIONAL | Domestic / International |
 | `sales_channel` | ETSY_STORE, WEBSITE_DIRECT, INSTAGRAM_SHOP, LOCAL_MARKET, B2B_WHOLESALE | Sales channel in income detail modal |
@@ -189,4 +189,4 @@ Each attachment references exactly one parent through the SQL check constraint, 
 
 Audit data must never contain passwords, `password_hash`, JWTs, refresh tokens, or secrets. The current generic audit trigger serializes whole rows and therefore requires redaction for `app_users` before database implementation.
 
-**Status:** TODO BEFORE DATABASE IMPLEMENTATION.
+**Status:** REQUIRED BEFORE DATABASE IMPLEMENTATION; verify with `SEC-AUDIT-001`. Audit records must include actor, entity type/id, timestamp, redacted before/after, and request/correlation ID when available. Soft-delete transitions map to `SOFT_DELETE`, and the inverse maps to `RESTORE`.

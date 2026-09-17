@@ -21,7 +21,7 @@ Related sources of truth: [shop_finance.dbml](../src/database/shop_finance.dbml)
 | `expenses` | One row = one outgoing amount. `payee`, `origin_scope`, `payment_method`, `record_status`, `tax_percent`, `amount_after_tax`. |
 | `attachments` | Attachment metadata; each attachment belongs to exactly one income or expense, and each transaction may have many attachments |
 | `import_batches` | Excel import run |
-| `audit_logs` | INSERT/UPDATE/DELETE (trigger) + LOGIN/EXPORT/IMPORT (app); `module`, `detail` |
+| `audit_logs` | Business actions CREATE/UPDATE/SOFT_DELETE/RESTORE plus LOGIN/EXPORT/IMPORT; current trigger verbs require persistence/schema mapping; `module`, `detail` |
 
 There are no dashboard / reports / statistics tables — KPIs are calculated from active income/expense records.
 
@@ -29,7 +29,7 @@ There are no dashboard / reports / statistics tables — KPIs are calculated fro
 
 `deleted_at` (+ `deleted_by` on incomes/expenses). Active list: `deleted_at IS NULL`.
 
-Soft deletion is implemented as an SQL `UPDATE`. Whether the audit catalog exposes that transition as `UPDATE` or the business-level action `DELETE` is **TBD** and must be decided before database implementation.
+Soft deletion is implemented as an SQL `UPDATE`, but the business audit catalog exposes the transition as `SOFT_DELETE`; the inverse transition is `RESTORE`. Ordinary field changes remain `UPDATE` and creation is `CREATE`. Persistence must map trigger verbs to this taxonomy.
 
 ## Audit payload security
 
@@ -37,7 +37,7 @@ Sensitive fields must not be stored in audit JSON payloads or application logs. 
 
 **Current design risk:** the generic `to_jsonb(NEW)` / `to_jsonb(OLD)` trigger can capture `app_users.password_hash`.
 
-**TODO before database implementation:** exclude or redact sensitive columns in `app_users` audit payloads and add a database-level verification test. No migration is executed by this documentation task.
+**Required before database implementation:** exclude or redact sensitive columns in `app_users` audit payloads and add `SEC-AUDIT-001`. No migration is executed by this documentation task.
 
 ## Transaction boundaries
 
@@ -45,9 +45,9 @@ Sensitive fields must not be stored in audit JSON payloads or application logs. 
 |---|---|---|
 | Income | Persist mutation and its trigger-generated audit record in one transaction | Confirmed |
 | Expense | Persist mutation and its trigger-generated audit record in one transaction | Confirmed |
-| User management | Account mutation and administrative audit behavior | Detailed boundary TBD |
-| Excel import | Invalid rows insert zero income/expense records; a valid batch commits all imported records | Confirmed all-or-nothing; HTTP execution model TBD |
-| Attachment | Metadata/file compensation and retry behavior | Final transaction/compensation design TBD |
+| User management | Account mutation and administrative audit behavior | Account change and audit commit in one database transaction |
+| Excel import | Invalid rows insert zero income/expense records; a valid batch commits all imported records | Confirmed synchronous, all-or-nothing, maximum 10 MB/5,000 rows |
+| Attachment | Metadata/file compensation and retry behavior | Store object, then metadata; remove new object if metadata fails. On delete, remove metadata transactionally and use retry-safe cleanup if object deletion fails |
 
 ## Currency
 

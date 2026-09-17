@@ -1,6 +1,6 @@
 # API Design Traceability
 
-> Design status: TARGET V1 with documented TBD decisions
+> Design status: TARGET V1 — key execution decisions accepted
 >
 > Implementation status: NOT IMPLEMENTED
 
@@ -76,7 +76,7 @@ The read pattern applies to Dashboard, Categories, transaction lists/details, re
 
 ## S04–S05 — Import preview and atomic processing
 
-> **Execution-model note:** Import atomicity is confirmed, but synchronous versus asynchronous HTTP execution is TBD. The diagrams below illustrate validation and atomic persistence; they do not resolve whether processing completes before the `202 Accepted` response.
+> **Execution-model note:** V1 import is synchronous and atomic, limited to 10 MB/5,000 rows. The response represents the final result.
 
 ```mermaid
 sequenceDiagram
@@ -116,11 +116,11 @@ sequenceDiagram
     User->>Api: POST /api/v1/imports
     Api->>App: ProcessAsync(file, type, actor)
     App->>Parser: Parse all rows
-    App->>App: Apply approved import/domain validation rules (strategy TBD)
+    App->>App: Apply authoritative ledger validators/business rules
     alt Any row invalid
         App->>Batch: Save FAILED batch and row errors
         App-->>Api: Failed ImportBatch
-        Api-->>User: 202 ImportBatch
+        Api-->>User: 200 final summary; importedRows=0
     else Every row valid
         App->>Uow: ExecuteAsync(actor.userId)
         Uow->>Db: BEGIN and SET LOCAL actor
@@ -130,7 +130,7 @@ sequenceDiagram
         App->>Batch: Mark COMPLETED
         Uow->>Db: COMMIT
         App-->>Api: Completed ImportBatch
-        Api-->>User: 202 ImportBatch
+        Api-->>User: 200 final summary; importedRows=totalRows
     end
 ```
 

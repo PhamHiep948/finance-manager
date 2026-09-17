@@ -17,8 +17,9 @@ Only constraints grounded in the repository or architecture baseline (Sections 4
 | In V1, `currency_code` is only `USD` (table CHECK constraint) | SQL | FACT |
 | API style = ASP.NET Core attribute Controllers | ADR-002 | DECISION |
 | Data access = Entity Framework Core + Npgsql | ADR-009 | DECISION |
-| Authentication = short-lived JWT Bearer, no refresh token | ADR-010 | DECISION |
+| Authentication = 30-minute JWT Bearer, no refresh token or V1 revocation store | ADR-010 | DECISION |
 | Excel parsing = NPOI; files accessed through `IFileStorage` | ADR-011 | DECISION |
+| Import = synchronous, atomic, max 10 MB/5,000 rows | ADR-013 | DECISION |
 
 Production hosting and managed storage remain replaceable deployment choices. Application code depends on abstractions rather than a cloud vendor.
 
@@ -35,7 +36,7 @@ Production hosting and managed storage remain replaceable deployment choices. Ap
 | Role enum | `ADMIN`, `SHOP_OWNER`, `EMPLOYEE`, `VIEWER` — do not add roles |
 | UI permission hiding | Menus/buttons are not rendered when permission is missing; unauthorized URL access → 403 |
 | Soft-delete list | `deleted_at IS NULL` for active records |
-| Audit actions | `INSERT`, `UPDATE`, `DELETE`, `LOGIN`, `EXPORT`, `IMPORT` |
+| Business audit actions | `CREATE`, `UPDATE`, `SOFT_DELETE`, `RESTORE` plus cross-cutting `LOGIN`, `EXPORT`, `IMPORT`; technical SQL verbs are mapped |
 | Data source | `MANUAL` or `EXCEL_IMPORT` (Excel requires `import_batch_id`) |
 | Import status | `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED` |
 | Hash routes (information architecture) | `#/login`, `#/dashboard`, `#/incomes`, `#/expenses`, `#/reports`, `#/import`, `#/audit`, `#/users`, `#/profile`, `#/403` |

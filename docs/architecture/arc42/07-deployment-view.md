@@ -47,9 +47,9 @@ This is a logical topology and does not select a cloud provider, container orche
 
 | Container | Current local state | Target production state |
 |---|---|---|
-| React Web | Vite dev server + browser | Static web hosting, TBD |
-| .NET Backend | Not implemented | One or more ASP.NET Core application instances, TBD |
-| PostgreSQL | Docker Compose | Managed or self-hosted PostgreSQL, TBD |
+| React Web | Vite dev server + browser | Static web hosting provider: OPEN, operator-owned before go-live |
+| .NET Backend | Implementation status assessed separately | One or more ASP.NET Core instances; host/topology OPEN before go-live |
+| PostgreSQL | Docker Compose | Managed or self-hosted PostgreSQL; provider OPEN before go-live |
 
 ## 7.4 Deployment requirements
 

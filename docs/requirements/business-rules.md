@@ -3,7 +3,7 @@
 > Design status: TARGET V1  
 > Implementation status: NOT IMPLEMENTED
 
-Only rules already confirmed by project documentation are catalogued here. Unresolved choices remain `TBD`.
+Only rules confirmed by project documentation are catalogued here. Deployment choices outside V1 are recorded separately and do not weaken these rules.
 
 ## BR-001 — Roles
 
@@ -60,7 +60,7 @@ Only rules already confirmed by project documentation are catalogued here. Unres
 - **Related US:** US12
 - **Related API:** `createImport`
 - **Rule:** If any row is invalid, the batch inserts zero income/expense records. A valid batch commits all imported records.
-- **Open decision:** synchronous versus asynchronous HTTP execution is TBD.
+- **Execution:** synchronous within 10 MB/5,000 rows; the response is the final import summary.
 
 ## BR-009 — Report authorization
 
@@ -68,7 +68,7 @@ Only rules already confirmed by project documentation are catalogued here. Unres
 - **Related US:** US13, US14
 - **Related API:** `getReport`, `exportReport`
 - **Rule:** Reports and exports are available to Administrator, Shop Owner, and Viewer, but not Employee. Export must represent the same approved filter set as the visible report.
-- **Open decision:** final export filter parity is TBD.
+- **Contract:** export reuses the same approved filters and totals as `getReport`.
 
 ## BR-010 — User administration
 
@@ -96,13 +96,13 @@ Only rules already confirmed by project documentation are catalogued here. Unres
 - **Source:** US02 and `POST /auth/logout`
 - **Related US:** US02
 - **Related API:** `logout`
-- **Status:** TBD
-- **Decision required:** choose client-side token discard or server-side revocation before backend implementation.
+- **Status:** ACCEPTED
+- **Rule:** access tokens expire after 30 minutes. Logout removes token/private session state on the client; V1 has no refresh token or server-side revocation store.
 
-## BR-014 — Soft-delete audit action
+## BR-014 — Audit action taxonomy
 
 - **Source:** soft-delete rules and database audit design
 - **Related US:** US07, US11
 - **Related API:** `softDeleteIncome`, `softDeleteExpense`
-- **Status:** TBD
-- **Decision required:** decide whether the audit action exposed for a soft delete is `UPDATE` or business-level `DELETE`.
+- **Status:** ACCEPTED
+- **Rule:** business actions are `CREATE`, `UPDATE`, `SOFT_DELETE`, and `RESTORE`. Technical trigger verbs must be mapped to these actions. Each record contains actor, entity type/id, timestamp, redacted before/after, and correlation ID when available.

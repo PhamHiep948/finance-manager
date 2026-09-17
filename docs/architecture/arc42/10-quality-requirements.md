@@ -1,6 +1,6 @@
 # 10. Quality Requirements
 
-Mapped to [QG-1 … QG-5](01-introduction-and-goals.md). Do not invent production service-level agreements. Where no benchmark has been established, use **Proposed Target** or **To Be Determined before production**.
+Mapped to [QG-1 … QG-5](01-introduction-and-goals.md) and the measurable [NFR baseline](../../requirements/non-functional-requirements.md). Values are V1 engineering baselines, not contractual service-level agreements.
 
 Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Measurement.
 
@@ -45,7 +45,7 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **Quality Attribute** | Auditability (QG-3)                                                                           |
 | **Scenario**          | Successful login; soft-delete expense; confirm import; export report                          |
 | **Environment**       | Backend + `audit_logs`                                                                        |
-| **Expected Response** | LOGIN / DELETE / IMPORT / EXPORT records with actor, module, timestamp; no password/hash       |
+| **Expected Response** | LOGIN / SOFT_DELETE / IMPORT / EXPORT records with actor, entity, timestamp, redacted before/after and correlation ID when available; no password/hash/token |
 | **Measurement**       | Query `audit_logs`; review payload                                                            |
 
 ## QR-05 Import atomicity
@@ -56,8 +56,8 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **Quality Attribute** | Data Integrity                                                                                                                                                                |
 | **Scenario**          | Confirm import; some rows fail during processing                                                                                                                              |
 | **Environment**       | Excel Import + Persistence transaction                                                                                                                                        |
-| **Expected Response** | **Proposed** policy: either the entire batch becomes FAILED with no partial transaction commit, or success_rows/failed_rows satisfy constraints; final status is COMPLETED or FAILED, never stuck in PROCESSING |
-| **Measurement**       | `import_batches` counts; `success_rows + failed_rows <= total_rows`                                                                                                           |
+| **Expected Response** | The synchronous request rejects files over 10 MB/5,000 rows; any severe validation error yields a final FAILED summary and zero ledger inserts; otherwise all rows commit and status is COMPLETED |
+| **Measurement**       | Final `totalRows`, `validRows`, `importedRows`, `failedRows`, `validationErrors`; database row counts and rollback test |
 
 ## QR-06 Performance (dashboard)
 
@@ -66,9 +66,9 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **ID**                | QR-06                                                                |
 | **Quality Attribute** | Performance                                                          |
 | **Scenario**          | User opens Dashboard using the default date range with V1 single-shop data |
-| **Environment**       | .NET + PostgreSQL local/production To Be Determined                                         |
-| **Expected Response** | **Proposed Target:** 95th percentile latency under 2 seconds. **To Be Determined before production** if not measured |
-| **Measurement**       | GET dashboard API latency                                            |
+| **Environment**       | Documented reference workload: >=100,000 records and 50 concurrent active users |
+| **Expected Response** | P95 latency <= 2 seconds |
+| **Measurement**       | `PERF-REPORT-001` load test |
 
 ## QR-07 Recoverability
 
@@ -77,9 +77,9 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **ID**                | QR-07                                                                                                 |
 | **Quality Attribute** | Recoverability                                                                                        |
 | **Scenario**          | PostgreSQL volume is lost                                                                             |
-| **Environment**       | Local Docker volume; production To Be Determined                                                                   |
-| **Expected Response** | Local: volume `handmade_postgres_data` — backup **To Be Determined**. Production restore **To Be Determined before production** |
-| **Measurement**       | Backup runbook exists / does not exist                                                                |
+| **Environment**       | Target production PostgreSQL |
+| **Expected Response** | Daily backup retained 30 days; RPO <= 24 hours; RTO <= 4 hours |
+| **Measurement**       | `OPS-RESTORE-001` timed restore exercise |
 
 ## QR-08 Usability — role shell
 
@@ -101,4 +101,4 @@ Structure: ID, Quality Attribute, Scenario, Environment, Expected Response, Meas
 | **Scenario**          | Add a field to `incomes`                                           |
 | **Environment**       | .NET projects/modules                                                         |
 | **Expected Response** | SQL remains inside Persistence; Income Management contains no SQL driver code |
-| **Measurement**       | PR review / architecture test (**Proposed**)                       |
+| **Measurement**       | `ARCH-001`–`ARCH-014` plus project-reference inspection           |

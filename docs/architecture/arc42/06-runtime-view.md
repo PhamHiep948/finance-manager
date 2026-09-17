@@ -65,11 +65,11 @@ sequenceDiagram
     A->>X: Validate type, header, rows
     X-->>W: Preview + row-level errors
     U->>W: Confirm import
-    W->>A: Process batch
-    A->>X: Parse and validate every row
+    W->>A: POST import (<=10 MB, <=5,000 rows)
+    A->>X: Parse and validate every row synchronously
     alt Any row invalid
         X->>R: Save FAILED batch with row errors
-        R-->>W: Failure details with zero inserted transactions
+        R-->>W: 200 final summary; importedRows=0
     else Every row valid
         X->>R: Begin one database transaction
         loop each validated row
@@ -77,7 +77,7 @@ sequenceDiagram
             L->>R: Insert with batch ID
         end
         X->>R: Mark COMPLETED + audit, then commit
-        R-->>W: Success counts
+        R-->>W: 200 final summary; importedRows=totalRows
     end
 ```
 

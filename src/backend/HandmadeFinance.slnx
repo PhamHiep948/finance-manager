@@ -6,5 +6,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HandmadeFinance.Application.Tests/HandmadeFinance.Application.Tests.csproj" />
+    <Project Path="tests/HandmadeFinance.Api.Tests/HandmadeFinance.Api.Tests.csproj" />
+    <Project Path="tests/HandmadeFinance.Infrastructure.Tests/HandmadeFinance.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

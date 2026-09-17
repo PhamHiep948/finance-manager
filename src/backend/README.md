@@ -23,7 +23,9 @@ The Step 7 executable baseline now includes the three projects above and an xUni
 - Income/expense CRUD with role checks, Employee ownership, validation, paging/filtering, and soft deletion.
 - Dashboard/report aggregates, active category lookups, admin user management, and self-service profile/password operations.
 - RFC 7807 error responses with stable error codes and trace IDs.
-- In-memory persistence is intentionally the local executable adapter. PostgreSQL EF/Npgsql, import/files, audit persistence, exporters, and API/infrastructure integration tests remain follow-up increments from `docs/09-step-7-readiness.md`.
+- All 33 OpenAPI routes now have executable handlers, including report export, import preview/history/process, attachment lifecycle, and audit queries.
+- The solution contains Application unit tests, HTTP API integration tests, and Infrastructure tests.
+- In-memory persistence remains the local executable adapter. PostgreSQL EF/Npgsql, production-grade Excel parsing and durable file/audit storage remain deployment-grade follow-up work from `docs/09-step-7-readiness.md`.
 
 Run:
 

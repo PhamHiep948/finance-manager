@@ -91,9 +91,9 @@ The import service parses before the write transaction and commits every validat
 
 ### Import validation collaboration
 
-**Status:** TBD
+**Status:** ACCEPTED
 
-`ImportService → ITransactionRepository` is provisional orchestration notation, not permission to bypass ledger rules. Import must reuse approved income/expense validation and business rules through validators, policies, a shared application/domain layer, or another owner-approved approach. The final method-level dependency must be selected before implementation.
+`ImportService` reuses the authoritative Application income/expense validators and business-rule abstractions before using batch persistence. `ImportService → ITransactionRepository` is persistence orchestration only and never permission to bypass ledger rules.
 
 ## Audit, Users, and Profile
 

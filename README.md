@@ -36,7 +36,7 @@ US16        User management
 US17        Personal profile and password
 ```
 
-Most stories satisfy all six criteria. `US02`, `US12`, and `US14` remain partially estimable until logout semantics, the import execution model, and report/export filter parity are approved. The complete story-level review and acceptance-criteria links are maintained in [INVEST Requirements](docs/08-invest-requirements.md).
+All V1 stories now have estimable target behavior. Logout is client-side token discard, import is synchronous and atomic within documented limits, and export reuses the approved report filters. The complete story-level review is maintained in [INVEST Requirements](docs/08-invest-requirements.md).
 
 ### 1.3 Use cases
 
@@ -392,7 +392,7 @@ finance-manager/
 └── README.md
 ```
 
-The frontend is currently an intentional mock-data prototype for interface development and demonstration. The backend directories are design scaffolds only—no ASP.NET Core application has been implemented yet. The PostgreSQL and OpenAPI files define target contracts and are not connected to the current frontend runtime.
+The frontend is currently an intentional mock-data prototype for interface development and demonstration. Backend artifacts, PostgreSQL, and OpenAPI describe the TARGET architecture and are not connected to the current frontend runtime; their implementation status is assessed separately from this documentation baseline.
 
 ### 5.2 Target React feature structure
 
@@ -485,7 +485,7 @@ flowchart TB
     api --> handler
     policy --> identity
     postgres --> db
-    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+    db -.->|"trigger event mapped to business audit action"| audit
 
     style handler fill:#1168bd,color:#fff
     style service fill:#0b4f9e,color:#fff
@@ -526,7 +526,7 @@ flowchart TB
     api --> handler
     policy --> identity
     postgres --> db
-    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+    db -.->|"trigger event mapped to business audit action"| audit
 
     style handler fill:#1168bd,color:#fff
     style service fill:#0b4f9e,color:#fff

@@ -45,7 +45,7 @@ Three to five architecture priorities (detailed scenarios: [10-quality-requireme
 | -- | ------------ | -------------- |
 | QG-1 | Data Correctness | Income/expense totals and Net Result must match active records; USD is the canonical currency |
 | QG-2 | Security | Roles and permissions must be rejected by the .NET Backend even if React hides the button |
-| QG-3 | Auditability | INSERT/UPDATE/DELETE/LOGIN/EXPORT/IMPORT must be traceable to actor, time, and module |
+| QG-3 | Auditability | CREATE/UPDATE/SOFT_DELETE/RESTORE/LOGIN/EXPORT/IMPORT must be traceable to actor, entity, time, and correlation context without secrets |
 | QG-4 | Usability | Each of the four roles sees the correct menu; Viewer must not be exposed to write actions |
 | QG-5 | Maintainability | Modular Monolith + a single Persistence layer for SQL makes business modules easier to extend |
 
@@ -58,6 +58,6 @@ Three to five architecture priorities (detailed scenarios: [10-quality-requireme
 | Employee (`EMPLOYEE`) | Record / edit own transactions, import |
 | Viewer (`VIEWER`) | Read dashboard, income, expenses, reports, profile |
 | Developer / maintainer | Module boundaries, schema, ADRs |
-| Operator (local / future production) | Existing PostgreSQL Docker setup; production To Be Determined |
+| Operator (local / future production) | Existing PostgreSQL Docker setup; select production provider/topology before go-live |
 
 The four roles are detailed in [Section 3](03-context-and-scope.md).

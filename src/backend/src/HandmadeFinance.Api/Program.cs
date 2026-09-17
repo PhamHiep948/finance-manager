@@ -11,6 +11,7 @@ builder.Services.AddControllers().AddJsonOptions(o=>o.JsonSerializerOptions.Conv
 builder.Services.AddAuthentication(TokenAuthenticationHandler.Scheme).AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,TokenAuthenticationHandler>(TokenAuthenticationHandler.Scheme,_=>{});
 builder.Services.AddAuthorization(); builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<IClock,SystemClock>(); builder.Services.AddSingleton<IPasswordService,PasswordService>(); builder.Services.AddSingleton<InMemoryStore>();
+builder.Services.AddSingleton<OperationalStore>();
 builder.Services.AddSingleton<ILedgerRepository>(x=>x.GetRequiredService<InMemoryStore>()); builder.Services.AddSingleton<IUserRepository>(x=>x.GetRequiredService<InMemoryStore>());
 builder.Services.AddSingleton<TokenService>(); builder.Services.AddSingleton<ITokenIssuer>(x=>x.GetRequiredService<TokenService>());
 builder.Services.AddScoped<ILedgerService,LedgerService>(); builder.Services.AddScoped<AuthenticationService>(); builder.Services.AddScoped<UserService>();

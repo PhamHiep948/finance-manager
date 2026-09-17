@@ -77,21 +77,13 @@ Import calls Income & Expense to reuse validation. Reporting reads only through 
 
 ## Import Domain Validation Strategy
 
-**Status:** TBD
+**Status:** ACCEPTED
 
 ### Confirmed requirement
 
 Import must not duplicate or bypass critical income/expense validation and authorization rules.
 
-### Possible implementations
-
-- Import orchestrates the existing income/expense application validators and policies.
-- Import and ledger services depend on a shared application/domain validation abstraction.
-- Another approach is accepted only if it preserves one authoritative rule set.
-
-### Final implementation
-
-TBD before backend implementation. The component diagram expresses the required collaboration, not a final method-level call structure.
+Import orchestrates the existing Application income/expense validators and business-rule abstractions. It may batch persistence for efficiency, but it must not duplicate rules or write through a bypass that accepts data rejected by manual entry. `ARCH-013` and `INT-IMPORT-003` verify parity.
 
 **Previous:** [C2 — Container](02-container.md) · **Next:** [C4 — Code for Income and Expense](04-code.md) · **Related:** [arc42 Building Block View](../arc42/05-building-block-view.md).
 

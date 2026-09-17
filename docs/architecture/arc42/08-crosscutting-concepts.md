@@ -14,7 +14,7 @@ Own-record rule: EMPLOYEE can update only when `created_by` matches. Delete: EMP
 
 ## 8.3 Validation
 
-Backend validates required fields, `amount > 0`, `tax_percent` between 0–100, category existence, and configured import/attachment file type and size limits. Limits come from validated configuration so deployment can lower them without code changes. Frontend validation improves user experience but does not replace backend validation.
+Backend validates required fields, `amount > 0`, `tax_percent` between 0–100, category existence, and configured file type/signature/size limits. Import limits are at most 10 MB and 5,000 rows; deployment may lower but not raise these without an architecture/NFR review. Frontend validation improves user experience but does not replace backend validation.
 
 ## 8.4 Error Handling
 
@@ -36,11 +36,13 @@ Never log: password, hash, session secret, token.
 
 ## 8.6 Database Transactions
 
-Creating income + attachment and confirming import (multiple rows + batch) run in **one transaction** through Persistence. Audit triggers run in the same transaction for INSERT/UPDATE/DELETE on tables that have triggers.
+Creating income + attachment and confirming synchronous import (multiple rows + batch) run in **one transaction** through Persistence. Audit triggers run in the same transaction; persistence maps technical DML to the business taxonomy `CREATE`, `UPDATE`, `SOFT_DELETE`, `RESTORE`.
 
 ## 8.7 Soft Delete
 
 `deleted_at` (+ `deleted_by` on incomes/expenses). Active rows satisfy `deleted_at IS NULL`. User/category tables also have `deleted_at` in the schema.
+
+Audit minimum: actor user ID, action, entity type/id, timestamp, redacted before/after, and correlation ID when available. Passwords, hashes, tokens, keys, secrets, and raw file contents are excluded.
 
 ## 8.8 Currency
 

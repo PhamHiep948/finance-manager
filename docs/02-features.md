@@ -23,7 +23,7 @@ UI product: **HandmadeFinance**.
 
 **Current prototype:** mock login with browser storage and no JWT/OAuth. Two-column screen: HandmadeFinance introduction + form.
 
-**Target V1:** REST login returns a short-lived Bearer JWT; the backend enforces authentication and authorization. Logout token semantics remain a project-owner decision documented in `03-use-cases.md`.
+**Target V1:** REST login returns a 30-minute Bearer JWT; the backend enforces authentication and authorization. Logout clears client token/private state; V1 has no refresh token or server-side revocation.
 
 - F01.1 Login (email, password, remember device)
 - F01.2 Logout
@@ -59,7 +59,7 @@ Overview, by day, by month, by income category, by expense category. Switch USD/
 Import income or expense data from `.xlsx` / `.xls`.
 
 - **Current prototype:** mock preview, history, success, and error; file contents are not parsed.
-- **Target V1:** validated preview and persisted import batch processing. The synchronous/asynchronous execution model remains TBD before backend implementation.
+- **Target V1:** validated preview and synchronous atomic import, limited to 10 MB/5,000 rows, returning a final summary before the request completes.
 
 ## F07 Attachment
 

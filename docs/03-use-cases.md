@@ -151,11 +151,9 @@ All four roles: login, logout, dashboard, view income/expenses, profile.
 
 #### Logout Token Semantics
 
-**Status:** TBD
+**Status:** ACCEPTED FOR V1
 
-- **Option A — client-side logout only:** the client discards the short-lived access token; an already issued token expires naturally.
-- **Option B — server-side revocation:** the server records revocation so the current token becomes unusable before expiry.
-- **Decision required:** the project owner must select the target behavior before backend implementation. The current OpenAPI wording represents Option A and must be revised if Option B is selected.
+The client discards the 30-minute JWT access token and all cached private state after the authenticated logout acknowledgement. V1 has no refresh token and no server-side blacklist/revocation store; an already issued token expires naturally. Server-side revocation is a possible future evolution, not a V1 requirement.
 
 ### UC03 View Dashboard
 
@@ -224,9 +222,9 @@ All four roles: login, logout, dashboard, view income/expenses, profile.
 ### UC12 Import data
 
 - **Actor:** Admin, Shop Owner, Employee
-- **Main flow:** choose income/expense → choose `.xlsx`/`.xls` → upload for validation and preview → confirm import → view persisted batch status and row results
+- **Main flow:** choose income/expense → choose `.xlsx`/`.xls` (maximum 10 MB and 5,000 data rows) → upload for validation and preview → confirm synchronous atomic import → receive the final summary (`totalRows`, `validRows`, `importedRows`, `failedRows`, `validationErrors`)
 - **Permission:** `importData`
-- **Result:** target V1 parses and validates workbook contents; the current prototype simulates this flow only
+- **Result:** any severe validation error commits zero ledger rows; otherwise all validated rows commit before the response. The current prototype simulates this TARGET flow only.
 
 ### UC13 View reports
 

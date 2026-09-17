@@ -40,7 +40,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 Login does not require a token. All other operations use Bearer JWT unless an operation sets `security: []`.
 
-V1 does not define a refresh token. The current contract describes client-side token discard, but final logout token semantics are **TBD**. The project owner must choose client-only logout or server-side token revocation before backend implementation.
+V1 uses a 30-minute JWT access token, no refresh token, and no server-side blacklist/revocation store. Logout acknowledges the authenticated request; the client then removes its token and cached private state. An issued token expires naturally.
 
 ## Content types
 
@@ -193,18 +193,13 @@ Repository root `redocly.yaml` disables unused `info.license` rules because this
 
 **Requirement:** an export must represent the same active filters as the visible report.
 
-**Status:** TBD
-
-Candidate filters already used by report design include `dateFrom`, `dateTo`, `groupBy`, and `categoryId`. The project owner must confirm the final filter set before implementation; until then the export contract must not be assumed to have full parity merely because date filters are present.
+**Status:** ACCEPTED. `exportReport` uses the same `dateFrom`, `dateTo`, `groupBy`, and `categoryId` semantics and totals as `getReport`; `format` only selects PDF or XLSX rendering.
 
 ## Import Execution Model
 
-**Status:** TBD
+**Status:** ACCEPTED FOR V1 — synchronous and atomic.
 
-- **Option A — synchronous:** the request waits until processing finishes and returns the final batch state.
-- **Option B — asynchronous:** `POST /imports` creates/queues a batch, returns `202 Accepted`, and the client polls `getImport`.
-
-The current OpenAPI uses `202 Accepted`, while the sequence documentation shows processing completed before the response. The project owner must select one model before backend implementation, then update OpenAPI and sequence diagrams together.
+`POST /imports` waits for parse, validation, and the all-or-nothing database transaction, then returns `200 OK` with the final summary: `totalRows`, `validRows`, `importedRows`, `failedRows`, and `validationErrors`. Files are limited to 10 MB and 5,000 data rows. A severe validation error commits zero ledger rows. V1 has no import queue, job ID, retry scheduler, or polling requirement; import history remains queryable for audit and support.
 
 ## Implementation status
 

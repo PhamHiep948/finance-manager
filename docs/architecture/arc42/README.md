@@ -43,7 +43,9 @@ flowchart LR
 - **Current:** the React/Vite mock runs entirely in the browser.
 - **Target:** React Web → ASP.NET Core Web API → PostgreSQL.
 - **Principle:** the backend is the trust boundary; the domain does not depend on transport or SQL details.
-- **Step 7 baseline:** ASP.NET Core Controllers, JWT Bearer, Entity Framework Core/Npgsql, NPOI, and local `IFileStorage`.
+- **Step 7 baseline:** Simplified Clean Architecture (Api/Application/Infrastructure), ASP.NET Core Controllers, 30-minute JWT Bearer, EF Core/Npgsql, synchronous NPOI import, and local `IFileStorage`.
 - **Deferred deployment choices:** production hosting, managed storage, backups, exchange-rate provider, and centralized monitoring.
 
 Related: [C4 C1 → C2 → C3 → C4](../c4/README.md) · [C4 Code for two core features](../c4/04-code.md) · [Use Case Diagram](../../03-use-cases.md#use-case-diagram).
+
+Governance and verification: [Architecture conformance](../architecture-conformance.md) · [Document governance](../document-governance.md) · [Consistency audit](../../reviews/architecture-consistency-audit.md) · [Threat model](../../security/threat-model.md).

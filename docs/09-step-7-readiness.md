@@ -1,6 +1,6 @@
 # Step 7 Readiness — API Implementation and Unit Tests
 
-> Design status: PARTIAL — normalization complete, owner decisions remain
+> Design status: READY AS TARGET SPECIFICATION — implementation and executable tests remain planned
 >
 > Implementation status: NOT STARTED
 
@@ -10,11 +10,11 @@ Steps 1–6 define the target behavior and architecture. This document is the im
 
 Use this precedence when documents appear ambiguous:
 
-1. `api/openapi.yaml` — HTTP paths, security scheme, request/response schemas, and status codes.
-2. `03-use-cases.md` and `06-acceptance-criteria.md` — roles, ownership, and observable behavior.
-3. `src/database/shop_finance.sql` — persisted types, constraints, relationships, views, and triggers.
-4. `07-folder-structure.md` and `architecture/uml/` — code ownership, dependencies, and call order.
-5. `architecture/arc42/09-architecture-decisions.md` — implementation technology decisions.
+1. Accepted ADRs.
+2. Explicit business requirements and acceptance criteria.
+3. Approved target architecture.
+4. OpenAPI and database contracts.
+5. C4, UML, sequence, folder, and supporting documents.
 
 If implementation exposes a conflict between sources, update the design and OpenAPI together before coding around it.
 
@@ -27,7 +27,7 @@ If implementation exposes a conflict between sources, update the design and Open
 | I3 Ledger reads | Categories, income/expense list and detail, paging/filtering | Active-record and filter tests pass against PostgreSQL |
 | I4 Ledger writes | Create/update/soft-delete, ownership, audit actor context | UC05–11 service and trigger integration tests pass |
 | I5 Dashboard/reporting | Dashboard, report query, PDF/XLSX exporters | Aggregates reconcile with seeded active transactions |
-| I6 Imports/files | Preview, atomic import, history, attachments, local storage | Invalid import inserts zero transactions; cleanup paths pass |
+| I6 Imports/files | Preview, synchronous atomic import, history, attachments, local storage | Inputs above 10 MB/5,000 rows are rejected; invalid import inserts zero transactions; final summary and cleanup paths pass |
 | I7 Administration | Audit list, users, profile/password | Admin/self-service authorization and conflict tests pass |
 | I8 Frontend integration | Replace mock services feature-by-feature | UI consumes OpenAPI responses and preserves documented states |
 
@@ -75,15 +75,13 @@ If implementation exposes a conflict between sources, update the design and Open
 | 5 | Full React feature structure and three-tier backend/test structure |
 | 6 | Core and remaining class diagrams, runtime sequences, and operation traceability |
 
-## Remaining design decisions before freeze
+## Finalized V1 architecture decisions
 
-The six-step baseline is substantially complete, but implementation must not begin until the project owner resolves:
+- Logout: client-side discard; 30-minute JWT; no refresh token or server-side revocation.
+- Import: synchronous, atomic, maximum 10 MB/5,000 rows; `200` final summary.
+- Report/export: identical approved filter set and totals.
+- Soft-delete audit: business actions `CREATE`, `UPDATE`, `SOFT_DELETE`, `RESTORE` with redacted snapshots.
+- Import validation: Import orchestration reuses the authoritative Application ledger validators/business rules.
+- Architecture: Simplified Clean Architecture / 3-project variant; no speculative Domain project.
 
-- Logout token semantics: client-side discard or server-side revocation.
-- Import execution model: synchronous completion or asynchronous `202` job/polling.
-- Final report/export filter parity.
-- DTO naming convention for shared versus create/update write requests.
-- Soft-delete audit action semantics.
-- Import-to-ledger validation collaboration.
-
-Master cross-step coverage is maintained in `docs/traceability/master-traceability.md`. After these decisions update the relevant OpenAPI, UML, database, and requirement documents together, the design may be frozen and Step 7 may begin.
+Production platform, exchange-rate provider, log/audit retention, and file-backup topology remain non-blocking operational decisions. Master coverage is in `docs/traceability/master-traceability.md`; executable tests remain `PLANNED` and no Step 7 implementation is authorized by this document.

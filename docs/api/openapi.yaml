@@ -51,7 +51,7 @@ paths:
       tags: [Authentication]
       summary: Log in
       description: |
-        Authenticates with email and password and returns a short-lived JWT access token plus the user profile.
+        Authenticates with email and password and returns a 30-minute JWT access token plus the user profile.
         This operation does not require an existing access token. V1 does not return a refresh token.
       operationId: login
       security: []
@@ -81,7 +81,7 @@ paths:
       tags: [Authentication]
       summary: Log out
       description: |
-        Acknowledges logout for the authenticated user. V1 has no refresh token and does not define server-side token revocation.
+        Acknowledges logout for the authenticated user. V1 uses a 30-minute access token, has no refresh token, and does not define server-side token revocation.
         The client must discard the access token after a successful response.
       operationId: logout
       x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE, VIEWER]
@@ -507,7 +507,7 @@ paths:
       tags: [Reports]
       summary: Export a report
       description: |
-        Generates a downloadable report file for the selected date range.
+        Generates a downloadable report file using the same `dateFrom`, `dateTo`, `groupBy`, and `categoryId` filter semantics as `getReport`.
         The success content type depends on the required `format` query parameter:
         `PDF` returns `application/pdf` and `XLSX` returns `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
         The success response is a binary file, not JSON.
@@ -516,6 +516,14 @@ paths:
       parameters:
         - {$ref: '#/components/parameters/DateFrom'}
         - {$ref: '#/components/parameters/DateTo'}
+        - name: groupBy
+          in: query
+          description: Optional aggregation key. Defaults to `MONTH`, identical to `getReport`.
+          schema: {type: string, enum: [DAY, MONTH, INCOME_CATEGORY, EXPENSE_CATEGORY], default: MONTH}
+        - name: categoryId
+          in: query
+          description: Optional category identifier, identical to `getReport`.
+          schema: {type: integer, format: int64, minimum: 1}
         - name: format
           in: query
           required: true
@@ -548,7 +556,7 @@ paths:
         required: true
         description: |
           Multipart form with `importType` (`INCOME` or `EXPENSE`) and an Excel `file`.
-          Preview does not persist business records. File size and MIME limits are defined by the backend configuration, not by this contract.
+          Preview does not persist business records. The V1 maximum is 10 MB and 5,000 data rows; extension, media type, and file signature are validated server-side.
         content:
           multipart/form-data:
             schema:
@@ -617,15 +625,16 @@ paths:
       tags: [Imports]
       summary: Process an Excel import
       description: |
-        Processes an Excel file atomically. If any row is invalid, no income or expense rows from the batch are committed
-        and the batch is marked `FAILED` with row errors. A valid file commits every row and marks the batch `COMPLETED`.
+        Synchronously processes an Excel file atomically. If any row has a severe validation error, no income or expense rows
+        from the batch are committed and the final summary reports the validation errors. A valid file commits every row before
+        returning `200 OK`. V1 does not queue a background job.
       operationId: createImport
       x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
       requestBody:
         required: true
         description: |
           Multipart form with `importType` (`INCOME` or `EXPENSE`) and an Excel `file`.
-          Processing is all-or-nothing. File size and MIME limits are defined by the backend configuration, not by this contract.
+          Processing is all-or-nothing. The V1 maximum is 10 MB and 5,000 data rows; extension, media type, and file signature are validated server-side.
         content:
           multipart/form-data:
             schema:
@@ -642,8 +651,8 @@ paths:
                   format: binary
                   description: Excel workbook to process. Binary file content is not shown in examples.
       responses:
-        '202':
-          description: Import accepted for processing
+        '200':
+          description: Import processing completed; response contains the final atomic result
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ImportBatch'}
@@ -659,7 +668,7 @@ paths:
     get:
       tags: [Imports]
       summary: Get an import batch
-      description: Returns one import batch, including status and row counts. Failed batches may include `errorDetails`.
+      description: Returns one persisted import result, including final status, row counts, and `validationErrors`.
       operationId: getImport
       x-roles: [ADMIN, SHOP_OWNER, EMPLOYEE]
       parameters:
@@ -809,7 +818,7 @@ paths:
           in: query
           description: Optional audit action filter. When omitted, all actions are returned.
           schema: {$ref: '#/components/schemas/AuditAction'}
-          example: UPDATE
+          example: SOFT_DELETE
         - name: actorUserId
           in: query
           description: Optional identifier of the user who performed the action. When omitted, all actors are included.
@@ -1396,9 +1405,10 @@ components:
         originalFileName: september-income.xlsx
         status: COMPLETED
         totalRows: 1
-        successRows: 1
+        validRows: 1
+        importedRows: 1
         failedRows: 0
-        errorDetails: null
+        validationErrors: []
         importedBy: 1
         createdAt: '2026-09-16T08:00:00Z'
         completedAt: '2026-09-16T08:00:05Z'
@@ -1411,9 +1421,10 @@ components:
             originalFileName: september-income.xlsx
             status: COMPLETED
             totalRows: 1
-            successRows: 1
+            validRows: 1
+            importedRows: 1
             failedRows: 0
-            errorDetails: null
+            validationErrors: []
             importedBy: 1
             createdAt: '2026-09-16T08:00:00Z'
             completedAt: '2026-09-16T08:00:05Z'
@@ -1438,7 +1449,7 @@ components:
           - id: 9001
             tableName: incomes
             recordId: 101
-            action: INSERT
+            action: CREATE
             module: INCOME
             detail: Created income HF-2026-001
             actorUserId: 1
@@ -1734,8 +1745,8 @@ components:
       enum: [PENDING, PROCESSING, COMPLETED, FAILED]
     AuditAction:
       type: string
-      description: Type of audited activity.
-      enum: [INSERT, UPDATE, DELETE, LOGIN, EXPORT, IMPORT]
+      description: Business audit action. Persistence maps lower-level SQL trigger events to this taxonomy.
+      enum: [CREATE, UPDATE, SOFT_DELETE, RESTORE, LOGIN, EXPORT, IMPORT]
 
     LoginRequest:
       type: object
@@ -2032,16 +2043,26 @@ components:
                 items: {type: string}
     ImportBatch:
       type: object
-      required: [id, importType, originalFileName, status, totalRows, successRows, failedRows, createdAt]
+      required: [id, importType, originalFileName, status, totalRows, validRows, importedRows, failedRows, validationErrors, createdAt]
       properties:
         id: {type: integer, format: int64, readOnly: true}
         importType: {$ref: '#/components/schemas/ImportType'}
         originalFileName: {type: string, maxLength: 500}
         status: {$ref: '#/components/schemas/ImportStatus'}
         totalRows: {type: integer, minimum: 0}
-        successRows: {type: integer, minimum: 0}
+        validRows: {type: integer, minimum: 0}
+        importedRows: {type: integer, minimum: 0}
         failedRows: {type: integer, minimum: 0}
-        errorDetails: {type: object, nullable: true, additionalProperties: true}
+        validationErrors:
+          type: array
+          items:
+            type: object
+            required: [rowNumber, messages]
+            properties:
+              rowNumber: {type: integer, minimum: 1}
+              messages:
+                type: array
+                items: {type: string}
         importedBy: {type: integer, format: int64, nullable: true, readOnly: true}
         createdAt: {type: string, format: date-time, readOnly: true}
         completedAt: {type: string, format: date-time, nullable: true, readOnly: true}

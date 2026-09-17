@@ -34,7 +34,7 @@ flowchart TB
     api --> handler
     policy --> identity
     postgres --> db
-    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+    db -.->|"trigger event mapped to business audit action"| audit
 
     style handler fill:#1168bd,color:#fff
     style service fill:#0b4f9e,color:#fff
@@ -77,7 +77,7 @@ flowchart TB
     api --> handler
     policy --> identity
     postgres --> db
-    db -.->|"trigger records INSERT/UPDATE/DELETE"| audit
+    db -.->|"trigger event mapped to business audit action"| audit
 
     style handler fill:#1168bd,color:#fff
     style service fill:#0b4f9e,color:#fff

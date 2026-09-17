@@ -41,7 +41,7 @@ Status **Accepted** means the decision is approved for Step 7 even if code does 
 | **Context** | User–transaction–batch–audit relationships and aggregate views. |
 | **Decision** | PostgreSQL with schema `shop_finance`. |
 | **Alternatives** | Spreadsheet-only; document database — neither fits currency/foreign-key constraints well. |
-| **Consequences** | Local Docker uses port 5433; production host To Be Determined. |
+| **Consequences** | Local Docker uses port 5433; production hosting provider remains an operator-owned pre-go-live choice. |
 | **Status** | Accepted |
 
 ## ADR-005 REST/HTTPS/JSON
@@ -122,6 +122,26 @@ Status **Accepted** means the decision is approved for Step 7 even if code does 
 | **Decision** | Use ASP.NET Core Problem Details as specified by OpenAPI. Middleware creates a trace ID, maps known Application exceptions, logs through `ILogger`, and never returns stack traces. |
 | **Alternatives** | Ad-hoc envelopes drift across controllers. |
 | **Consequences** | Every error response is testable; a production log sink remains a deployment concern. |
+| **Status** | Accepted |
+
+## ADR-013 Synchronous Atomic Import for V1
+
+| | |
+|---|---|
+| **Context** | V1 accepts at most 10 MB/5,000 rows and has no accepted requirement for queues, workers, retries, or large-scale background processing. |
+| **Decision** | `POST /imports` parses, validates, and commits synchronously. Any severe validation error commits zero ledger rows; success returns `200` with the final summary. |
+| **Alternatives** | Asynchronous `202` plus job ID/status/retry semantics adds operational complexity without a V1 driver. |
+| **Consequences** | The request is bounded by size/row limits and cancellation; import history remains queryable but is not a job-control API. |
+| **Status** | Accepted |
+
+## ADR-014 Simplified Clean Architecture and Audit Taxonomy
+
+| | |
+|---|---|
+| **Context** | The target already has Api, Application, and Infrastructure projects; soft-delete DML is technically an UPDATE but needs business meaning. |
+| **Decision** | Keep the 3-project Clean Architecture variant. Application owns framework-independent rules and abstractions. Business audit actions are `CREATE`, `UPDATE`, `SOFT_DELETE`, and `RESTORE`; persistence maps technical DML and redacts sensitive snapshots. |
+| **Alternatives** | A separate Domain project and a public INSERT/UPDATE/DELETE taxonomy add ceremony or obscure business intent. |
+| **Consequences** | Architecture tests enforce dependency direction; existing SQL trigger design requires mapping/redaction before implementation. |
 | **Status** | Accepted |
 
 ## Decisions deferred beyond Step 7 baseline

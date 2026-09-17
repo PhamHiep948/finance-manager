@@ -22,4 +22,4 @@ This UML set expands the C3/C4 architecture using the intended class names and t
 
 The [OpenAPI 3.0.4 specification](../../api/openapi.yaml) is the source of truth for HTTP paths, requests, responses, and the security scheme. The sequence diagrams illustrate the corresponding runtime interactions.
 
-Open decisions are marked `TBD`; diagrams must not be treated as final implementation decisions where logout semantics, import execution, import validation collaboration, report/export filter parity, DTO naming, or soft-delete audit semantics remain open.
+Logout, synchronous atomic import, import-to-ledger validation, report/export parity, and soft-delete audit semantics are accepted V1 decisions. Diagrams describe TARGET code collaboration; executable tests and backend completion remain separate implementation evidence.

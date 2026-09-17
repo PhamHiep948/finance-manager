@@ -476,13 +476,10 @@ Names and values must match PostgreSQL:
 
 ## 6. DTO Naming Convention
 
-**Status:** TBD
+**Status:** ACCEPTED
 
 The OpenAPI contract currently reuses `IncomeWriteRequest` and `ExpenseWriteRequest` for create and update operations. The class design uses explicit `CreateIncomeRequest` / `UpdateIncomeRequest` and `CreateExpenseRequest` / `UpdateExpenseRequest` types.
 
-- **Option A:** generate/use one shared write DTO per resource.
-- **Option B:** retain separate create/update DTO types that map to the same OpenAPI schema while their fields remain identical.
-
-The project owner must choose the implementation convention before C# generation. Until then, OpenAPI field names and required/nullable semantics are authoritative; the class names in these diagrams are design placeholders.
+Use separate create/update C# DTO names to make intent explicit; both map to the shared OpenAPI write schema while their fields remain identical. OpenAPI field names and required/nullable semantics remain authoritative.
 
 **Related:** [C4 Level 4](../c4/04-code.md) · [Database](../../DATABASE.md) · [Sequence diagrams](02-sequence-diagrams.md)

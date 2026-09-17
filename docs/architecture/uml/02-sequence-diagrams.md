@@ -3,7 +3,7 @@
 > **Scope:** Step 6 · **Status:** Design only; no working API  
 > The `/api/v1/...` endpoints follow the approved [OpenAPI 3.0.4 specification](../../api/openapi.yaml).
 
-> Import and remaining-module sequences are maintained in `03-api-traceability.md`. Where that document marks an execution or validation strategy TBD, the sequence is illustrative and not an implementation decision.
+> Import and remaining-module sequences are maintained in `03-api-traceability.md`. V1 import execution and validation collaboration are accepted decisions there.
 
 The sequence diagrams describe calls between React, Presentation, Application, and Data. Every authorization path is checked by the backend; hiding frontend controls is UX only.
 
@@ -246,6 +246,7 @@ sequenceDiagram
             Uow->>Db: BEGIN
             Uow->>Db: SET LOCAL app.current_user_id
             Service->>Repo: UpdateAsync(expense with deleted fields)
+            Note over Service,Repo: Audit business action SOFT_DELETE with redacted before/after and correlation ID
             Repo->>Db: UPDATE deleted_at, deleted_by
             Db->>Db: AFTER UPDATE trigger writes audit_logs
             Uow->>Db: COMMIT

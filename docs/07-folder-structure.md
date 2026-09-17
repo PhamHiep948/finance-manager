@@ -155,7 +155,9 @@ src/frontend/src/
 
 Feature code may depend on shared code; shared code must not import a feature. A feature service is the only code in that feature allowed to call `apiClient`.
 
-## 3. Three-Tier ASP.NET Core Backend
+## 3. Simplified Clean Architecture — Three-Project ASP.NET Core Backend
+
+This is the **Simplified Clean Architecture / Clean Architecture 3-project variant** selected for V1. A separate Domain project would add ceremony without a current scope driver, so framework-independent entities and business rules live in Application. This placement does not permit Application to depend on ASP.NET Core, EF Core, PostgreSQL, JWT, NPOI, or filesystem implementations.
 
 ### 3.1 Target Solution
 
@@ -261,6 +263,7 @@ flowchart LR
 - `Application` does not reference `Api` or `Infrastructure`.
 - `Infrastructure` implements `IUserRepository`, `IIncomeRepository`, `IExpenseRepository`, and `IAuditLogRepository`.
 - `Api/Program.cs` is the composition root and registers implementations through dependency injection.
+- Controllers depend on Application use-case/service interfaces, never `DbContext` or concrete repositories.
 
 ### 3.4 Complete Backend Module Inventory
 
@@ -358,7 +361,7 @@ Unit tests isolate Application services with fake/mock abstractions. API tests u
 - Entities use singular nouns: `Income`, `Expense`.
 - Request/response DTOs use explicit suffixes: `CreateIncomeRequest`, `IncomeResponse`.
 - Repository interfaces start with `I`: `IIncomeRepository`.
-- Income/Expense services do not insert DML audit records directly; `IUnitOfWork` sets `app.current_user_id`, and PostgreSQL triggers record `INSERT/UPDATE/DELETE` within the same transaction.
+- Income/Expense services do not duplicate DML audit records; `IUnitOfWork` sets `app.current_user_id`, PostgreSQL triggers record the low-level event in the transaction, and persistence maps it to `CREATE`/`UPDATE`/`SOFT_DELETE`/`RESTORE` with redacted snapshots.
 - Endpoints are versioned as `/api/v1/...` and defined by the [OpenAPI 3.0.4 contract](api/openapi.yaml).
 - SQL columns use `snake_case`; C# uses `PascalCase`; JSON uses `camelCase`.
 

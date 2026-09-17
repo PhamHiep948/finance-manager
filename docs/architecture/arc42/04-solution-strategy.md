@@ -38,3 +38,5 @@ Transport contains no SQL; Persistence makes no authorization decisions; the Fro
 ## 4.4 Step 7 Technology Decisions
 
 The API uses ASP.NET Core attribute Controllers, JWT Bearer access tokens, Entity Framework Core with Npgsql, ASP.NET Core password hashing, NPOI for `.xls`/`.xlsx`, and an `IFileStorage` abstraction with local storage for development. Production hosting, managed storage, backups, exchange-rate provider, and centralized monitoring remain deployment decisions.
+
+The backend uses a **Simplified Clean Architecture / 3-project variant** (`Api`, `Application`, `Infrastructure`). Application contains framework-independent use cases and business rules; Infrastructure implements its abstractions; Api is transport plus composition root. A separate Domain project is intentionally deferred because V1 does not justify the added project boundary.

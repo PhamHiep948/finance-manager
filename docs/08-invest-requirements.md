@@ -20,7 +20,7 @@ Each requirement is small enough to implement and test independently. Cross-cutt
 | ID | User story | Value | Dependencies | Acceptance criteria |
 |---|---|---|---|---|
 | US01 | As an active user, I want to log in so that I can securely access my permitted workspace. | Protected access | Seeded user account | AC-UC01 |
-| US02 | As an authenticated user, I want to log out so that my current credential can no longer access protected functions. | Session safety | US01 | AC-UC02 |
+| US02 | As an authenticated user, I want to log out so that this client discards its V1 access token and private session state. | Session safety | US01 | AC-UC02 |
 | US03 | As any role, I want a filtered dashboard so that I can understand income, expense, net result, and recent activity. | Fast overview | US01, transaction data | AC-UC03 |
 | US04 | As any role, I want to search and inspect active income so that I can review sales records without seeing deleted data. | Revenue visibility | US01 | AC-UC04 |
 | US05 | As an Administrator, Shop Owner, or Employee, I want to add income so that sales are recorded consistently. | Complete revenue data | US01, income categories | AC-UC05 |
@@ -39,12 +39,12 @@ Each requirement is small enough to implement and test independently. Cross-cutt
 
 ## Per-story INVEST review
 
-`PASS` means the current design provides enough information for planning and acceptance. `TBD` is used where a project-owner decision still affects implementation scope.
+`PASS` means the current design provides enough information for planning and acceptance. It does not claim that implementation or tests already exist.
 
 | Story | I | N | V | E | S | T | Notes |
 |---|---|---|---|---|---|---|---|
-| US01 | PASS | PASS | PASS | PASS | PASS | PASS | Authentication mechanism is fixed at contract level; token lifetime remains an implementation configuration. |
-| US02 | PASS | PASS | PASS | TBD | PASS | PASS | Logout token revocation versus client-side discard is not decided. |
+| US01 | PASS | PASS | PASS | PASS | PASS | PASS | Authentication is JWT Bearer with a 30-minute access-token lifetime and no V1 refresh token. |
+| US02 | PASS | PASS | PASS | PASS | PASS | PASS | Client-side discard is accepted; V1 has no blacklist/revocation store. |
 | US03 | PASS | PASS | PASS | PASS | PASS | PASS | Dashboard response and date filtering are defined. |
 | US04 | PASS | PASS | PASS | PASS | PASS | PASS | Read/filter/paging outcome is independently testable. |
 | US05 | PASS | PASS | PASS | PASS | PASS | PASS | Category and financial validation are explicit. |
@@ -54,9 +54,9 @@ Each requirement is small enough to implement and test independently. Cross-cutt
 | US09 | PASS | PASS | PASS | PASS | PASS | PASS | Expense-specific validation is explicit. |
 | US10 | PASS | PASS | PASS | PASS | PASS | PASS | Employee ownership is explicit. |
 | US11 | PASS | PASS | PASS | PASS | PASS | PASS | Soft-delete behavior is explicit. |
-| US12 | PASS | PASS | PASS | TBD | PASS | PASS | Atomicity is confirmed; synchronous versus asynchronous HTTP execution is TBD. |
+| US12 | PASS | PASS | PASS | PASS | PASS | PASS | Synchronous, atomic processing is bounded at 10 MB and 5,000 rows. |
 | US13 | PASS | PASS | PASS | PASS | PASS | PASS | Filters and authorization are defined. |
-| US14 | PASS | PASS | PASS | TBD | PASS | PASS | Export must reuse report filters; the final filter contract is TBD. |
+| US14 | PASS | PASS | PASS | PASS | PASS | PASS | Export reuses the approved report filters and totals defined by OpenAPI. |
 | US15 | PASS | PASS | PASS | PASS | PASS | PASS | Read-only audit access and filters are defined. |
 | US16 | PASS | PASS | PASS | PASS | PASS | PASS | Admin-only account lifecycle is explicit. |
 | US17 | PASS | PASS | PASS | PASS | PASS | PASS | Allowed profile fields and password verification are explicit. |

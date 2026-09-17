@@ -15,6 +15,7 @@ Definitions follow HandmadeFinance semantics from the documentation and schema.
 | **EUR** | Display currency; Presentation Conversion, not a second dataset. |
 | **Soft Delete** | Logically hide a record using `deleted_at` (+ `deleted_by` on transactions); normal flows do not physically delete it. |
 | **Audit Log** | `audit_logs`: actor, action, module, entity, timestamp, detail; contains no secrets. |
+| **Audit Action** | Business taxonomy `CREATE`, `UPDATE`, `SOFT_DELETE`, `RESTORE`; persistence maps lower-level SQL trigger events. |
 | **Import Batch** | One Excel import execution (`import_batches`); status PENDING / PROCESSING / COMPLETED / FAILED. |
 | **MANUAL** | `data_source` for manual entry; `import_batch_id` is NULL. |
 | **EXCEL_IMPORT** | `data_source` for Excel; requires `import_batch_id`. |
