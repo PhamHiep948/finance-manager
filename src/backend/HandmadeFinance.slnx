@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HandmadeFinance.Application/HandmadeFinance.Application.csproj" />
+    <Project Path="src/HandmadeFinance.Infrastructure/HandmadeFinance.Infrastructure.csproj" />
+    <Project Path="src/HandmadeFinance.Api/HandmadeFinance.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HandmadeFinance.Application.Tests/HandmadeFinance.Application.Tests.csproj" />
+  </Folder>
+</Solution>

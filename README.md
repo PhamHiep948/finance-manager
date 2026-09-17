@@ -2,58 +2,42 @@
 
 HandmadeFinance helps handmade shop owners manage income and expenses in one place, understand cash flow, and make better day-to-day financial decisions. It brings together transaction tracking, dashboards, reports, Excel imports, activity history, and role-based access for the whole team.
 
-## Source layout
+## 1. Requirements — INVEST, Use Cases, and Acceptance Criteria
 
-```text
-finance-manager/
-├── src/
-│   ├── frontend/                     # React 19 + Vite prototype
-│   │   ├── src/
-│   │   │   ├── components/           # Login and authenticated application shell
-│   │   │   ├── pages/                # Dashboard, ledger, reports, import, audit, users, profile
-│   │   │   └── lib/                  # Mock data, browser state, permissions, formatting, UI helpers
-│   │   ├── public/                   # Static assets and sample Excel workbooks
-│   │   └── package.json              # Frontend scripts and dependencies
-│   ├── backend/                      # Target ASP.NET Core three-tier scaffold
-│   │   ├── src/
-│   │   │   ├── HandmadeFinance.Api/  # Planned presentation/API layer
-│   │   │   ├── HandmadeFinance.Application/
-│   │   │   └── HandmadeFinance.Infrastructure/
-│   │   └── tests/                    # Planned application, API, and infrastructure tests
-│   └── database/
-│       ├── shop_finance.sql          # PostgreSQL target schema, constraints, views, triggers, seeds
-│       └── shop_finance.dbml         # Database relationship model
-├── docs/
-│   ├── api/                          # OpenAPI contract and API usage documentation
-│   ├── architecture/                 # C4, arc42, class diagrams, and sequence diagrams
-│   ├── requirements/                 # Business rules and non-functional requirements
-│   ├── traceability/                 # Cross-step master traceability matrix
-│   ├── images/                       # Role-based UI screenshots
-│   └── 01-scope.md … 09-step-7-readiness.md
-└── README.md
-```
+Requirements define what HandmadeFinance must do, who uses it, the value delivered, and the observable conditions of success. User stories are reviewed with INVEST and mapped to use cases and acceptance criteria.
 
-The frontend is currently an intentional mock-data prototype for interface development and demonstration. The backend directories are design scaffolds only—no ASP.NET Core application has been implemented yet. The PostgreSQL and OpenAPI files define target contracts and are not connected to the current frontend runtime.
-
-## User Interface
-
-### Overview
-
-![Overview](docs/images/admin/01-dashboard.png)
-
-### Income
-
-![Income](docs/images/admin/02-khoan-thu.png)
-
-### Expenses
-
-![Expenses](docs/images/admin/03-khoan-chi.png)
-
-## Mind map
+### 1.1 Product mind map
 
 ![HandmadeFinance mind map](docs/mindmap.png)
 
-## Use Case Diagram
+### 1.2 INVEST requirements
+
+The V1 backlog contains 17 user stories, from authentication and financial transaction management to reporting, imports, audit, user administration, and personal profile management. Each story is reviewed using the INVEST criteria before it is considered ready for implementation.
+
+| Criterion | Meaning in HandmadeFinance |
+|---|---|
+| **Independent** | A story delivers a demonstrable capability and identifies only unavoidable dependencies. |
+| **Negotiable** | UI layout and implementation details may change while the required outcome and permissions remain stable. |
+| **Valuable** | Every story states a user or business benefit. |
+| **Estimable** | Roles, inputs, outputs, dependencies, and important failure outcomes are documented. |
+| **Small** | Each story covers one primary capability and can be divided into API, application, persistence, UI, and test tasks. |
+| **Testable** | Every story maps to observable acceptance criteria and expected authorization, validation, and error behavior. |
+
+```text
+US01–US02   Authentication and session
+US03        Dashboard
+US04–US07   Income management
+US08–US11   Expense management
+US12        Excel import
+US13–US14   Reports and export
+US15        Audit log
+US16        User management
+US17        Personal profile and password
+```
+
+Most stories satisfy all six criteria. `US02`, `US12`, and `US14` remain partially estimable until logout semantics, the import execution model, and report/export filter parity are approved. The complete story-level review and acceptance-criteria links are maintained in [INVEST Requirements](docs/08-invest-requirements.md).
+
+### 1.3 Use cases
 
 ```mermaid
 flowchart TB
@@ -92,7 +76,66 @@ flowchart TB
 
 For detailed actors, permissions, and business flows, see [Actors, roles, and use cases](docs/03-use-cases.md).
 
-## C4 Architecture
+### 1.4 Roles and permissions
+
+
+| Capability | Admin | Shop Owner | Employee | Viewer |
+| ------------------------ | ----- | ---------- | ---------------- | ------ |
+| View dashboard and transactions | Yes | Yes | Yes | Yes |
+| Create income/expenses | Yes | Yes | Yes | No |
+| Edit income/expenses | Yes | Yes | Own records only | No |
+| Soft-delete income/expenses | Yes | Yes | No | No |
+| Import Excel | Yes | Yes | Yes | No |
+| Reports | Yes | Yes | No | Yes |
+| Activity log | Yes | Yes | No | No |
+| User management | Yes | No | No | No |
+
+
+The backend must enforce RBAC and the own-record policy; hiding frontend controls serves UI/UX only.
+
+## 2. Information Architecture, Screen Hierarchy, and UI/UX
+
+The information architecture organizes the authenticated workspace by business capability. Screen permissions and navigation follow the role matrix, while loading, empty, validation, error, saving, and success states are defined consistently.
+
+### 2.1 Information architecture
+
+```text
+Public
+└── Login
+
+Authenticated
+├── Dashboard
+├── Income
+├── Expenses
+├── Reports
+├── Import
+├── Audit
+├── Users
+├── Profile
+└── Forbidden
+```
+
+### 2.2 Screen hierarchy
+
+Login leads to the authenticated shell. The shell owns navigation to feature pages; income, expense, and user create/edit interactions use feature-owned modals. Unauthorized navigation resolves to the Forbidden screen.
+
+Detailed screen IDs, user flows, screen states, accessibility rules, and API mappings are maintained in [Information Architecture](docs/04-information-architecture.md).
+
+### 2.3 Current UI prototype
+
+#### Overview
+
+![Overview](docs/images/admin/01-dashboard.png)
+
+#### Income
+
+![Income](docs/images/admin/02-khoan-thu.png)
+
+#### Expenses
+
+![Expenses](docs/images/admin/03-khoan-chi.png)
+
+## 3. C4 Architecture
 
 This README presents only C1–C3. C4 Level 4 and detailed UML are maintained in the architecture documentation directory.
 
@@ -212,7 +255,11 @@ flowchart TB
 
 Complete documentation: [C4 Architecture](docs/architecture/c4/README.md) and [arc42 Architecture Handbook](docs/architecture/arc42/README.md).
 
-## Data Architecture
+## 4. Database Diagrams and OpenAPI 3.0 Contract
+
+Step 4 defines the persistence contract and the HTTP contract connecting the future React API adapter to the backend.
+
+### 4.1 Database diagrams
 
 The target PostgreSQL model keeps users, financial transactions, imports, attachments, and audit events connected while preserving separate income and expense categories.
 
@@ -291,7 +338,121 @@ erDiagram
 
 See the [detailed database diagram](docs/DATABASE.md), [data model](docs/05-data-model.md), and [PostgreSQL schema](src/database/shop_finance.sql).
 
-### C4 Level 4 — Code
+### 4.2 OpenAPI 3.0 API documentation
+
+The HTTP contract is defined with OpenAPI 3.0.4 and organized into Authentication, Dashboard, Categories, Income, Expenses, Reports, Imports, Attachments, Audit, Users, and Profile.
+
+```text
+23 paths
+33 operations
+Bearer JWT security
+Role metadata and employee ownership rules
+JSON and multipart request contracts
+Reusable request/response schemas
+RFC 7807-compatible application/problem+json errors
+Request, success, and error examples
+```
+
+Every operation has a stable `operationId`, documented parameters, request and response schemas, success/error status codes, and target authorization rules. The contract is a design source of truth; the backend runtime has not been implemented yet.
+
+- [OpenAPI 3.0.4 specification](docs/api/openapi.yaml)
+- [API documentation and sample calls](docs/api/README.md)
+
+## 5. Frontend and Backend Folder Structures
+
+### 5.1 Current repository layout
+
+```text
+finance-manager/
+├── src/
+│   ├── frontend/                     # React 19 + Vite prototype
+│   │   ├── src/
+│   │   │   ├── components/           # Login and authenticated application shell
+│   │   │   ├── pages/                # Dashboard, ledger, reports, import, audit, users, profile
+│   │   │   └── lib/                  # Mock data, browser state, permissions, formatting, UI helpers
+│   │   ├── public/                   # Static assets and sample Excel workbooks
+│   │   └── package.json              # Frontend scripts and dependencies
+│   ├── backend/                      # Target ASP.NET Core three-tier scaffold
+│   │   ├── src/
+│   │   │   ├── HandmadeFinance.Api/  # Planned presentation/API layer
+│   │   │   ├── HandmadeFinance.Application/
+│   │   │   └── HandmadeFinance.Infrastructure/
+│   │   └── tests/                    # Planned application, API, and infrastructure tests
+│   └── database/
+│       ├── shop_finance.sql          # PostgreSQL target schema, constraints, views, triggers, seeds
+│       └── shop_finance.dbml         # Database relationship model
+├── docs/
+│   ├── api/                          # OpenAPI contract and API usage documentation
+│   ├── architecture/                 # C4, arc42, class diagrams, and sequence diagrams
+│   ├── requirements/                 # Business rules and non-functional requirements
+│   ├── traceability/                 # Cross-step master traceability matrix
+│   ├── images/                       # Role-based UI screenshots
+│   └── 01-scope.md … 09-step-7-readiness.md
+└── README.md
+```
+
+The frontend is currently an intentional mock-data prototype for interface development and demonstration. The backend directories are design scaffolds only—no ASP.NET Core application has been implemented yet. The PostgreSQL and OpenAPI files define target contracts and are not connected to the current frontend runtime.
+
+### 5.2 Target React feature structure
+
+```text
+src/frontend/src/
+├── app/                 # Routes, providers, and application composition
+├── components/          # Shared layout, forms, feedback, and data display
+├── features/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── categories/
+│   ├── incomes/
+│   ├── expenses/
+│   ├── reports/
+│   ├── imports/
+│   ├── audit/
+│   ├── users/
+│   └── profile/
+├── services/            # Shared API client, endpoints, and downloads
+├── hooks/               # Shared reusable hooks
+├── lib/                 # Pure date, money, formatting, and validation helpers
+├── styles/
+└── test/                # Setup, fixtures, handlers, and provider-aware rendering
+```
+
+Target dependency flow:
+
+```text
+Page/Component → Feature Hook → Feature Service → apiClient → REST API
+```
+
+### 5.3 Target ASP.NET Core three-tier structure
+
+```text
+src/backend/
+├── src/
+│   ├── HandmadeFinance.Api/             # Presentation: controllers, contracts, middleware, mapping
+│   ├── HandmadeFinance.Application/     # Services, policies, validators, entities, interfaces
+│   └── HandmadeFinance.Infrastructure/  # PostgreSQL, repositories, files, JWT, exporters
+└── tests/
+    ├── HandmadeFinance.Application.Tests/
+    ├── HandmadeFinance.Api.Tests/
+    └── HandmadeFinance.Infrastructure.Tests/
+```
+
+Dependency rules:
+
+```text
+Api → Application
+Infrastructure → Application
+Api → Infrastructure only at the dependency-injection composition root
+Application → neither Api nor Infrastructure
+```
+
+The complete module ownership, naming, dependency, and test-location design is maintained in [Target Folder Structure](docs/07-folder-structure.md).
+
+## 6. Detailed Class and Sequence Design
+
+Detailed design derives from the C4 components in Step 3, the database and OpenAPI contracts in Step 4, and the target folder ownership in Step 5. These diagrams describe planned collaboration; they are not implemented backend code.
+
+### 6.1 C4 Level 4 — Code collaboration
 
 #### L4.1 Income Management
 
@@ -377,7 +538,7 @@ flowchart TB
 
 Source: [C4 Level 4 — Code](docs/architecture/c4/04-code.md)
 
-### Core Class Diagrams
+### 6.2 Core class diagrams
 
 #### 1. Authentication
 
@@ -808,22 +969,12 @@ classDiagram
 
 Source: [Core Class Diagrams](docs/architecture/uml/01-class-diagrams.md)
 
-## Permissions
+### 6.3 Sequence diagrams
 
+Runtime sequences cover authentication, ledger reads and writes, import validation and atomic processing, report/export, attachments, user administration, and profile/password flows. Each sequence maps the user story and OpenAPI operation to its controller, application service, policy/validator, repository, database interaction, success response, and applicable error paths.
 
-| Capability | Admin | Shop Owner | Employee | Viewer |
-| ------------------------ | ----- | ---------- | ---------------- | ------ |
-| View dashboard and transactions | Yes | Yes | Yes | Yes |
-| Create income/expenses | Yes | Yes | Yes | No |
-| Edit income/expenses | Yes | Yes | Own records only | No |
-| Soft-delete income/expenses | Yes | Yes | No | No |
-| Import Excel | Yes | Yes | Yes | No |
-| Reports | Yes | Yes | No | Yes |
-| Activity log | Yes | Yes | No | No |
-| User management | Yes | No | No | No |
-
-
-The backend must enforce RBAC and the own-record policy; hiding frontend controls serves UI/UX only.
+- [Core sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md)
+- [API runtime sequences and operation traceability](docs/architecture/uml/03-api-traceability.md)
 
 ## Documentation
 
