@@ -12,13 +12,14 @@ Requirements define what HandmadeFinance must do, who uses it, the value deliver
 
 ### 1.2 INVEST requirements
 
-The V1 backlog contains 17 user stories, from authentication and financial transaction management to reporting, imports, audit, user administration, and personal profile management. Each story is reviewed using the INVEST criteria before it is considered ready for implementation.
+The V1 backlog includes 17 user stories. These stories cover login, income and expense management, dashboard, Excel import, reports, audit logs, user management, and personal profile management.
+Before a user story is ready for development, it is checked using the INVEST criteria.
 
 | Criterion | Meaning in HandmadeFinance |
 |---|---|
-| **Independent** | A story delivers a demonstrable capability and identifies only unavoidable dependencies. |
-| **Negotiable** | UI layout and implementation details may change while the required outcome and permissions remain stable. |
-| **Valuable** | Every story states a user or business benefit. |
+| **Independent** | Each story should provide a clear feature and depend on other stories only when necessary. |
+| **Negotiable** | The UI and technical implementation can change as long as the main goal and permission rules stay the same. |
+| **Valuable** | Each story should provide value to the user or the business. |
 | **Estimable** | Roles, inputs, outputs, dependencies, and important failure outcomes are documented. |
 | **Small** | Each story covers one primary capability and can be divided into API, application, persistence, UI, and test tasks. |
 | **Testable** | Every story maps to observable acceptance criteria and expected authorization, validation, and error behavior. |
@@ -985,5 +986,3 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Core class diagrams](docs/architecture/uml/01-class-diagrams.md), [remaining module classes](docs/architecture/uml/03-additional-class-diagrams.md), [core sequences](docs/architecture/uml/02-sequence-diagrams.md), and [API traceability/sequences](docs/architecture/uml/03-api-traceability.md).
 - API contract: [OpenAPI 3.0.4 specification](docs/api/openapi.yaml) and [API documentation](docs/api/README.md).
-- Cross-step coverage: [Master traceability matrix](docs/traceability/master-traceability.md).
-- Implementation handoff: [Step 7 readiness and test plan](docs/09-step-7-readiness.md).
