@@ -999,10 +999,6 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 
 ## Project Progress
 
-**Tiến độ toàn dự án: 70% — hoàn thành 21/30 đầu việc.**
-
-Tỷ lệ này được tính trên toàn bộ yêu cầu và công việc của dự án, bao gồm tài liệu yêu cầu, thiết kế, frontend, backend, database, kiểm thử, bảo mật và tích hợp; không giới hạn trong riêng Backend API. Mỗi đầu việc trong checklist bên dưới có trọng số như nhau: `(số mục đã hoàn thành / tổng số mục) × 100`.
-
 - [x] Xác định phạm vi, mục tiêu và vai trò người dùng
 - [x] Viết danh sách tính năng và use cases
 - [x] Viết user stories theo INVEST
