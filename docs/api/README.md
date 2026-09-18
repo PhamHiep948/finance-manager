@@ -2,13 +2,13 @@
 
 > Design status: TARGET V1
 >
-> Implementation status: NOT IMPLEMENTED
+> Implementation status: EXECUTABLE BASELINE; production hardening remains
 
 ## Overview
 
 This is the API contract for HandmadeFinance. The contract is defined in `openapi.yaml` and is the source of truth for HTTP paths, methods, request and response bodies, authentication, errors, and role access.
 
-The ASP.NET Core backend is not fully implemented yet. Future backend work must follow this contract. Do not assume that every documented endpoint is available at runtime.
+All documented paths have executable ASP.NET Core handlers. The contract remains the source of truth. PostgreSQL is used for ledger/users outside the test environment; import history, attachments, and audit storage are still in-memory baseline adapters and are not production-ready.
 
 ## API scope
 

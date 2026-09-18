@@ -15,14 +15,16 @@ Requirements define what HandmadeFinance must do, who uses it, the value deliver
 The V1 backlog includes 17 user stories. These stories cover login, income and expense management, dashboard, Excel import, reports, audit logs, user management, and personal profile management.
 Before a user story is ready for development, it is checked using the INVEST criteria.
 
-| Criterion | Meaning in HandmadeFinance |
-|---|---|
-| **Independent** | Each story should provide a clear feature and depend on other stories only when necessary. |
-| **Negotiable** | The UI and technical implementation can change as long as the main goal and permission rules stay the same. |
-| **Valuable** | Each story should provide value to the user or the business. |
-| **Estimable** | Roles, inputs, outputs, dependencies, and important failure outcomes are documented. |
-| **Small** | Each story covers one primary capability and can be divided into API, application, persistence, UI, and test tasks. |
-| **Testable** | Every story maps to observable acceptance criteria and expected authorization, validation, and error behavior. |
+
+| Criterion       | Meaning in HandmadeFinance                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Independent** | Each story should provide a clear feature and depend on other stories only when necessary.                          |
+| **Negotiable**  | The UI and technical implementation can change as long as the main goal and permission rules stay the same.         |
+| **Valuable**    | Each story should provide value to the user or the business.                                                        |
+| **Estimable**   | Roles, inputs, outputs, dependencies, and important failure outcomes are documented.                                |
+| **Small**       | Each story covers one primary capability and can be divided into API, application, persistence, UI, and test tasks. |
+| **Testable**    | Every story maps to observable acceptance criteria and expected authorization, validation, and error behavior.      |
+
 
 ```text
 US01–US02   Authentication and session
@@ -80,16 +82,16 @@ For detailed actors, permissions, and business flows, see [Actors, roles, and us
 ### 1.4 Roles and permissions
 
 
-| Capability | Admin | Shop Owner | Employee | Viewer |
-| ------------------------ | ----- | ---------- | ---------------- | ------ |
-| View dashboard and transactions | Yes | Yes | Yes | Yes |
-| Create income/expenses | Yes | Yes | Yes | No |
-| Edit income/expenses | Yes | Yes | Own records only | No |
-| Soft-delete income/expenses | Yes | Yes | No | No |
-| Import Excel | Yes | Yes | Yes | No |
-| Reports | Yes | Yes | No | Yes |
-| Activity log | Yes | Yes | No | No |
-| User management | Yes | No | No | No |
+| Capability                      | Admin | Shop Owner | Employee         | Viewer |
+| ------------------------------- | ----- | ---------- | ---------------- | ------ |
+| View dashboard and transactions | Yes   | Yes        | Yes              | Yes    |
+| Create income/expenses          | Yes   | Yes        | Yes              | No     |
+| Edit income/expenses            | Yes   | Yes        | Own records only | No     |
+| Soft-delete income/expenses     | Yes   | Yes        | No               | No     |
+| Import Excel                    | Yes   | Yes        | Yes              | No     |
+| Reports                         | Yes   | Yes        | No               | Yes    |
+| Activity log                    | Yes   | Yes        | No               | No     |
+| User management                 | Yes   | No         | No               | No     |
 
 
 The backend must enforce RBAC and the own-record policy; hiding frontend controls serves UI/UX only.
@@ -116,6 +118,8 @@ Authenticated
 └── Forbidden
 ```
 
+
+
 ### 2.2 Screen hierarchy
 
 Login leads to the authenticated shell. The shell owns navigation to feature pages; income, expense, and user create/edit interactions use feature-owned modals. Unauthorized navigation resolves to the Forbidden screen.
@@ -123,6 +127,8 @@ Login leads to the authenticated shell. The shell owns navigation to feature pag
 Detailed screen IDs, user flows, screen states, accessibility rules, and API mappings are maintained in [Information Architecture](docs/04-information-architecture.md).
 
 ### 2.3 Current UI prototype
+
+
 
 #### Overview
 
@@ -337,6 +343,8 @@ erDiagram
     }
 ```
 
+
+
 See the [detailed database diagram](docs/DATABASE.md), [data model](docs/05-data-model.md), and [PostgreSQL schema](src/database/shop_finance.sql).
 
 ### 4.2 OpenAPI 3.0 API documentation
@@ -359,7 +367,11 @@ Every operation has a stable `operationId`, documented parameters, request and r
 - [OpenAPI 3.0.4 specification](docs/api/openapi.yaml)
 - [API documentation and sample calls](docs/api/README.md)
 
+
+
 ## 5. Frontend and Backend Folder Structures
+
+
 
 ### 5.1 Current repository layout
 
@@ -373,12 +385,12 @@ finance-manager/
 │   │   │   └── lib/                  # Mock data, browser state, permissions, formatting, UI helpers
 │   │   ├── public/                   # Static assets and sample Excel workbooks
 │   │   └── package.json              # Frontend scripts and dependencies
-│   ├── backend/                      # Target ASP.NET Core three-tier scaffold
+│   ├── backend/                      # ASP.NET Core three-tier executable baseline
 │   │   ├── src/
-│   │   │   ├── HandmadeFinance.Api/  # Planned presentation/API layer
+│   │   │   ├── HandmadeFinance.Api/  # Presentation/API layer
 │   │   │   ├── HandmadeFinance.Application/
 │   │   │   └── HandmadeFinance.Infrastructure/
-│   │   └── tests/                    # Planned application, API, and infrastructure tests
+│   │   └── tests/                    # Application, API, and infrastructure tests
 │   └── database/
 │       ├── shop_finance.sql          # PostgreSQL target schema, constraints, views, triggers, seeds
 │       └── shop_finance.dbml         # Database relationship model
@@ -392,7 +404,7 @@ finance-manager/
 └── README.md
 ```
 
-The frontend is currently an intentional mock-data prototype for interface development and demonstration. Backend artifacts, PostgreSQL, and OpenAPI describe the TARGET architecture and are not connected to the current frontend runtime; their implementation status is assessed separately from this documentation baseline.
+The frontend is currently an intentional mock-data prototype and is not connected to the API. The backend has an executable three-project baseline and PostgreSQL repositories for ledger/users; import history, attachments, and audit still require durable production adapters. See [Project Progress](#project-progress) for the current checklist.
 
 ### 5.2 Target React feature structure
 
@@ -424,6 +436,8 @@ Target dependency flow:
 Page/Component → Feature Hook → Feature Service → apiClient → REST API
 ```
 
+
+
 ### 5.3 Target ASP.NET Core three-tier structure
 
 ```text
@@ -451,9 +465,11 @@ The complete module ownership, naming, dependency, and test-location design is m
 
 ## 6. Detailed Class and Sequence Design
 
-Detailed design derives from the C4 components in Step 3, the database and OpenAPI contracts in Step 4, and the target folder ownership in Step 5. These diagrams describe planned collaboration; they are not implemented backend code.
+Detailed design derives from the C4 components in Step 3, the database and OpenAPI contracts in Step 4, and the target folder ownership in Step 5. These diagrams remain target design views; the executable baseline may consolidate classes while preserving the documented layer boundaries.
 
 ### 6.1 C4 Level 4 — Code collaboration
+
+
 
 #### L4.1 Income Management
 
@@ -496,6 +512,10 @@ flowchart TB
     style postgres fill:#1168bd,color:#fff
 ```
 
+
+
+
+
 #### L4.2 Expense Management
 
 ```mermaid
@@ -537,9 +557,13 @@ flowchart TB
     style postgres fill:#1168bd,color:#fff
 ```
 
+
+
 Source: [C4 Level 4 — Code](docs/architecture/c4/04-code.md)
 
 ### 6.2 Core class diagrams
+
+
 
 #### 1. Authentication
 
@@ -661,6 +685,10 @@ classDiagram
     AuditLogRepository ..|> IAuditLogRepository
     EfUnitOfWork ..|> IUnitOfWork
 ```
+
+
+
+
 
 #### 2. Income
 
@@ -828,6 +856,10 @@ classDiagram
     EfUnitOfWork ..|> IUnitOfWork
 ```
 
+
+
+
+
 #### 3. Expense
 
 ```mermaid
@@ -968,6 +1000,8 @@ classDiagram
     EfUnitOfWork ..|> IUnitOfWork
 ```
 
+
+
 Source: [Core Class Diagrams](docs/architecture/uml/01-class-diagrams.md)
 
 ### 6.3 Sequence diagrams
@@ -976,6 +1010,8 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 
 - [Core sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md)
 - [API runtime sequences and operation traceability](docs/architecture/uml/03-api-traceability.md)
+
+
 
 ## Documentation
 
@@ -986,3 +1022,38 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - Folder structure: [React and three-tier backend](docs/07-folder-structure.md).
 - Code-level design: [Core class diagrams](docs/architecture/uml/01-class-diagrams.md), [remaining module classes](docs/architecture/uml/03-additional-class-diagrams.md), [core sequences](docs/architecture/uml/02-sequence-diagrams.md), and [API traceability/sequences](docs/architecture/uml/03-api-traceability.md).
 - API contract: [OpenAPI 3.0.4 specification](docs/api/openapi.yaml) and [API documentation](docs/api/README.md).
+
+
+
+## Project Progress
+
+- [x] Xác định phạm vi, mục tiêu và vai trò người dùng
+- [x] Viết danh sách tính năng và use cases
+- [x] Viết user stories theo INVEST
+- [x] Viết acceptance criteria và business rules
+- [x] Viết non-functional requirements
+- [x] Thiết kế information architecture và phân quyền màn hình
+- [x] Thiết kế screen hierarchy, task flows và UI states
+- [x] Xây dựng giao diện React prototype cho các vai trò
+- [x] Thiết kế C4 System Context
+- [x] Thiết kế C4 Container
+- [x] Thiết kế C4 Component và tài liệu arc42
+- [x] Thiết kế PostgreSQL schema, DBML và quan hệ dữ liệu
+- [x] Viết tài liệu API theo OpenAPI 3.0
+- [x] Thiết kế folder structure cho React frontend
+- [x] Thiết kế folder structure backend ba tầng
+- [x] Thiết kế class diagrams và sequence diagrams
+- [x] Tạo traceability giữa requirements, màn hình, API và database
+- [x] Xây dựng backend ASP.NET Core ba tầng
+- [x] Implement authentication, users và profile API
+- [x] Implement income và expense CRUD API
+- [ ] Hoàn thiện dashboard, reports, import, attachments và audit API
+- [x] Viết unit test và API integration test
+- [ ] Hoàn thiện PostgreSQL migrations và integration tests với database thật
+- [ ] Hoàn thiện import Excel, file storage và report export cho production
+- [ ] Chuẩn hóa JWT, rate limit, authorization và security tests
+- [ ] Kết nối React frontend với backend API
+- [ ] Loại bỏ mock data và mock store khỏi frontend
+- [ ] Sửa cảnh báo frontend asset và tối ưu bundle
+- [ ] Thêm OpenAPI lint, architecture tests, coverage và CI quality gates
+- [ ] Kiểm thử accessibility, performance, backup và deployment

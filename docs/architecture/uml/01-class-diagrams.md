@@ -2,7 +2,7 @@
 
 > Design status: TARGET V1
 >
-> Implementation status: NOT IMPLEMENTED
+> Implementation status: TARGET DESIGN with executable backend baseline; class consolidation may differ
 
 The class diagrams use the intended class names across the three tiers. DTOs belong to the API tier; entities, services, policies, validators, and repository interfaces belong to Application; repository implementations belong to Infrastructure.
 

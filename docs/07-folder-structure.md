@@ -1,9 +1,9 @@
 # Target Folder Structure — React and ASP.NET Core
 
-> **Scope:** Step 5 · **Status:** Design only; not implemented source code  
+> **Scope:** Step 5 · **Status:** Target structure with backend baseline implemented
 > **Detailed modules:** All HandmadeFinance V1 capabilities
 
-This document defines source-code locations and dependency directions before the API is implemented. The current `src/frontend/` directory is a mock interface backed by JavaScript data; the `.NET` backend scaffold is under `src/backend/` but its projects are not implemented yet.
+This document defines source-code ownership and dependency directions. The current `src/frontend/` directory remains a mock interface backed by JavaScript data. The `.NET` backend under `src/backend/` implements the three-project baseline, although several classes are intentionally consolidated and production adapters remain outstanding.
 
 ## 1. General Principles
 

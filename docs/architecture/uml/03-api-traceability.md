@@ -2,7 +2,7 @@
 
 > Design status: TARGET V1 — key execution decisions accepted
 >
-> Implementation status: NOT IMPLEMENTED
+> Implementation status: EXECUTABLE API BASELINE; named verification mapping remains in progress
 
 Every OpenAPI operation maps to an owning module, Application service, authorization rule, and sequence pattern. This is the implementation index for Step 7.
 

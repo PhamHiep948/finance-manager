@@ -1,7 +1,7 @@
 # Master Traceability Matrix — HandmadeFinance V1
 
 > Design status: TARGET V1  
-> Test status: all identifiers below are PLANNED until executable tests run
+> Test status: 250 automated tests passed on 2026-09-18; named verification IDs remain PLANNED unless explicitly mapped to executable evidence
 
 ## Functional traceability
 
@@ -47,4 +47,4 @@ The original US01–US17 coverage is preserved and extended with stable planned 
 
 ## Conformance
 
-Every OpenAPI operation is represented above through its owning user story. [Architecture conformance](../architecture/architecture-conformance.md) defines executable rules `ARCH-001`–`ARCH-014`; [threat model](../security/threat-model.md) maps abuse cases to security verification. No planned identifier is evidence of a passing test.
+Every OpenAPI operation is represented above through its owning user story. [Architecture conformance](../architecture/architecture-conformance.md) defines executable rules `ARCH-001`–`ARCH-014`; [threat model](../security/threat-model.md) maps abuse cases to security verification. No planned identifier is evidence of a passing test merely because the aggregate suite passes. Named tests must be mapped before changing an individual verification ID to `PASS`. Remaining work is listed in [Project Progress](../../README.md#project-progress).

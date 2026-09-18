@@ -62,7 +62,7 @@ V1 does **not** include:
 | Excel Import | **UI + mock flow**. File contents are not read. |
 | Attachments | Select a local file and store **name / type / size**. No upload. |
 
-Backend is not implemented yet.
+An executable backend baseline exists. Frontend integration and production-grade import, attachment, audit, and operational hardening remain out of the completed baseline; see [Project Progress](../README.md#project-progress).
 
 ## Target V1 architecture
 

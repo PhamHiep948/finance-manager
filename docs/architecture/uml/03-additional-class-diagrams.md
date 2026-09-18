@@ -2,7 +2,7 @@
 
 > Design status: TARGET V1
 >
-> Implementation status: NOT IMPLEMENTED
+> Implementation status: TARGET DESIGN with executable backend baseline; production adapters remain
 
 These diagrams complete the class-level design beyond Authentication, Income, and Expense. Names map directly to the target folders and OpenAPI `operationId` values.
 

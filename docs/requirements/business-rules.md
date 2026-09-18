@@ -1,7 +1,7 @@
 # Business Rules — HandmadeFinance V1
 
 > Design status: TARGET V1  
-> Implementation status: NOT IMPLEMENTED
+> Implementation status: PARTIAL — executable baseline exists; production-adapter verification remains
 
 Only rules confirmed by project documentation are catalogued here. Deployment choices outside V1 are recorded separately and do not weaken these rules.
 

@@ -1,10 +1,10 @@
 # Step 7 Readiness — API Implementation and Unit Tests
 
-> Design status: READY AS TARGET SPECIFICATION — implementation and executable tests remain planned
+> Design status: READY AS TARGET SPECIFICATION
 >
-> Implementation status: NOT STARTED
+> Implementation status: BASELINE IMPLEMENTED; production adapters and frontend integration remain in progress
 
-Steps 1–6 define the target behavior and architecture. This document is the implementation handoff; it does not claim that backend source code already exists.
+Steps 1–6 define the target behavior and architecture. An executable three-project backend baseline now exists. On 2026-09-18, 250 automated tests passed (165 Application, 22 Infrastructure, 63 API). PostgreSQL-backed ledger repositories exist, while import history, attachments, and audit operations still use process memory and require production adapters. See [Project Progress](../README.md#project-progress) for the remaining increments.
 
 ## Sources of truth
 
@@ -84,4 +84,4 @@ If implementation exposes a conflict between sources, update the design and Open
 - Import validation: Import orchestration reuses the authoritative Application ledger validators/business rules.
 - Architecture: Simplified Clean Architecture / 3-project variant; no speculative Domain project.
 
-Production platform, exchange-rate provider, log/audit retention, and file-backup topology remain non-blocking operational decisions. Master coverage is in `docs/traceability/master-traceability.md`; executable tests remain `PLANNED` and no Step 7 implementation is authorized by this document.
+Production platform, exchange-rate provider, log/audit retention, and file-backup topology remain operational decisions. Master coverage is in `docs/traceability/master-traceability.md`. Existing tests are executable evidence only for the behavior they assert; planned test IDs are not automatically satisfied by the aggregate passing count.
