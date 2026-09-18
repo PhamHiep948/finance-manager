@@ -225,10 +225,12 @@ public sealed class InMemoryStore : ILedgerRepository, IUserRepository
             PasswordHash = x.PasswordHash,
             FullName = x.FullName,
             Phone = x.Phone,
+            AvatarUrl = x.AvatarUrl,
             Timezone = x.Timezone,
             Role = x.Role,
             IsActive = x.IsActive,
             CreatedAt = x.CreatedAt,
             UpdatedAt = x.UpdatedAt,
+            LastLoginAt = x.LastLoginAt,
         };
 }

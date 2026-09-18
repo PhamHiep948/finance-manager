@@ -1017,7 +1017,7 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - [x] Thiết kế class diagrams và sequence diagrams
 - [x] Tạo traceability giữa requirements, màn hình, API và database
 - [x] Xây dựng backend ASP.NET Core ba tầng
-- [ ] Implement authentication, users và profile API
+- [x] Xây dựng API xác thực, quản lý người dùng và hồ sơ cá nhân
 - [x] Implement income và expense CRUD API
 - [ ] Hoàn thiện dashboard, reports, import, attachments và audit API
 - [x] Viết unit test và API integration test

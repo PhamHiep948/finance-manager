@@ -19,7 +19,7 @@ public sealed class ProfileController(UserService service) : ControllerBase
     public async Task<IActionResult> Update(UpdateProfileRequest request, CancellationToken ct) =>
         Ok(
             await service.UpdateProfileAsync(
-                new(request.FullName, request.Phone, request.Timezone),
+                new(request.FullName, request.Phone, request.Timezone, request.AvatarUrl),
                 User.Actor(),
                 ct
             )

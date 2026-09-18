@@ -1,6 +1,7 @@
 using HandmadeFinance.Application.Abstractions.Persistence;
 using HandmadeFinance.Application.Authentication;
 using HandmadeFinance.Application.Common;
+using System.Net.Mail;
 
 namespace HandmadeFinance.Application.Users;
 
@@ -26,22 +27,23 @@ public sealed class UserService(IUserRepository users, IPasswordService password
     )
     {
         Admin(actor);
-        Validate(write);
-        if (password.Length is < 4 or > 128)
-            throw AppException.Validation("Password must contain 4 to 128 characters.");
-        if (await users.UsernameOrEmailExistsAsync(write.Username, write.Email, null, ct))
+        var normalized = Normalize(write);
+        Validate(normalized);
+        ValidatePassword(password, "Password");
+        if (await users.UsernameOrEmailExistsAsync(normalized.Username, normalized.Email, null, ct))
             throw AppException.Conflict("Username or email already exists.");
         var now = clock.UtcNow;
         var user = new UserAccount
         {
-            Username = write.Username.Trim(),
-            Email = write.Email.Trim(),
+            Username = normalized.Username,
+            Email = normalized.Email,
             PasswordHash = passwords.Hash(password),
-            FullName = write.FullName.Trim(),
-            Phone = write.Phone,
-            Timezone = write.Timezone,
-            Role = write.Role,
-            IsActive = write.IsActive,
+            FullName = normalized.FullName,
+            Phone = normalized.Phone,
+            AvatarUrl = normalized.AvatarUrl,
+            Timezone = normalized.Timezone,
+            Role = normalized.Role,
+            IsActive = normalized.IsActive,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -56,17 +58,19 @@ public sealed class UserService(IUserRepository users, IPasswordService password
     )
     {
         Admin(actor);
-        Validate(write);
+        var normalized = Normalize(write);
+        Validate(normalized);
         var user = await User(id, ct);
-        if (await users.UsernameOrEmailExistsAsync(write.Username, write.Email, id, ct))
+        if (await users.UsernameOrEmailExistsAsync(normalized.Username, normalized.Email, id, ct))
             throw AppException.Conflict("Username or email already exists.");
-        user.Username = write.Username.Trim();
-        user.Email = write.Email.Trim();
-        user.FullName = write.FullName.Trim();
-        user.Phone = write.Phone;
-        user.Timezone = write.Timezone;
-        user.Role = write.Role;
-        user.IsActive = write.IsActive;
+        user.Username = normalized.Username;
+        user.Email = normalized.Email;
+        user.FullName = normalized.FullName;
+        user.Phone = normalized.Phone;
+        user.AvatarUrl = normalized.AvatarUrl;
+        user.Timezone = normalized.Timezone;
+        user.Role = normalized.Role;
+        user.IsActive = normalized.IsActive;
         user.UpdatedAt = clock.UtcNow;
         await users.UpdateAsync(user, ct);
         return AuthenticationService.Map(user);
@@ -81,12 +85,15 @@ public sealed class UserService(IUserRepository users, IPasswordService password
         CancellationToken ct
     )
     {
-        if (string.IsNullOrWhiteSpace(write.FullName) || string.IsNullOrWhiteSpace(write.Timezone))
-            throw AppException.Validation("fullName and timezone are required.");
+        var fullName = Required(write.FullName, "fullName", 255);
+        var timezone = Required(write.Timezone, "timezone", 64);
+        var phone = Optional(write.Phone, "phone", 30);
+        var avatarUrl = ValidateAvatar(write.AvatarUrl);
         var user = await User(actor.UserId, ct);
-        user.FullName = write.FullName.Trim();
-        user.Phone = write.Phone;
-        user.Timezone = write.Timezone;
+        user.FullName = fullName;
+        user.Phone = phone;
+        user.AvatarUrl = avatarUrl;
+        user.Timezone = timezone;
         user.UpdatedAt = clock.UtcNow;
         await users.UpdateAsync(user, ct);
         return AuthenticationService.Map(user);
@@ -100,14 +107,17 @@ public sealed class UserService(IUserRepository users, IPasswordService password
     )
     {
         var user = await User(actor.UserId, ct);
+        if (string.IsNullOrEmpty(currentPassword))
+            throw AppException.Validation("Current password is required.");
         if (!passwords.Verify(user.PasswordHash, currentPassword))
             throw new AppException(
                 400,
                 "CURRENT_PASSWORD_INVALID",
                 "Current password is incorrect."
             );
-        if (newPassword.Length is < 4 or > 128)
-            throw AppException.Validation("New password must contain 4 to 128 characters.");
+        ValidatePassword(newPassword, "New password");
+        if (passwords.Verify(user.PasswordHash, newPassword))
+            throw AppException.Validation("New password must be different from the current password.");
         user.PasswordHash = passwords.Hash(newPassword);
         user.UpdatedAt = clock.UtcNow;
         await users.UpdateAsync(user, ct);
@@ -122,14 +132,61 @@ public sealed class UserService(IUserRepository users, IPasswordService password
             throw AppException.Forbidden();
     }
 
+    private static UserWrite Normalize(UserWrite w) =>
+        w with
+        {
+            Username = Required(w.Username, "username", 100),
+            Email = Required(w.Email, "email", 255).ToLowerInvariant(),
+            FullName = Required(w.FullName, "fullName", 255),
+            Phone = Optional(w.Phone, "phone", 30),
+            Timezone = Required(w.Timezone, "timezone", 64),
+            AvatarUrl = ValidateAvatar(w.AvatarUrl),
+        };
+
     private static void Validate(UserWrite w)
     {
-        if (
-            string.IsNullOrWhiteSpace(w.Username)
-            || string.IsNullOrWhiteSpace(w.Email)
-            || !w.Email.Contains('@')
-            || string.IsNullOrWhiteSpace(w.FullName)
-        )
-            throw AppException.Validation("Invalid user values.");
+        try
+        {
+            var address = new MailAddress(w.Email);
+            if (!address.Address.Equals(w.Email, StringComparison.OrdinalIgnoreCase))
+                throw AppException.Validation("email must be a valid email address.");
+        }
+        catch (FormatException)
+        {
+            throw AppException.Validation("email must be a valid email address.");
+        }
+    }
+
+    private static string Required(string? value, string field, int maxLength)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrEmpty(normalized) || normalized.Length > maxLength)
+            throw AppException.Validation($"{field} is required and must not exceed {maxLength} characters.");
+        return normalized;
+    }
+
+    private static string? Optional(string? value, string field, int maxLength)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (normalized?.Length > maxLength)
+            throw AppException.Validation($"{field} must not exceed {maxLength} characters.");
+        return normalized;
+    }
+
+    private static string? ValidateAvatar(string? value)
+    {
+        var normalized = Optional(value, "avatarUrl", 2048);
+        if (normalized is null)
+            return null;
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("http" or "https"))
+            throw AppException.Validation("avatarUrl must be an absolute HTTP or HTTPS URL.");
+        return normalized;
+    }
+
+    private static void ValidatePassword(string? password, string label)
+    {
+        if (password is null || password.Length is < 4 or > 128)
+            throw AppException.Validation($"{label} must contain 4 to 128 characters.");
     }
 }

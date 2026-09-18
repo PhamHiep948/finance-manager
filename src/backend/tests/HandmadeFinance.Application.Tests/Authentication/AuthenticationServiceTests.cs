@@ -16,6 +16,7 @@ public sealed class AuthenticationServiceTests
         Assert.Equal("token", result.AccessToken);
         Assert.Equal("Bearer", result.TokenType);
         Assert.Equal("alice", result.User.Username);
+        Assert.Equal(new DateTimeOffset(2026, 9, 17, 0, 0, 0, TimeSpan.Zero), result.User.LastLoginAt);
     }
 
     [Fact]
@@ -66,6 +67,7 @@ public sealed class AuthenticationServiceTests
             IsActive = true,
         };
         public AuthenticationService Service;
+        public int UpdateCalls;
 
         public Fixture()
         {
@@ -103,7 +105,11 @@ public sealed class AuthenticationServiceTests
 
         public Task<UserAccount> AddAsync(UserAccount u, CancellationToken _) => Task.FromResult(u);
 
-        public Task UpdateAsync(UserAccount u, CancellationToken _) => Task.CompletedTask;
+        public Task UpdateAsync(UserAccount u, CancellationToken _)
+        {
+            f.UpdateCalls++;
+            return Task.CompletedTask;
+        }
 
         public Task<bool> UsernameOrEmailExistsAsync(
             string u,

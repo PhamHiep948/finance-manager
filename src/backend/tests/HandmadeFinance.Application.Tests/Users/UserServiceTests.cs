@@ -120,6 +120,21 @@ public sealed class UserServiceTests
     }
 
     [Fact]
+    public async Task Create_normalizes_values_before_duplicate_check()
+    {
+        var f = new Fixture();
+        var error = await Assert.ThrowsAsync<AppException>(() =>
+            f.Service.CreateAsync(
+                ValidWrite with { Username = " alice ", Email = " NEW@EXAMPLE.COM " },
+                "secret",
+                Admin,
+                default
+            )
+        );
+        Assert.Equal(409, error.Status);
+    }
+
+    [Fact]
     public async Task Admin_can_update_role_and_status()
     {
         var f = new Fixture();
@@ -169,6 +184,30 @@ public sealed class UserServiceTests
         Assert.Equal(originalRole, result.Role);
     }
 
+    [Fact]
+    public async Task Profile_update_accepts_absolute_https_avatar()
+    {
+        var f = new Fixture();
+        var result = await f.Service.UpdateProfileAsync(
+            new("Alice", null, "UTC", "https://cdn.example.test/alice.png"),
+            Employee,
+            default
+        );
+        Assert.Equal("https://cdn.example.test/alice.png", result.AvatarUrl);
+    }
+
+    [Theory]
+    [InlineData("avatar.png")]
+    [InlineData("file:///tmp/avatar.png")]
+    public async Task Profile_update_rejects_unsafe_avatar_url(string avatarUrl)
+    {
+        var f = new Fixture();
+        var error = await Assert.ThrowsAsync<AppException>(() =>
+            f.Service.UpdateProfileAsync(new("Alice", null, "UTC", avatarUrl), Employee, default)
+        );
+        Assert.Equal(400, error.Status);
+    }
+
     [Theory]
     [InlineData("", "UTC")]
     [InlineData("Alice", "")]
@@ -199,6 +238,17 @@ public sealed class UserServiceTests
         await f.Service.ChangePasswordAsync("old-password", "new-secret", Employee, default);
         Assert.Equal("HASH:new-secret", f.Repository.Users[0].PasswordHash);
         Assert.Equal(1, f.Repository.UpdateCalls);
+    }
+
+    [Fact]
+    public async Task Change_password_rejects_reusing_current_password()
+    {
+        var f = new Fixture();
+        var error = await Assert.ThrowsAsync<AppException>(() =>
+            f.Service.ChangePasswordAsync("old-password", "old-password", Employee, default)
+        );
+        Assert.Equal(400, error.Status);
+        Assert.Equal(0, f.Repository.UpdateCalls);
     }
 
     private sealed class Fixture

@@ -19,9 +19,25 @@ public sealed class AuthenticationService(
         if (user is null || !user.IsActive || !passwords.Verify(user.PasswordHash, password))
             throw new AppException(401, "INVALID_CREDENTIALS", "Email or password is incorrect.");
         var expiry = clock.UtcNow.AddMinutes(30);
+        user.LastLoginAt = clock.UtcNow;
+        user.UpdatedAt = clock.UtcNow;
+        await users.UpdateAsync(user, ct);
         return new(tokens.Issue(user, expiry), "Bearer", expiry, Map(user));
     }
 
     internal static SafeUser Map(UserAccount u) =>
-        new(u.Id, u.Username, u.Email, u.FullName, u.Phone, u.Timezone, u.Role, u.IsActive);
+        new(
+            u.Id,
+            u.Username,
+            u.Email,
+            u.FullName,
+            u.Phone,
+            u.Timezone,
+            u.Role,
+            u.IsActive,
+            u.AvatarUrl,
+            u.LastLoginAt,
+            u.CreatedAt,
+            u.UpdatedAt
+        );
 }

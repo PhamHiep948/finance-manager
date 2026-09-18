@@ -31,7 +31,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         b.Property(x => x.Email).HasMaxLength(255).IsRequired();
         b.Property(x => x.PasswordHash).IsRequired();
         b.Property(x => x.FullName).HasMaxLength(255).IsRequired();
+        b.Property(x => x.Phone).HasMaxLength(30);
+        b.Property(x => x.AvatarUrl).HasColumnName("avatar_url");
         b.Property(x => x.Timezone).HasMaxLength(64).IsRequired();
+        b.Property(x => x.LastLoginAt).HasColumnName("last_login_at");
         b.Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
         b.HasIndex(x => x.Username).IsUnique();
         b.HasIndex(x => x.Email).IsUnique();

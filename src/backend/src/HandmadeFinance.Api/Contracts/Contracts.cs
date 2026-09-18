@@ -22,7 +22,8 @@ public sealed record CreateUserRequest(
     string? Phone,
     string Timezone,
     UserRole Role,
-    bool IsActive = true
+    bool IsActive = true,
+    string? AvatarUrl = null
 );
 
 public sealed record UpdateUserRequest(
@@ -32,9 +33,15 @@ public sealed record UpdateUserRequest(
     string? Phone,
     string Timezone,
     UserRole Role,
-    bool IsActive
+    bool IsActive,
+    string? AvatarUrl = null
 );
 
-public sealed record UpdateProfileRequest(string FullName, string? Phone, string Timezone);
+public sealed record UpdateProfileRequest(
+    string FullName,
+    string? Phone,
+    string Timezone,
+    string? AvatarUrl = null
+);
 
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);

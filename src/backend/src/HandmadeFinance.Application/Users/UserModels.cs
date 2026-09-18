@@ -10,11 +10,13 @@ public sealed class UserAccount
     public string PasswordHash { get; set; } = "";
     public string FullName { get; set; } = "";
     public string? Phone { get; set; }
+    public string? AvatarUrl { get; set; }
     public string Timezone { get; set; } = "Asia/Ho_Chi_Minh";
     public UserRole Role { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
 }
 
 public sealed record SafeUser(
@@ -25,7 +27,11 @@ public sealed record SafeUser(
     string? Phone,
     string Timezone,
     UserRole Role,
-    bool IsActive
+    bool IsActive,
+    string? AvatarUrl,
+    DateTimeOffset? LastLoginAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
 );
 
 public sealed record LoginResult(
@@ -42,7 +48,13 @@ public sealed record UserWrite(
     string? Phone,
     string Timezone,
     UserRole Role,
-    bool IsActive
+    bool IsActive,
+    string? AvatarUrl = null
 );
 
-public sealed record ProfileWrite(string FullName, string? Phone, string Timezone);
+public sealed record ProfileWrite(
+    string FullName,
+    string? Phone,
+    string Timezone,
+    string? AvatarUrl = null
+);

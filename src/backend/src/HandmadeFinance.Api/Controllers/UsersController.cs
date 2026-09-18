@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HandmadeFinance.Api.Controllers;
 
-[Authorize, ApiController, Route("api/v1/users")]
+[Authorize(Roles = "ADMIN"), ApiController, Route("api/v1/users")]
 public sealed class UsersController(UserService service) : ControllerBase
 {
     [HttpGet]
@@ -22,7 +22,16 @@ public sealed class UsersController(UserService service) : ControllerBase
     public async Task<IActionResult> Create(CreateUserRequest r, CancellationToken ct)
     {
         var user = await service.CreateAsync(
-            new(r.Username, r.Email, r.FullName, r.Phone, r.Timezone, r.Role, r.IsActive),
+            new(
+                r.Username,
+                r.Email,
+                r.FullName,
+                r.Phone,
+                r.Timezone,
+                r.Role,
+                r.IsActive,
+                r.AvatarUrl
+            ),
             r.Password,
             User.Actor(),
             ct
@@ -35,7 +44,16 @@ public sealed class UsersController(UserService service) : ControllerBase
         Ok(
             await service.UpdateAsync(
                 id,
-                new(r.Username, r.Email, r.FullName, r.Phone, r.Timezone, r.Role, r.IsActive),
+                new(
+                    r.Username,
+                    r.Email,
+                    r.FullName,
+                    r.Phone,
+                    r.Timezone,
+                    r.Role,
+                    r.IsActive,
+                    r.AvatarUrl
+                ),
                 User.Actor(),
                 ct
             )
@@ -59,7 +77,8 @@ public sealed class UsersController(UserService service) : ControllerBase
                     current.Phone,
                     current.Timezone,
                     current.Role,
-                    r.IsActive
+                    r.IsActive,
+                    current.AvatarUrl
                 ),
                 User.Actor(),
                 ct
