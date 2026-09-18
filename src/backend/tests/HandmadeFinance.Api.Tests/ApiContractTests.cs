@@ -7,11 +7,11 @@ using Xunit;
 
 namespace HandmadeFinance.Api.Tests;
 
-public sealed class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ApiContractTests : IClassFixture<TestApiFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public ApiContractTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public ApiContractTests(TestApiFactory factory) => _factory = factory;
 
     [Fact]
     public async Task Health_is_public_and_healthy()

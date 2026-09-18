@@ -3,7 +3,8 @@ using System.Text;
 using HandmadeFinance.Api.Authorization;
 using HandmadeFinance.Application.Abstractions.Persistence;
 using HandmadeFinance.Application.Common;
-using HandmadeFinance.Infrastructure;
+using HandmadeFinance.Application.Operations;
+using HandmadeFinance.Application.Reporting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,8 +12,8 @@ namespace HandmadeFinance.Api.Controllers;
 
 [Authorize(Roles = "ADMIN,SHOP_OWNER,VIEWER"), ApiController, Route("api/v1/reports/export")]
 public sealed class ReportExportController(
-    ILedgerRepository ledger,
-    OperationalStore operations,
+    IReportingService reports,
+    IOperationalStore operations,
     IClock clock
 ) : ControllerBase
 {
@@ -24,25 +25,10 @@ public sealed class ReportExportController(
         CancellationToken ct
     )
     {
-        if (dateFrom > dateTo)
-            throw AppException.Validation("dateFrom must not be after dateTo.");
         var normalized = format?.ToUpperInvariant();
         if (normalized is not ("PDF" or "XLSX"))
             throw AppException.Validation("format must be PDF or XLSX.");
-        var incomes = (await ledger.ListAsync(EntryKind.INCOME, ct))
-            .Where(x =>
-                x.DeletedAt is null
-                && (!dateFrom.HasValue || x.Date >= dateFrom)
-                && (!dateTo.HasValue || x.Date <= dateTo)
-            )
-            .Sum(x => x.AmountAfterTax);
-        var expenses = (await ledger.ListAsync(EntryKind.EXPENSE, ct))
-            .Where(x =>
-                x.DeletedAt is null
-                && (!dateFrom.HasValue || x.Date >= dateFrom)
-                && (!dateTo.HasValue || x.Date <= dateTo)
-            )
-            .Sum(x => x.AmountAfterTax);
+        var summary = await reports.GetSummaryAsync(dateFrom, dateTo, ct);
         var actor = User.Actor();
         operations.Audit(
             "EXPORT",
@@ -52,9 +38,13 @@ public sealed class ReportExportController(
             clock.UtcNow
         );
         if (normalized == "PDF")
-            return File(Pdf(incomes, expenses), "application/pdf", "financial-report.pdf");
+            return File(
+                Pdf(summary.TotalIncome, summary.TotalExpense),
+                "application/pdf",
+                "financial-report.pdf"
+            );
         return File(
-            Xlsx(incomes, expenses),
+            Xlsx(summary.TotalIncome, summary.TotalExpense),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "financial-report.xlsx"
         );
@@ -92,7 +82,7 @@ public sealed class ReportExportController(
 }
 
 [Authorize(Roles = "ADMIN,SHOP_OWNER,EMPLOYEE"), ApiController, Route("api/v1/imports")]
-public sealed class ImportsController(OperationalStore store, IClock clock) : ControllerBase
+public sealed class ImportsController(IOperationalStore store, IClock clock) : ControllerBase
 {
     private const long MaxBytes = 10 * 1024 * 1024;
 
@@ -129,9 +119,11 @@ public sealed class ImportsController(OperationalStore store, IClock clock) : Co
         Page(page, pageSize);
         IEnumerable<ImportBatchRecord> query = store.Imports;
         if (importType is not null)
-            query = query.Where(x => x.ImportType == importType.ToUpperInvariant());
+            query = query.Where(x =>
+                x.ImportType.Equals(importType, StringComparison.OrdinalIgnoreCase)
+            );
         if (status is not null)
-            query = query.Where(x => x.Status == status.ToUpperInvariant());
+            query = query.Where(x => x.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
         var all = query.OrderByDescending(x => x.Id).ToList();
         return Ok(
             new
@@ -172,7 +164,7 @@ public sealed class ImportsController(OperationalStore store, IClock clock) : Co
     [HttpGet("{importId:long}")]
     public IActionResult Get(long importId) =>
         Ok(
-            store.Imports.SingleOrDefault(x => x.Id == importId)
+            store.FindImport(importId)
                 ?? throw AppException.NotFound("import")
         );
 
@@ -210,7 +202,7 @@ public sealed class ImportsController(OperationalStore store, IClock clock) : Co
 [Authorize(Roles = "ADMIN,SHOP_OWNER,EMPLOYEE"), ApiController]
 public sealed class AttachmentsController(
     ILedgerRepository ledger,
-    OperationalStore store,
+    IOperationalStore store,
     IClock clock
 ) : ControllerBase
 {
@@ -228,12 +220,12 @@ public sealed class AttachmentsController(
     public IActionResult Delete(long attachmentId)
     {
         var item =
-            store.Attachments.SingleOrDefault(x => x.Id == attachmentId)
+            store.FindAttachment(attachmentId)
             ?? throw AppException.NotFound("attachment");
         var actor = User.Actor();
         if (actor.Role == UserRole.EMPLOYEE && item.UploadedBy != actor.UserId)
             throw AppException.Forbidden();
-        store.Attachments.Remove(item);
+        store.RemoveAttachment(item.Id);
         return NoContent();
     }
 
@@ -284,7 +276,7 @@ public sealed class AttachmentsController(
 }
 
 [Authorize(Roles = "ADMIN,SHOP_OWNER"), ApiController, Route("api/v1/audit-logs")]
-public sealed class AuditLogsController(OperationalStore store) : ControllerBase
+public sealed class AuditLogsController(IOperationalStore store) : ControllerBase
 {
     [HttpGet]
     public IActionResult List(
@@ -301,7 +293,7 @@ public sealed class AuditLogsController(OperationalStore store) : ControllerBase
             throw AppException.Validation("Invalid audit filters.");
         IEnumerable<AuditRecord> q = store.Audits;
         if (action is not null)
-            q = q.Where(x => x.Action == action.ToUpperInvariant());
+            q = q.Where(x => x.Action.Equals(action, StringComparison.OrdinalIgnoreCase));
         if (actorUserId.HasValue)
             q = q.Where(x => x.ActorUserId == actorUserId);
         if (module is not null)

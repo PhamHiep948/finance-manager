@@ -36,5 +36,8 @@ public sealed record LedgerQuery(
     int PageSize = 20,
     string? Search = null,
     DateOnly? DateFrom = null,
-    DateOnly? DateTo = null
+    DateOnly? DateTo = null,
+    long? CategoryId = null,
+    string SortBy = "date",
+    string SortDirection = "desc"
 );

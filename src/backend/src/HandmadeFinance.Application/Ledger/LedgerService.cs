@@ -31,28 +31,18 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
 {
     public async Task<PageResult<LedgerEntry>> ListAsync(
         EntryKind kind,
-        LedgerQuery q,
+        LedgerQuery query,
         CancellationToken ct
     )
     {
-        ValidatePage(q);
-        ValidateRange(q.DateFrom, q.DateTo);
-        var rows = (await repository.ListAsync(kind, ct)).Where(x => x.DeletedAt is null);
-        if (!string.IsNullOrWhiteSpace(q.Search))
-            rows = rows.Where(x =>
-                x.Description.Contains(q.Search.Trim(), StringComparison.OrdinalIgnoreCase)
-            );
-        if (q.DateFrom is not null)
-            rows = rows.Where(x => x.Date >= q.DateFrom);
-        if (q.DateTo is not null)
-            rows = rows.Where(x => x.Date <= q.DateTo);
-        var ordered = rows.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).ToList();
-        return new(
-            ordered.Skip((q.Page - 1) * q.PageSize).Take(q.PageSize).ToList(),
-            q.Page,
-            q.PageSize,
-            ordered.Count
-        );
+        ValidatePage(query);
+        ValidateRange(query.DateFrom, query.DateTo);
+        if (query.SortBy is not ("date" or "amount" or "description"))
+            throw AppException.Validation("sortBy must be date, amount, or description.");
+        if (!query.SortDirection.Equals("asc", StringComparison.OrdinalIgnoreCase)
+            && !query.SortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase))
+            throw AppException.Validation("sortDirection must be asc or desc.");
+        return await repository.SearchAsync(kind, query, ct);
     }
 
     public async Task<LedgerEntry> GetAsync(EntryKind kind, long id, CancellationToken ct) =>
@@ -108,6 +98,7 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
         row.Amount = request.Amount;
         row.TaxPercent = request.TaxPercent;
         row.AmountAfterTax = request.AmountAfterTax;
+        row.CurrencyCode = request.CurrencyCode;
         row.UpdatedBy = actor.UserId;
         row.UpdatedAt = clock.UtcNow;
         await repository.UpdateAsync(row, ct);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -81,7 +82,7 @@ public sealed class TokenAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.Fail("Invalid token"));
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, d.UserId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, d.UserId.ToString(CultureInfo.InvariantCulture)),
             new Claim(ClaimTypes.Role, d.Role),
         };
         return Task.FromResult(

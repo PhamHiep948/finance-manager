@@ -138,9 +138,6 @@ async function main() {
   await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
 
-  // Xóa ảnh login
-  await rm(path.join(DOCS, "chung", "01-dang-nhap.png"), { force: true });
-
   const browser = await chromium.launch({
     executablePath: CHROME,
     headless: true,
@@ -151,7 +148,18 @@ async function main() {
     deviceScaleFactor: 1,
   });
 
-  // Không chụp login / dark mode — chỉ light mode
+  await mkdir(path.join(OUT, "chung"), { recursive: true });
+  await page.goto(`${BASE}/#/login`, { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem("fm_theme", "light");
+    document.documentElement.dataset.theme = "light";
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForSelector(".login-panel");
+  await shot(page, path.join(OUT, "chung", "01-dang-nhap.png"));
+
   await captureRole(page, "admin", USERS.admin, {
     incomeWrite: true,
     expenseWrite: true,
@@ -192,7 +200,7 @@ async function main() {
 
   await browser.close();
 
-  for (const folder of ["admin", "chu-shop", "nhan-vien", "nguoi-xem"]) {
+  for (const folder of ["chung", "admin", "chu-shop", "nhan-vien", "nguoi-xem"]) {
     const src = path.join(OUT, folder);
     const dst = path.join(DOCS, folder);
     await mkdir(dst, { recursive: true });
@@ -202,11 +210,9 @@ async function main() {
     }
   }
 
-  // Dọn file thừa
   await rm(path.join(DOCS, "nhan-vien", "05-import.png"), { force: true });
-  await rm(path.join(DOCS, "chung", "01-dang-nhap.png"), { force: true });
 
-  console.log("updated", DOCS, "(no login, light mode only)");
+  console.log("updated", DOCS, "(login + light mode)");
 }
 
 main().catch((err) => {

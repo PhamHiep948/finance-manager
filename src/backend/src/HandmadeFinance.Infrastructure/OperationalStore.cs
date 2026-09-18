@@ -1,50 +1,32 @@
 using HandmadeFinance.Application.Common;
+using HandmadeFinance.Application.Operations;
 
 namespace HandmadeFinance.Infrastructure;
 
-public sealed record ImportBatchRecord(
-    long Id,
-    string ImportType,
-    string OriginalFileName,
-    string Status,
-    int TotalRows,
-    int SuccessRows,
-    int FailedRows,
-    long ImportedBy,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? CompletedAt,
-    object? ErrorDetails = null
-);
-
-public sealed record AttachmentRecord(
-    long Id,
-    EntryKind Kind,
-    long EntryId,
-    string OriginalName,
-    string? MimeType,
-    long FileSizeBytes,
-    long UploadedBy,
-    DateTimeOffset UploadedAt,
-    byte[] Content
-);
-
-public sealed record AuditRecord(
-    long Id,
-    string Action,
-    string Module,
-    string Detail,
-    long ActorUserId,
-    DateTimeOffset ChangedAt
-);
-
-public sealed class OperationalStore
+public sealed class OperationalStore : IOperationalStore
 {
+    private readonly object _gate = new();
     private long _importId;
     private long _attachmentId;
     private long _auditId;
-    public List<ImportBatchRecord> Imports { get; } = [];
-    public List<AttachmentRecord> Attachments { get; } = [];
-    public List<AuditRecord> Audits { get; } = [];
+    private readonly List<ImportBatchRecord> _imports = [];
+    private readonly List<AttachmentRecord> _attachments = [];
+    private readonly List<AuditRecord> _audits = [];
+
+    public IReadOnlyList<ImportBatchRecord> Imports
+    {
+        get { lock (_gate) return _imports.ToList(); }
+    }
+
+    public IReadOnlyList<AttachmentRecord> Attachments
+    {
+        get { lock (_gate) return _attachments.ToList(); }
+    }
+
+    public IReadOnlyList<AuditRecord> Audits
+    {
+        get { lock (_gate) return _audits.ToList(); }
+    }
 
     public ImportBatchRecord AddImport(
         string type,
@@ -55,7 +37,7 @@ public sealed class OperationalStore
     )
     {
         var item = new ImportBatchRecord(
-            ++_importId,
+            Interlocked.Increment(ref _importId),
             type,
             name,
             "COMPLETED",
@@ -66,7 +48,8 @@ public sealed class OperationalStore
             now,
             now
         );
-        Imports.Add(item);
+        lock (_gate)
+            _imports.Add(item);
         Audit("IMPORT", "IMPORT", $"Imported {rows} rows from {name}", actor, now);
         return item;
     }
@@ -82,7 +65,7 @@ public sealed class OperationalStore
     )
     {
         var item = new AttachmentRecord(
-            ++_attachmentId,
+            Interlocked.Increment(ref _attachmentId),
             kind,
             entryId,
             name,
@@ -92,8 +75,27 @@ public sealed class OperationalStore
             now,
             content
         );
-        Attachments.Add(item);
+        lock (_gate)
+            _attachments.Add(item);
         return item;
+    }
+
+    public ImportBatchRecord? FindImport(long id)
+    {
+        lock (_gate)
+            return _imports.SingleOrDefault(x => x.Id == id);
+    }
+
+    public AttachmentRecord? FindAttachment(long id)
+    {
+        lock (_gate)
+            return _attachments.SingleOrDefault(x => x.Id == id);
+    }
+
+    public bool RemoveAttachment(long id)
+    {
+        lock (_gate)
+            return _attachments.RemoveAll(x => x.Id == id) > 0;
     }
 
     public void Audit(
@@ -102,5 +104,12 @@ public sealed class OperationalStore
         string detail,
         long actor,
         DateTimeOffset now
-    ) => Audits.Add(new(++_auditId, action, module, detail, actor, now));
+    )
+    {
+        var item = new AuditRecord(
+            Interlocked.Increment(ref _auditId), action, module, detail, actor, now
+        );
+        lock (_gate)
+            _audits.Add(item);
+    }
 }

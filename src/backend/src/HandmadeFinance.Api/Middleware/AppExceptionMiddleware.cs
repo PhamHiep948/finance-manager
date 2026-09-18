@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HandmadeFinance.Api.Middleware;
 
-public sealed class AppExceptionMiddleware(
+public sealed partial class AppExceptionMiddleware(
     RequestDelegate next,
     ILogger<AppExceptionMiddleware> logger
 )
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public async Task Invoke(HttpContext context)
     {
         try
@@ -21,7 +23,7 @@ public sealed class AppExceptionMiddleware(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unhandled request failure {TraceId}", context.TraceIdentifier);
+            LogUnhandledFailure(logger, ex, context.TraceIdentifier);
             await Write(context, 500, "INTERNAL_ERROR", "An unexpected error occurred.");
         }
     }
@@ -39,7 +41,14 @@ public sealed class AppExceptionMiddleware(
             Extensions = { { "errorCode", code }, { "traceId", c.TraceIdentifier } },
         };
         return c.Response.WriteAsync(
-            JsonSerializer.Serialize(problem, new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            JsonSerializer.Serialize(problem, JsonOptions)
         );
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Unhandled request failure {TraceId}")]
+    private static partial void LogUnhandledFailure(
+        ILogger logger,
+        Exception exception,
+        string traceId
+    );
 }
