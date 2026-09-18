@@ -21,7 +21,20 @@ public sealed class LedgerEntry
     public long? DeletedBy { get; set; }
 }
 
-public sealed record LedgerWrite(DateOnly Date, string Description, long CategoryId, decimal Amount,
-    decimal TaxPercent, decimal AmountAfterTax, string CurrencyCode = "USD");
-public sealed record LedgerQuery(int Page = 1, int PageSize = 20, string? Search = null,
-    DateOnly? DateFrom = null, DateOnly? DateTo = null);
+public sealed record LedgerWrite(
+    DateOnly Date,
+    string Description,
+    long CategoryId,
+    decimal Amount,
+    decimal TaxPercent,
+    decimal AmountAfterTax,
+    string CurrencyCode = "USD"
+);
+
+public sealed record LedgerQuery(
+    int Page = 1,
+    int PageSize = 20,
+    string? Search = null,
+    DateOnly? DateFrom = null,
+    DateOnly? DateTo = null
+);

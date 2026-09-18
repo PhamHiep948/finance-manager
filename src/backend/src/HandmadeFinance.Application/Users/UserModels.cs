@@ -17,7 +17,32 @@ public sealed class UserAccount
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
-public sealed record SafeUser(long Id, string Username, string Email, string FullName, string? Phone, string Timezone, UserRole Role, bool IsActive);
-public sealed record LoginResult(string AccessToken, string TokenType, DateTimeOffset ExpiresAt, SafeUser User);
-public sealed record UserWrite(string Username, string Email, string FullName, string? Phone, string Timezone, UserRole Role, bool IsActive);
+public sealed record SafeUser(
+    long Id,
+    string Username,
+    string Email,
+    string FullName,
+    string? Phone,
+    string Timezone,
+    UserRole Role,
+    bool IsActive
+);
+
+public sealed record LoginResult(
+    string AccessToken,
+    string TokenType,
+    DateTimeOffset ExpiresAt,
+    SafeUser User
+);
+
+public sealed record UserWrite(
+    string Username,
+    string Email,
+    string FullName,
+    string? Phone,
+    string Timezone,
+    UserRole Role,
+    bool IsActive
+);
+
 public sealed record ProfileWrite(string FullName, string? Phone, string Timezone);

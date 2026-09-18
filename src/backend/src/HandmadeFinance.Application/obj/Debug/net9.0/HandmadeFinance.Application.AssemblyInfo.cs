@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HandmadeFinance.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a4b621853b5730e31a778bd14aaee132d394f2e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea8ca6ce647551f8503d40bd57786f42a77d2c14")]
 [assembly: System.Reflection.AssemblyProductAttribute("HandmadeFinance.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HandmadeFinance.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
