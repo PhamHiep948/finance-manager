@@ -118,8 +118,6 @@ Authenticated
 └── Forbidden
 ```
 
-
-
 ### 2.2 Screen hierarchy
 
 Login leads to the authenticated shell. The shell owns navigation to feature pages; income, expense, and user create/edit interactions use feature-owned modals. Unauthorized navigation resolves to the Forbidden screen.
@@ -127,8 +125,6 @@ Login leads to the authenticated shell. The shell owns navigation to feature pag
 Detailed screen IDs, user flows, screen states, accessibility rules, and API mappings are maintained in [Information Architecture](docs/04-information-architecture.md).
 
 ### 2.3 Current UI prototype
-
-
 
 #### Overview
 
@@ -169,8 +165,6 @@ flowchart LR
 
 
 
-
-
 ### C2 — Container
 
 ```mermaid
@@ -204,8 +198,6 @@ flowchart TB
     style backend fill:#1168bd,color:#fff
     style database fill:#1168bd,color:#fff
 ```
-
-
 
 
 
@@ -367,11 +359,7 @@ Every operation has a stable `operationId`, documented parameters, request and r
 - [OpenAPI 3.0.4 specification](docs/api/openapi.yaml)
 - [API documentation and sample calls](docs/api/README.md)
 
-
-
 ## 5. Frontend and Backend Folder Structures
-
-
 
 ### 5.1 Current repository layout
 
@@ -436,8 +424,6 @@ Target dependency flow:
 Page/Component → Feature Hook → Feature Service → apiClient → REST API
 ```
 
-
-
 ### 5.3 Target ASP.NET Core three-tier structure
 
 ```text
@@ -468,8 +454,6 @@ The complete module ownership, naming, dependency, and test-location design is m
 Detailed design derives from the C4 components in Step 3, the database and OpenAPI contracts in Step 4, and the target folder ownership in Step 5. These diagrams remain target design views; the executable baseline may consolidate classes while preserving the documented layer boundaries.
 
 ### 6.1 C4 Level 4 — Code collaboration
-
-
 
 #### L4.1 Income Management
 
@@ -511,8 +495,6 @@ flowchart TB
     style repository fill:#1168bd,color:#fff
     style postgres fill:#1168bd,color:#fff
 ```
-
-
 
 
 
@@ -562,8 +544,6 @@ flowchart TB
 Source: [C4 Level 4 — Code](docs/architecture/c4/04-code.md)
 
 ### 6.2 Core class diagrams
-
-
 
 #### 1. Authentication
 
@@ -685,8 +665,6 @@ classDiagram
     AuditLogRepository ..|> IAuditLogRepository
     EfUnitOfWork ..|> IUnitOfWork
 ```
-
-
 
 
 
@@ -858,8 +836,6 @@ classDiagram
 
 
 
-
-
 #### 3. Expense
 
 ```mermaid
@@ -1011,8 +987,6 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - [Core sequence diagrams](docs/architecture/uml/02-sequence-diagrams.md)
 - [API runtime sequences and operation traceability](docs/architecture/uml/03-api-traceability.md)
 
-
-
 ## Documentation
 
 - Requirements: [Scope](docs/01-scope.md), [Features](docs/02-features.md), [INVEST backlog](docs/08-invest-requirements.md), [Acceptance criteria](docs/06-acceptance-criteria.md).
@@ -1023,9 +997,11 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - Code-level design: [Core class diagrams](docs/architecture/uml/01-class-diagrams.md), [remaining module classes](docs/architecture/uml/03-additional-class-diagrams.md), [core sequences](docs/architecture/uml/02-sequence-diagrams.md), and [API traceability/sequences](docs/architecture/uml/03-api-traceability.md).
 - API contract: [OpenAPI 3.0.4 specification](docs/api/openapi.yaml) and [API documentation](docs/api/README.md).
 
-
-
 ## Project Progress
+
+**Tiến độ toàn dự án: 70% — hoàn thành 21/30 đầu việc.**
+
+Tỷ lệ này được tính trên toàn bộ yêu cầu và công việc của dự án, bao gồm tài liệu yêu cầu, thiết kế, frontend, backend, database, kiểm thử, bảo mật và tích hợp; không giới hạn trong riêng Backend API. Mỗi đầu việc trong checklist bên dưới có trọng số như nhau: `(số mục đã hoàn thành / tổng số mục) × 100`.
 
 - [x] Xác định phạm vi, mục tiêu và vai trò người dùng
 - [x] Viết danh sách tính năng và use cases
@@ -1045,15 +1021,10 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - [x] Thiết kế class diagrams và sequence diagrams
 - [x] Tạo traceability giữa requirements, màn hình, API và database
 - [x] Xây dựng backend ASP.NET Core ba tầng
-- [x] Implement authentication, users và profile API
+- [ ] Implement authentication, users và profile API
 - [x] Implement income và expense CRUD API
 - [ ] Hoàn thiện dashboard, reports, import, attachments và audit API
 - [x] Viết unit test và API integration test
 - [ ] Hoàn thiện PostgreSQL migrations và integration tests với database thật
 - [ ] Hoàn thiện import Excel, file storage và report export cho production
 - [ ] Chuẩn hóa JWT, rate limit, authorization và security tests
-- [ ] Kết nối React frontend với backend API
-- [ ] Loại bỏ mock data và mock store khỏi frontend
-- [ ] Sửa cảnh báo frontend asset và tối ưu bundle
-- [ ] Thêm OpenAPI lint, architecture tests, coverage và CI quality gates
-- [ ] Kiểm thử accessibility, performance, backup và deployment
