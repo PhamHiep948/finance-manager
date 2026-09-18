@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { I } from "../lib/icons";
 import { useFinance } from "../lib/store";
+import { BrandIcon } from "./BrandLogo";
 
 const DEMO_ACCOUNTS = [
   { role: "ADMIN", name: "Admin", email: "admin@demo.local", sub: "Quản trị" },
@@ -49,15 +50,13 @@ export default function Login() {
       <section className="login-panel">
         <div className="login-panel-inner">
           <div className="login-logo">
-            <div className="brand-icon brand-icon-lg">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                <polyline points="16 7 22 7 22 13" />
-              </svg>
-            </div>
+            <BrandIcon size={56} className="brand-icon-lg" />
             <div className="login-brand-copy">
-              <span className="login-brand-name">HandmadeFinance</span>
-              <small>Quản lý tài chính</small>
+              <span className="login-brand-name">
+                <span className="brand-name-mina">Mina</span>
+                <span className="brand-name-store">Store</span>
+              </span>
+              <small>Quản lý tài chính tiệm thủ công</small>
             </div>
           </div>
 

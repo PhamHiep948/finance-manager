@@ -4,6 +4,7 @@ import { I } from "../lib/icons";
 import { initials, roleUi } from "../lib/format";
 import { UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
+import { BrandLogo } from "./BrandLogo";
 
 const NAV_GROUPS = [
   {
@@ -76,18 +77,9 @@ export default function Shell() {
     <>
       <aside className="sidebar-new">
         {/* Brand */}
-        <div className="sb-brand">
-          <div className="sb-brand-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-              <polyline points="16 7 22 7 22 13" />
-            </svg>
-          </div>
-          <div className="sb-brand-text">
-            <span className="sb-brand-name">HandmadeFinance</span>
-            <span className="sb-brand-sub">Quản lý tài chính</span>
-          </div>
-        </div>
+        <NavLink to="/dashboard" className="sb-brand" title="Mina Store — Quản lý tài chính">
+          <BrandLogo iconSize={40} subText="Quản lý tài chính" />
+        </NavLink>
 
         {/* Nav */}
         <nav className="nav-new">
