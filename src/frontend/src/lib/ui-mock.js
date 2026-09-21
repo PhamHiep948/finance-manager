@@ -101,7 +101,7 @@ export const UI_AUDIT = [
   { id: "LOG-004", user: "Nguyễn Handmade", role: "Quản trị viên", initial: "N", action: "import", module: "Dữ liệu", detail: "Nhập dữ liệu từ tệp Excel", time: "11:20:33\n2024-05-20" },
   { id: "LOG-005", user: "Phạm Minh Đức", role: "Nhân viên bán hàng", initial: "P", action: "delete", module: "Khoản thu", detail: "Xóa giao dịch lỗi #TR-998 (Số tiền", time: "13:45:02\n2024-05-20" },
   { id: "LOG-006", user: "Trần Thị Thu", role: "Nhân viên kế toán", initial: "T", action: "export", module: "Báo cáo", detail: "Xuất báo cáo doanh thu tháng 4", time: "14:10:55\n2024-05-20" },
-  { id: "LOG-007", user: "Hệ thống", role: "System", initial: "H", action: "update", module: "Bảo mật", detail: "Thất bại khi cố gắng truy cập trái", time: "15:30:11\n2024-05-20" },
+  { id: "LOG-007", user: "Hệ thống", role: "Hệ thống", initial: "H", action: "update", module: "Bảo mật", detail: "Thất bại khi cố gắng truy cập trái", time: "15:30:11\n2024-05-20" },
   { id: "LOG-008", user: "Nguyễn Handmade", role: "Quản trị viên", initial: "N", action: "update", module: "Phân quyền", detail: "Thay đổi quyền hạn cho nhóm “Nhân", time: "16:05:44\n2024-05-20" },
 ];
 

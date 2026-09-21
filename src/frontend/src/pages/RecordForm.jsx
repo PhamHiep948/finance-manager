@@ -69,13 +69,14 @@ export default function RecordForm({ kind, rec, onClose }) {
 
   const after = amount === "" ? "" : afterTax(amount, taxPercent);
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const file = e.target.attach?.files?.[0];
-    if (isIncome) saveIncome({ ...incomePayload(fd, ccy), source: rec?.source || "MANUAL" }, rec?.id, file);
-    else saveExpense({ ...expensePayload(fd, ccy), source: rec?.source || "MANUAL" }, rec?.id, file);
-    onClose();
+    const ok = isIncome
+      ? await saveIncome({ ...incomePayload(fd, ccy), source: rec?.source || "MANUAL" }, rec?.id, file)
+      : await saveExpense({ ...expensePayload(fd, ccy), source: rec?.source || "MANUAL" }, rec?.id, file);
+    if (ok) onClose();
   }
 
   const typeLabel = isIncome ? "Khoản thu" : "Khoản chi";
@@ -139,14 +140,14 @@ export default function RecordForm({ kind, rec, onClose }) {
                   <label className="field"><span>Đơn giá ({ccy})</span><input name="unitPrice" type="number" step="0.01" min="0" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="5.49" /></label>
                 </div>
               </FormSection>
-              <FormSection id="income-fees" title="Chi tiết phí — Order total" sub="Item − Discount = Subtotal; Subtotal + Shipping + Tax = Số tiền" defaultOpen={!!(r.itemTotal || r.discountAmount || r.discountCode || r.subtotal || r.shippingAmount || r.taxAmount)}>
+              <FormSection id="income-fees" title="Chi tiết phí — Tổng đơn hàng" sub="Tiền hàng − Giảm giá = Tạm tính; Tạm tính + Vận chuyển + Thuế = Số tiền" defaultOpen={!!(r.itemTotal || r.discountAmount || r.discountCode || r.subtotal || r.shippingAmount || r.taxAmount)}>
                 <div className="form-grid">
-                  <label className="field"><span>Item total ({ccy})</span><input name="itemTotal" type="number" step="0.01" min="0" value={itemTotal} onChange={(e) => { setManual((m) => ({ ...m, itemTotal: 1 })); setItemTotal(e.target.value); }} /></label>
-                  <label className="field"><span>Discount ({ccy})</span><input name="discountAmount" type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></label>
+                  <label className="field"><span>Tiền hàng ({ccy})</span><input name="itemTotal" type="number" step="0.01" min="0" value={itemTotal} onChange={(e) => { setManual((m) => ({ ...m, itemTotal: 1 })); setItemTotal(e.target.value); }} /></label>
+                  <label className="field"><span>Giảm giá ({ccy})</span><input name="discountAmount" type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} /></label>
                   <label className="field"><span>Mã giảm giá</span><input name="discountCode" defaultValue={r.discountCode || ""} placeholder="AGSALE43" /></label>
-                  <label className="field"><span>Subtotal ({ccy})</span><input name="subtotal" type="number" step="0.01" min="0" value={subtotal} onChange={(e) => { setManual((m) => ({ ...m, subtotal: 1 })); setSubtotal(e.target.value); }} /></label>
-                  <label className="field"><span>Shipping ({ccy})</span><input name="shippingAmount" type="number" step="0.01" min="0" value={ship} onChange={(e) => setShip(e.target.value)} /></label>
-                  <label className="field"><span>Tax ({ccy})</span><input name="taxAmount" type="number" step="0.01" min="0" value={taxAmt} onChange={(e) => setTaxAmt(e.target.value)} /></label>
+                  <label className="field"><span>Tạm tính ({ccy})</span><input name="subtotal" type="number" step="0.01" min="0" value={subtotal} onChange={(e) => { setManual((m) => ({ ...m, subtotal: 1 })); setSubtotal(e.target.value); }} /></label>
+                  <label className="field"><span>Vận chuyển ({ccy})</span><input name="shippingAmount" type="number" step="0.01" min="0" value={ship} onChange={(e) => setShip(e.target.value)} /></label>
+                  <label className="field"><span>Thuế ({ccy})</span><input name="taxAmount" type="number" step="0.01" min="0" value={taxAmt} onChange={(e) => setTaxAmt(e.target.value)} /></label>
                 </div>
               </FormSection>
               <FormSection id="income-extra" title="Ghi chú & chứng từ" sub="Mã tham chiếu, ghi chú, file đính kèm" defaultOpen={!!(r.referenceCode || r.note || r.attachment)}>

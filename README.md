@@ -1019,7 +1019,7 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 - [x] Xây dựng backend ASP.NET Core ba tầng
 - [x] Xây dựng API xác thực, quản lý người dùng và hồ sơ cá nhân
 - [x] Implement income và expense CRUD API
-- [ ] Hoàn thiện dashboard, reports, import, attachments và audit API
+- [x] Hoàn thiện dashboard, reports, import, attachments và audit API
 - [x] Viết unit test và API integration test
 - [ ] Hoàn thiện PostgreSQL migrations và integration tests với database thật
 - [ ] Hoàn thiện import Excel, file storage và report export cho production

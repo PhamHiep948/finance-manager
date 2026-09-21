@@ -15,22 +15,22 @@ export default function Login() {
   const { login, toast } = useFinance();
   const nav = useNavigate();
   const [email, setEmail] = useState("admin@demo.local");
-  const [password, setPassword] = useState("123456");
+  const [password, setPassword] = useState("ChangeMe123!");
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState("");
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setSubmitting(true);
 
     const cleanEmail = email.trim();
-    const ok = login(cleanEmail, password, remember);
+    const res = await login(cleanEmail, password, remember);
 
-    if (!ok) {
-      setErr("Email hoặc mật khẩu không chính xác.");
+    if (!res.ok) {
+      setErr(res.message);
       setSubmitting(false);
       return;
     }
@@ -40,7 +40,7 @@ export default function Login() {
 
   function selectDemo(acc) {
     setEmail(acc.email);
-    setPassword("123456");
+    setPassword("ChangeMe123!");
     setErr("");
     toast(`Đã chọn tài khoản: ${acc.name}`);
   }
@@ -95,7 +95,7 @@ export default function Login() {
                 <button
                   type="button"
                   className="link"
-                  onClick={() => toast("Mật khẩu các tài khoản demo là 123456.")}
+                  onClick={() => toast("Mật khẩu các tài khoản demo là ChangeMe123!")}
                 >
                   Quên mật khẩu?
                 </button>
@@ -157,7 +157,7 @@ export default function Login() {
                 <span className="quick-demo-title">
                   <I name="users" size={13} /> Tài khoản demo (nhấn để điền)
                 </span>
-                <span className="quick-demo-pass">Mật khẩu: <code>123456</code></span>
+                <span className="quick-demo-pass">Mật khẩu: <code>ChangeMe123!</code></span>
               </div>
               <div className="quick-demo-grid">
                 {DEMO_ACCOUNTS.map((acc) => {

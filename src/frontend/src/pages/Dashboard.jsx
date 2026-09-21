@@ -54,16 +54,15 @@ export default function Dashboard() {
   const inc = incomes.filter((x) => inRange(x.incomeDate, dashFrom, dashTo));
   const exp = expenses.filter((x) => inRange(x.expenseDate, dashFrom, dashTo));
   const tin = sum(inc);
-  const platformFee = tin * 0.155;
+  const platformFee = sum(exp.filter((x) => x.categoryId === 5));
   const actualRevenue = tin - platformFee;
   const deliveredCount = inc.length;
-  const deliveryRate = deliveredCount ? ((deliveredCount / (deliveredCount + 1)) * 100).toFixed(0) : "0";
+  const feePct = tin ? ((platformFee / tin) * 100).toFixed(1) : "0.0";
 
-  const channelData = [
-    { name: "Etsy", pct: 52, color: "#F1641E" },
-    { name: "Website trực tiếp", pct: 31, color: "#2563EB" },
-    { name: "Cửa hàng", pct: 17, color: "#059669" },
-  ];
+  const channelData = groupByCat(inc, INCOME_CATEGORIES).map((c, i) => ({
+    ...c,
+    color: ["#2563EB", "#059669", "#F1641E", "#7C3AED"][i % 4],
+  }));
 
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
@@ -177,7 +176,7 @@ export default function Dashboard() {
   const TABS = [
     ["overview", "Tổng quan"],
     ["by-channel", "Theo kênh"],
-    ["top-sku", "Top SKU"],
+    ["top-sku", "Top sản phẩm"],
   ];
 
   const rangeLabel = range === "today" ? "hôm nay" : range === "7days" ? "7 ngày qua" : "tháng này";
@@ -228,7 +227,7 @@ export default function Dashboard() {
             <KpiCard
               label="Phí sàn"
               value={money(platformFee, ccy)}
-              sub="15.5% doanh thu gộp"
+              sub={`${feePct}% doanh thu gộp`}
               accent="#DC2626"
               negative
             />
@@ -241,7 +240,7 @@ export default function Dashboard() {
             <KpiCard
               label="Đơn hoàn tất"
               value={`${deliveredCount}`}
-              sub={`${deliveryRate}% tỷ lệ thành công`}
+              sub="Trong kỳ đã chọn"
               accent="#7C3AED"
             />
           </div>

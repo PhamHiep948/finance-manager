@@ -7,7 +7,7 @@ import {
   paymentMethodLabel, pctLabel, recStatus, saleRegionLabel, salesChannelLabel, saveCols, sum, usd,
 } from "../lib/format";
 
-import { IMG_RECEIPT, INCOME_SOURCES_UI, PAY_METHODS, UI_MOCK } from "../lib/ui-mock";
+import { IMG_RECEIPT, INCOME_SOURCES_UI, PAY_METHODS } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import RecordForm from "./RecordForm";
 import { Kpi } from "./Dashboard";
@@ -190,17 +190,34 @@ export default function RecordList({ kind }) {
   }
 
   const kpis = useMemo(() => {
-    if (isIncome) return UI_MOCK.incomeKpis;
-    const total = sum(list);
-    const intl = sum(list.filter((x) => x.originScope === "INTERNATIONAL"));
+    const dateKey = isIncome ? "incomeDate" : "expenseDate";
+    const now = new Date();
+    const ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const thisKey = ym(now);
+    const prevKey = ym(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const inMonth = (k) => list.filter((x) => String(x[dateKey]).startsWith(k));
+    const cur = inMonth(thisKey);
+    const prev = inMonth(prevKey);
+    const total = sum(cur);
+    const prevTotal = sum(prev);
+    const pct = (a, b) => (b ? `${a >= b ? "+" : ""}${(((a - b) / b) * 100).toFixed(1)}% so với tháng trước` : "Chưa có dữ liệu tháng trước");
+    const diff = (a, b) => `${a >= b ? "+" : "-"}${Math.abs(a - b)} so với tháng trước`;
+    if (isIncome) {
+      return [
+        { label: "Tổng doanh thu (tháng)", value: money(total, ccy), delta: pct(total, prevTotal) },
+        { label: "Đơn hàng mới", value: String(cur.length), delta: diff(cur.length, prev.length) },
+        { label: "Doanh thu trung bình", value: money(cur.length ? total / cur.length : 0, ccy), delta: `${cur.length} giao dịch trong tháng` },
+        { label: "Tổng sau thuế", value: money(cur.reduce((s, x) => s + x.amountAfterTax, 0), ccy), delta: "Đã gồm thuế trong tháng" },
+      ];
+    }
+    const intl = sum(cur.filter((x) => x.originScope === "INTERNATIONAL"));
     const share = total ? ((intl / total) * 100).toFixed(1) : "0.0";
-    const cards = [...UI_MOCK.expenseKpis];
-    cards[2] = {
-      label: "Chi phí quốc tế",
-      value: money(intl, ccy),
-      delta: `${share}% tổng chi phí tháng`,
-    };
-    return cards;
+    return [
+      { label: "Tổng chi phí (tháng)", value: money(total, ccy), delta: pct(total, prevTotal) },
+      { label: "Giao dịch", value: String(cur.length), delta: diff(cur.length, prev.length) },
+      { label: "Chi phí quốc tế", value: money(intl, ccy), delta: `${share}% tổng chi phí tháng` },
+      { label: "Thuế & phí ước tính", value: money(cur.reduce((s, x) => s + (x.amountAfterTax - x.amount), 0), ccy), delta: "Phần thuế của chi phí trong tháng" },
+    ];
   }, [isIncome, list, ccy]);
   const defsById = Object.fromEntries(colDefs(kind).map((c) => [c.id, c]));
   const visibleOrder = colOrder.filter(colOn);

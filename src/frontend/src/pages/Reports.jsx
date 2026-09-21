@@ -3,7 +3,6 @@ import Chart from "chart.js/auto";
 import { I } from "../lib/icons";
 import { FX_USD_TO_EUR, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../lib/data";
 import { dmy, groupByCat, inRange, lastDayOfMonth, money, monthlyFrom, sum } from "../lib/format";
-import { UI_MOCK } from "../lib/ui-mock";
 import { CHART_EXPENSE, CHART_INCOME, CHART_PALETTE } from "../lib/theme";
 import { useFinance } from "../lib/store";
 
@@ -231,15 +230,6 @@ export default function Reports() {
                   </tbody>
                 </table>
               </div>
-            </article>
-            <article className="card rpt-files">
-              <div className="card-head" style={{ marginBottom: 10 }}><h3 className="section-title">Báo cáo gần đây</h3><I name="file-text" /></div>
-              {UI_MOCK.files.map((f) => (
-                <div className="file-row" key={f.title}>
-                  <span className="file-ico"><I name={f.icon || "file-text"} /></span>
-                  <div className="file-meta"><b>{f.title}</b><small>{f.date} &gt; {f.type}</small></div>
-                </div>
-              ))}
             </article>
           </div>
         </>

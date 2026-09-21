@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { I } from "../lib/icons";
 import { roleUi } from "../lib/format";
-import { AVATAR_ADMIN, UI_MOCK } from "../lib/ui-mock";
+import { AVATAR_ADMIN } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import { RolePill } from "./UsersPage";
 
@@ -12,11 +12,11 @@ export default function ProfilePage() {
   const [tab, setTab] = useState("account");
   const [picker, setPicker] = useState(false);
   const [avatar, setAvatar] = useState(current.avatar || AVATAR_ADMIN);
-  const displayName = current.role === "ADMIN" ? UI_MOCK.displayName : current.name;
-  const displayEmail = current.email === "admin@demo.local" ? "nguyen.handmade@finance.vn" : current.email;
+  const displayName = current.name;
+  const displayEmail = current.email;
   const uid = `#${(current.role === "ADMIN" ? "ADM" : current.role === "SHOP_OWNER" ? "OWN" : current.role === "EMPLOYEE" ? "EMP" : "VEW")}-${String(current.id).padStart(3, "0")}`;
   const permRows = [
-    ["dashboard", "Dashboard"], ["incomeRead", "Xem khoản thu"], ["incomeCreate", "Thêm / sửa khoản thu"],
+    ["dashboard", "Tổng quan"], ["incomeRead", "Xem khoản thu"], ["incomeCreate", "Thêm / sửa khoản thu"],
     ["expenseRead", "Xem khoản chi"], ["expenseCreate", "Thêm / sửa khoản chi"], ["reportRead", "Xem báo cáo"],
     ["importData", "Import Excel"], ["auditRead", "Nhật ký hoạt động"], ["userManagement", "Quản lý người dùng"],
   ];
@@ -137,7 +137,7 @@ export function Forbidden() {
     <div className="forbidden">
       <h2>Bạn không có quyền truy cập</h2>
       <p className="muted" style={{ marginBottom: 20 }}>Tài khoản hiện tại không được mở trang này.</p>
-      <button className="btn primary" type="button" onClick={() => nav("/dashboard")}>Quay lại Dashboard</button>
+      <button className="btn primary" type="button" onClick={() => nav("/dashboard")}>Quay lại Tổng quan</button>
     </div>
   );
 }

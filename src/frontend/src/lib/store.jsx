@@ -1,12 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import {
-  AUDIT_LOGS,
-  EXPENSES,
-  IMPORTS,
-  INCOMES,
-  USERS,
-} from "./data";
-import { UI_USERS } from "./ui-mock";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AUDIT_LOGS, EXPENSE_CATEGORIES, IMPORTS, INCOME_CATEGORIES } from "./data";
 import {
   can as canPerm,
   canDeleteOwn as canDel,
@@ -15,23 +8,91 @@ import {
   readSession,
   saveSession,
 } from "./auth";
-import { afterTax, fileMeta, fromDisplay, fromDisplayNum, isActive, nextId } from "./format";
+import { api, fetchAllPages, setAccessToken, setUnauthorizedHandler } from "./api";
+import { afterTax, fromDisplay, fromDisplayNum, isActive, nextId } from "./format";
 
 const Ctx = createContext(null);
 
-function safeUser(u) {
-  if (!u) return null;
-  const { password, ...rest } = u;
-  return rest;
+const CATEGORY_VI = {
+  Sales: "Bán hàng",
+  "Other Income": "Thu khác",
+  "Raw Materials": "Nguyên vật liệu",
+  Packaging: "Bao bì / đóng gói",
+  Shipping: "Vận chuyển",
+  Advertising: "Quảng cáo",
+  "Service Fees": "Phí dịch vụ",
+  "Employee Salaries": "Lương nhân viên",
+  "Electricity / Water / Internet": "Điện / nước / Internet",
+  "Premises Rent": "Thuê mặt bằng",
+  "Tools / Equipment": "Công cụ / thiết bị",
+  "Other Expenses": "Chi khác",
+};
+
+const mapUser = (u) => ({
+  id: u.id,
+  username: u.username,
+  name: u.fullName,
+  email: u.email,
+  role: u.role,
+  status: u.isActive ? "active" : "disabled",
+  phone: u.phone || "",
+  avatar: u.avatarUrl || "",
+  timezone: u.timezone,
+  lastActive: u.lastLoginAt ? u.lastLoginAt.slice(0, 16).replace("T", " ") : "Chưa từng",
+});
+
+const mapLedger = (dateKey) => (r) => ({
+  id: r.id,
+  [dateKey]: r.date,
+  description: r.description,
+  categoryId: r.categoryId,
+  amount: Number(r.amount),
+  currency: r.currencyCode,
+  taxPercent: Number(r.taxPercent),
+  amountAfterTax: Number(r.amountAfterTax),
+  source: "MANUAL",
+  note: "",
+  attachment: null,
+  createdBy: r.createdBy,
+  createdAt: r.createdAt,
+  updatedAt: r.updatedAt,
+  deletedAt: r.deletedAt,
+  deletedBy: r.deletedBy,
+});
+
+const toLedgerBody = (dateKey, p) => ({
+  date: p[dateKey],
+  description: p.description,
+  categoryId: p.categoryId,
+  amount: p.amount,
+  taxPercent: p.taxPercent,
+  amountAfterTax: p.amountAfterTax,
+  currencyCode: p.currency || "USD",
+});
+
+const KIND = {
+  income: { path: "/incomes", dateKey: "incomeDate", label: "khoản thu" },
+  expense: { path: "/expenses", dateKey: "expenseDate", label: "khoản chi" },
+};
+
+function initialSession() {
+  const s = readSession();
+  if (!s?.token) return null;
+  setAccessToken(s.token);
+  return s;
 }
 
 export function FinanceProvider({ children }) {
   const [, setRev] = useState(0);
   const bump = useCallback(() => setRev((n) => n + 1), []);
-  const [session, setSession] = useState(() => readSession());
+  const [session, setSession] = useState(initialSession);
   const [ccy, setCcy] = useState("USD");
   const [toasts, setToasts] = useState([]);
   const [confirm, setConfirm] = useState(null);
+  const [incomeRows, setIncomeRows] = useState([]);
+  const [expenseRows, setExpenseRows] = useState([]);
+  const [userRows, setUserRows] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const toast = useCallback((msg) => {
     const id = Date.now() + Math.random();
@@ -39,30 +100,88 @@ export function FinanceProvider({ children }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
   }, []);
 
-  const login = useCallback((email, password, remember) => {
-    const user = USERS.find((u) => u.email === email && u.password === password && u.status === "active");
-    if (!user) return false;
-    const safe = safeUser(user);
-    saveSession(safe, remember);
-    setSession(safe);
-    toast("Đăng nhập thành công");
-    return true;
-  }, [toast]);
+  const logout = useCallback(
+    (silent) => {
+      clearSession();
+      setAccessToken(null);
+      setSession(null);
+      setIncomeRows([]);
+      setExpenseRows([]);
+      setUserRows([]);
+      if (silent !== true) toast("Đã đăng xuất");
+    },
+    [toast]
+  );
 
-  const logout = useCallback(() => {
-    clearSession();
-    setSession(null);
-    toast("Đã đăng xuất");
-  }, [toast]);
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout(true);
+      toast("Phiên đăng nhập đã hết hạn");
+    });
+  }, [logout, toast]);
 
-  const user = session ? USERS.find((u) => u.id === session.id) || session : null;
-  const current = user ? safeUser({ ...user, ...session, avatar: user.avatar ?? session.avatar, name: user.name, phone: user.phone }) : null;
+  const current = useMemo(() => {
+    if (!session) return null;
+    const { token, ...rest } = session;
+    return rest;
+  }, [session]);
+
+  const token = session?.token;
+  const role = session?.role;
+
+  const reload = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [incCats, expCats, inc, exp, users] = await Promise.all([
+        api("/categories/income"),
+        api("/categories/expense"),
+        fetchAllPages("/incomes"),
+        fetchAllPages("/expenses"),
+        role === "ADMIN" ? api("/users") : Promise.resolve([]),
+      ]);
+      const label = (c) => ({ id: c.id, name: CATEGORY_VI[c.name] || c.name });
+      INCOME_CATEGORIES.splice(0, INCOME_CATEGORIES.length, ...incCats.map(label).sort((a, b) => a.id - b.id));
+      EXPENSE_CATEGORIES.splice(0, EXPENSE_CATEGORIES.length, ...expCats.map(label).sort((a, b) => a.id - b.id));
+      setIncomeRows(inc.map(mapLedger("incomeDate")));
+      setExpenseRows(exp.map(mapLedger("expenseDate")));
+      setUserRows(users.map(mapUser));
+    } catch (e) {
+      if (e.status !== 401) toast(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, role, toast]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const login = useCallback(
+    async (email, password, remember) => {
+      try {
+        const res = await api("/auth/login", { method: "POST", body: { email, password } });
+        const next = { ...mapUser(res.user), token: res.accessToken };
+        setAccessToken(next.token);
+        saveSession(next, remember);
+        setSession(next);
+        toast("Đăng nhập thành công");
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, message: e.status === 401 ? "Email hoặc mật khẩu không chính xác." : e.message };
+      }
+    },
+    [toast]
+  );
 
   const can = useCallback((perm) => canPerm(current, perm), [current]);
   const canEditOwn = useCallback((rec, p) => canEd(current, rec, p), [current]);
   const canDeleteOwn = useCallback((rec, p) => canDel(current, rec, p), [current]);
 
-  const userName = useCallback((id) => USERS.find((u) => u.id === id)?.name || "—", []);
+  const userName = useCallback(
+    (id) => (id === current?.id ? current.name : userRows.find((u) => u.id === id)?.name || "—"),
+    [current, userRows]
+  );
 
   const pushAudit = useCallback(
     (action, target, detail) => {
@@ -78,94 +197,45 @@ export function FinanceProvider({ children }) {
     [current]
   );
 
-  const incomes = INCOMES.filter(isActive);
-  const expenses = EXPENSES.filter(isActive);
+  const incomes = useMemo(() => incomeRows.filter(isActive), [incomeRows]);
+  const expenses = useMemo(() => expenseRows.filter(isActive), [expenseRows]);
 
-  const saveIncome = useCallback(
-    (payload, editId, attachFile) => {
-      const now = new Date().toISOString();
-      const rec = {
-        ...payload,
-        attachment: fileMeta(attachFile, null),
-        updatedAt: now,
-      };
-      if (editId) {
-        const old = INCOMES.find((x) => x.id === editId);
-        Object.assign(old, rec, {
-          createdBy: old.createdBy,
-          createdAt: old.createdAt,
-          deletedAt: old.deletedAt || null,
-          deletedBy: old.deletedBy || null,
-          attachment: rec.attachment || old.attachment || null,
-        });
-        pushAudit("Sửa khoản thu", "Khoản thu", rec.description);
-        toast("Đã cập nhật khoản thu");
-      } else {
-        INCOMES.push({
-          id: nextId(INCOMES),
-          ...rec,
-          createdBy: current.id,
-          createdAt: now,
-          deletedAt: null,
-          deletedBy: null,
-        });
-        pushAudit("Tạo khoản thu", "Khoản thu", rec.description);
-        toast("Đã thêm khoản thu");
+  const saveRecord = useCallback(
+    async (kind, payload, editId) => {
+      const k = KIND[kind];
+      try {
+        const body = toLedgerBody(k.dateKey, payload);
+        if (editId) await api(`${k.path}/${editId}`, { method: "PUT", body });
+        else await api(k.path, { method: "POST", body });
+      } catch (e) {
+        toast(e.message);
+        return false;
       }
-      bump();
+      pushAudit(`${editId ? "Sửa" : "Tạo"} ${k.label}`, k.label, payload.description);
+      toast(editId ? `Đã cập nhật ${k.label}` : `Đã thêm ${k.label}`);
+      await reload();
+      return true;
     },
-    [bump, current, pushAudit, toast]
+    [pushAudit, reload, toast]
   );
 
-  const saveExpense = useCallback(
-    (payload, editId, attachFile) => {
-      const now = new Date().toISOString();
-      const rec = {
-        ...payload,
-        attachment: fileMeta(attachFile, null),
-        updatedAt: now,
-      };
-      if (editId) {
-        const old = EXPENSES.find((x) => x.id === editId);
-        Object.assign(old, rec, {
-          createdBy: old.createdBy,
-          createdAt: old.createdAt,
-          deletedAt: old.deletedAt || null,
-          deletedBy: old.deletedBy || null,
-          attachment: rec.attachment || old.attachment || null,
-        });
-        pushAudit("Sửa khoản chi", "Khoản chi", rec.description);
-        toast("Đã cập nhật khoản chi");
-      } else {
-        EXPENSES.push({
-          id: nextId(EXPENSES),
-          ...rec,
-          createdBy: current.id,
-          createdAt: now,
-          deletedAt: null,
-          deletedBy: null,
-        });
-        pushAudit("Tạo khoản chi", "Khoản chi", rec.description);
-        toast("Đã thêm khoản chi");
-      }
-      bump();
-    },
-    [bump, current, pushAudit, toast]
-  );
+  const saveIncome = useCallback((payload, editId) => saveRecord("income", payload, editId), [saveRecord]);
+  const saveExpense = useCallback((payload, editId) => saveRecord("expense", payload, editId), [saveRecord]);
 
   const softDelete = useCallback(
-    (kind, id) => {
-      const list = kind === "income" ? INCOMES : EXPENSES;
-      const rec = list.find((x) => x.id === id);
-      if (rec) {
-        rec.deletedAt = new Date().toISOString();
-        rec.deletedBy = current.id;
+    async (kind, id) => {
+      const k = KIND[kind];
+      try {
+        await api(`${k.path}/${id}`, { method: "DELETE" });
+      } catch (e) {
+        toast(e.message);
+        return;
       }
-      pushAudit(kind === "income" ? "Xóa khoản thu" : "Xóa khoản chi", kind === "income" ? "Khoản thu" : "Khoản chi", `#${id} (xóa mềm)`);
-      toast(kind === "income" ? "Đã xóa mềm khoản thu" : "Đã xóa mềm khoản chi");
-      bump();
+      pushAudit(`Xóa ${k.label}`, k.label, `#${id} (xóa mềm)`);
+      toast(`Đã xóa ${k.label}`);
+      await reload();
     },
-    [bump, current, pushAudit, toast]
+    [pushAudit, reload, toast]
   );
 
   const mockImport = useCallback(
@@ -190,108 +260,122 @@ export function FinanceProvider({ children }) {
     [bump, current, pushAudit, toast]
   );
 
+  const userBody = (u, over) => ({
+    username: u.username,
+    email: u.email,
+    fullName: u.name,
+    phone: u.phone || null,
+    timezone: u.timezone || "Asia/Ho_Chi_Minh",
+    role: u.role,
+    isActive: u.status === "active",
+    avatarUrl: u.avatar || null,
+    ...over,
+  });
+
   const upsertUser = useCallback(
-    (form, editingId) => {
-      const rec = editingId ? USERS.find((x) => x.id === editingId) : null;
-      if (USERS.some((u) => u.email.toLowerCase() === form.email.toLowerCase() && u.id !== rec?.id)) {
-        toast("Email đã được dùng");
+    async (form, editingId) => {
+      const rec = editingId ? userRows.find((x) => x.id === editingId) : null;
+      try {
+        if (rec) {
+          await api(`/users/${rec.id}`, {
+            method: "PUT",
+            body: userBody(rec, {
+              email: form.email,
+              fullName: form.name,
+              role: form.role,
+              isActive: form.status === "active",
+            }),
+          });
+          pushAudit("Sửa người dùng", "Người dùng", form.email);
+          toast("Đã cập nhật người dùng");
+        } else {
+          if (!form.password || form.password.length < 4) {
+            toast("Mật khẩu tối thiểu 4 ký tự");
+            return false;
+          }
+          await api("/users", {
+            method: "POST",
+            body: {
+              username: form.email.split("@")[0],
+              email: form.email,
+              password: form.password,
+              fullName: form.name,
+              phone: null,
+              timezone: "Asia/Ho_Chi_Minh",
+              role: form.role,
+              isActive: form.status === "active",
+            },
+          });
+          pushAudit("Tạo người dùng", "Người dùng", form.email);
+          toast("Đã thêm người dùng");
+        }
+      } catch (e) {
+        toast(e.message);
         return false;
       }
-      if (rec) {
-        rec.name = form.name;
-        rec.email = form.email;
-        rec.role = form.role;
-        rec.status = form.status;
-        if (form.password) rec.password = form.password;
-        if (current?.id === rec.id) {
-          const safe = safeUser(rec);
-          saveSession(safe, Boolean(localStorage.getItem("fm_user")));
-          setSession(safe);
-        }
-        pushAudit("Sửa người dùng", "Người dùng", rec.email);
-        toast("Đã cập nhật người dùng");
-      } else {
-        if (!form.password || form.password.length < 4) {
-          toast("Mật khẩu tối thiểu 4 ký tự");
-          return false;
-        }
-        USERS.push({
-          id: nextId(USERS),
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: form.role,
-          status: form.status,
-          avatar: "",
-        });
-        pushAudit("Tạo người dùng", "Người dùng", form.email);
-        toast("Đã thêm người dùng");
-      }
-      bump();
+      await reload();
       return true;
     },
-    [bump, current, pushAudit, toast]
+    [pushAudit, reload, toast, userRows]
   );
 
   const toggleUser = useCallback(
-    (id) => {
-      const u = USERS.find((x) => x.id === id);
+    async (id) => {
+      const u = userRows.find((x) => x.id === id);
       if (!u) return;
-      u.status = u.status === "active" ? "disabled" : "active";
-      toast(u.status === "active" ? "Đã kích hoạt tài khoản" : "Đã ngừng kích hoạt");
-      bump();
+      const nextActive = u.status !== "active";
+      try {
+        await api(`/users/${id}`, { method: "PUT", body: userBody(u, { isActive: nextActive }) });
+      } catch (e) {
+        toast(e.message);
+        return;
+      }
+      toast(nextActive ? "Đã kích hoạt tài khoản" : "Đã ngừng kích hoạt");
+      await reload();
     },
-    [bump, toast]
+    [reload, toast, userRows]
   );
 
   const updateProfile = useCallback(
-    (fields) => {
-      const full = USERS.find((x) => x.id === current.id);
-      Object.assign(full, fields);
-      const safe = safeUser(full);
-      saveSession(safe, Boolean(localStorage.getItem("fm_user")));
-      setSession(safe);
-      toast("Đã cập nhật hồ sơ");
-      bump();
+    async (fields) => {
+      try {
+        const u = await api("/profile", {
+          method: "PUT",
+          body: {
+            fullName: fields.name,
+            phone: fields.phone || null,
+            timezone: current.timezone || "Asia/Ho_Chi_Minh",
+            avatarUrl: fields.avatar || null,
+          },
+        });
+        const next = { ...mapUser(u), token: session.token };
+        saveSession(next, Boolean(localStorage.getItem("fm_user")));
+        setSession(next);
+        toast("Đã cập nhật hồ sơ");
+      } catch (e) {
+        toast(e.message);
+      }
     },
-    [bump, current, toast]
+    [current, session, toast]
   );
 
   const changePassword = useCallback(
-    (cur, next, confirmPw) => {
-      const full = USERS.find((x) => x.id === current.id);
-      if (cur !== full.password) {
-        toast("Mật khẩu hiện tại không đúng");
-        return false;
-      }
+    async (cur, next, confirmPw) => {
       if (next.length < 4 || next !== confirmPw) {
         toast("Mật khẩu mới không khớp hoặc quá ngắn");
         return false;
       }
-      full.password = next;
+      try {
+        await api("/profile/password", { method: "PUT", body: { currentPassword: cur, newPassword: next } });
+      } catch (e) {
+        toast(e.message);
+        return false;
+      }
       toast("Đã cập nhật mật khẩu");
       return true;
     },
-    [current, toast]
+    [toast]
   );
-
-  const ensureUiUsers = useCallback(() => {
-    let added = false;
-    UI_USERS.forEach((x) => {
-      if (USERS.some((u) => u.email === x.email || u.id === x.id)) return;
-      USERS.push({
-        id: x.id,
-        name: x.name,
-        email: x.email,
-        password: "123456",
-        role: x.role,
-        status: x.status === "active" ? "active" : "disabled",
-        avatar: x.photo || "",
-      });
-      added = true;
-    });
-    if (added) bump();
-  }, [bump]);
 
   const value = useMemo(
     () => ({
@@ -302,6 +386,7 @@ export function FinanceProvider({ children }) {
       toast,
       confirm,
       setConfirm,
+      loading,
       login,
       logout,
       can,
@@ -310,11 +395,11 @@ export function FinanceProvider({ children }) {
       userName,
       incomes,
       expenses,
-      allIncomes: INCOMES,
-      allExpenses: EXPENSES,
+      allIncomes: incomeRows,
+      allExpenses: expenseRows,
       imports: IMPORTS,
       audits: AUDIT_LOGS,
-      users: USERS,
+      users: userRows,
       saveIncome,
       saveExpense,
       softDelete,
@@ -323,16 +408,16 @@ export function FinanceProvider({ children }) {
       toggleUser,
       updateProfile,
       changePassword,
-      ensureUiUsers,
+      reload,
       bump,
       fromDisplay,
       fromDisplayNum,
       afterTax,
     }),
     [
-      current, ccy, toasts, toast, confirm, login, logout, can, canEditOwn, canDeleteOwn, userName,
-      incomes, expenses, saveIncome, saveExpense, softDelete, mockImport, upsertUser, toggleUser,
-      updateProfile, changePassword, ensureUiUsers, bump,
+      current, ccy, toasts, toast, confirm, loading, login, logout, can, canEditOwn, canDeleteOwn, userName,
+      incomes, expenses, incomeRows, expenseRows, userRows, saveIncome, saveExpense, softDelete, mockImport,
+      upsertUser, toggleUser, updateProfile, changePassword, reload, bump,
     ]
   );
 

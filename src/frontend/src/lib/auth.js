@@ -1,5 +1,5 @@
 export const ROLE_LABEL = {
-  ADMIN: "Admin",
+  ADMIN: "Quản trị viên",
   SHOP_OWNER: "Chủ shop",
   EMPLOYEE: "Nhân viên",
   VIEWER: "Người xem",

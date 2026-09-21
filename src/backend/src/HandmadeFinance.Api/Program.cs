@@ -27,6 +27,10 @@ builder
         TokenAuthenticationHandler
     >(TokenAuthenticationHandler.Scheme, _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
@@ -46,10 +50,10 @@ else
         throw new InvalidOperationException(
             "ConnectionStrings:PostgreSql is required. No production database fallback is configured."
         );
-    builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString));
-    builder.Services.AddScoped<ILedgerRepository, EfLedgerRepository>();
-    builder.Services.AddScoped<IUserRepository, EfUserRepository>();
-    builder.Services.AddScoped<ICategoryRepository, EfCategoryRepository>();
+    builder.Services.AddSingleton(new PostgresConnectionFactory(connectionString));
+    builder.Services.AddScoped<ILedgerRepository, PostgresLedgerRepository>();
+    builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
+    builder.Services.AddScoped<ICategoryRepository, PostgresCategoryRepository>();
 }
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddSingleton<ITokenIssuer>(x => x.GetRequiredService<TokenService>());
@@ -60,6 +64,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<CategoryService>();
 var app = builder.Build();
 app.UseMiddleware<AppExceptionMiddleware>();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

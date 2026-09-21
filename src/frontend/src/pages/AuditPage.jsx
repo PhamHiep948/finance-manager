@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { I } from "../lib/icons";
 import { initials, roleUi } from "../lib/format";
-import { UI_AUDIT, UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import { Kpi } from "./Dashboard";
 
@@ -26,19 +25,25 @@ export default function AuditPage() {
     detail: a.detail,
     time: a.time.replace(" ", "\n"),
   }));
+  const kpis = [
+    { label: "Tổng số log", value: String(live.length), icon: "clock", tone: "blue" },
+    { label: "Người dùng tích cực", value: String(new Set(audits.map((a) => a.userId)).size), icon: "users", tone: "green" },
+    { label: "Thao tác xóa", value: String(live.filter((a) => a.action === "delete").length), icon: "shield", tone: "orange" },
+    { label: "Thao tác import", value: String(live.filter((a) => a.action === "import").length), icon: "alert-circle", tone: "red" },
+  ];
   const rows = useMemo(() => {
-    const all = [...live, ...UI_AUDIT];
+    const all = live;
     const qq = q.toLowerCase();
     return all.filter((a) => !qq || `${a.action}${a.detail}${a.user}`.toLowerCase().includes(qq));
   }, [live, q]);
 
   return (
     <>
-      <div className="kpis">{UI_MOCK.auditKpis.map((k) => <Kpi key={k.label} {...k} />)}</div>
+      <div className="kpis">{kpis.map((k) => <Kpi key={k.label} {...k} />)}</div>
       <div className="toolbar">
         <label className="search-box toolbar-search"><I name="search" /><input type="search" placeholder="Tìm kiếm hành động hoặc người dùng..." value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <div className="toolbar-action-btns">
-          <button className="btn ghost" type="button"><I name="download" /> Xuất Log (Excel)</button>
+          <button className="btn ghost" type="button"><I name="download" /> Xuất nhật ký (Excel)</button>
           <button className="btn primary" type="button" onClick={() => toast("Đã làm mới nhật ký")}><I name="refresh-cw" /> Làm mới</button>
         </div>
       </div>

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { I } from "../lib/icons";
 import { initials, roleUi } from "../lib/format";
-import { UI_USERS } from "../lib/ui-mock";
 import { ROLE_LABEL } from "../lib/auth";
 import { useFinance } from "../lib/store";
 import { Kpi } from "./Dashboard";
@@ -11,8 +10,7 @@ function RolePill({ role }) {
 }
 
 export default function UsersPage() {
-  const { users, ensureUiUsers, toggleUser, upsertUser } = useFinance();
-  useEffect(() => { ensureUiUsers(); }, [ensureUiUsers]);
+  const { users, toggleUser, upsertUser } = useFinance();
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [modal, setModal] = useState(null);
@@ -38,10 +36,10 @@ export default function UsersPage() {
   ];
   const rec = modal?.id ? users.find((u) => u.id === modal.id) : null;
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const ok = upsertUser({
+    const ok = await upsertUser({
       name: String(fd.get("name") || "").trim(),
       email: String(fd.get("email") || "").trim(),
       password: String(fd.get("password") || ""),
@@ -71,7 +69,7 @@ export default function UsersPage() {
             <thead><tr><th>Người dùng</th><th>Vai trò</th><th>Trạng thái</th><th>Hoạt động gần nhất</th><th>Thao tác</th></tr></thead>
             <tbody>
               {rows.map((u) => {
-                const last = UI_USERS.find((x) => x.email === u.email)?.last || u.lastActive || "Vừa xong";
+                const last = u.lastActive || "Chưa từng";
                 return (
                   <tr key={u.id}>
                     <td>

@@ -106,7 +106,7 @@ export default function ImportPage() {
               <div className="card-head"><h3 className="section-title">Xem trước dữ liệu (mock)</h3></div>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>STT</th><th>Ngày</th><th>Nội dung</th><th>Mã đơn</th><th className="amount">Order total</th><th>Trạng thái</th></tr></thead>
+                  <thead><tr><th>STT</th><th>Ngày</th><th>Nội dung</th><th>Mã đơn</th><th className="amount">Tổng đơn hàng</th><th>Trạng thái</th></tr></thead>
                   <tbody>
                     <tr><td>1</td><td>13/09/2026</td><td>Lily Flower</td><td>4154185113</td><td className="amount plus">22.10</td><td><span className="badge ok">Hợp lệ</span></td></tr>
                     <tr><td>2</td><td>10/09/2026</td><td>Dòng mẫu 2</td><td>—</td><td className="amount plus">120.00</td><td><span className="badge ok">Hợp lệ</span></td></tr>

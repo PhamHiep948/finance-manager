@@ -620,9 +620,9 @@ WHERE NOT EXISTS (
       AND e.deleted_at IS NULL
 );
 
--- Demo accounts (UI: admin@demo.local …). password_hash is only a placeholder — V1 auth is mock JS.
+-- Demo accounts. Development password for every account: ChangeMe123!
 INSERT INTO app_users (username, email, password_hash, full_name, phone, avatar_url, role, is_active)
-SELECT v.username, v.email, 'mock-hash-123456', v.full_name, v.phone, v.avatar_url, v.role::user_role, v.is_active
+SELECT v.username, v.email, 'Ksm3rlVsPVFYushv5dfq7g==.JunPWMEb5UCidp5qJBSBo9dnUKMjinK1m5ZZzCJDZcs=', v.full_name, v.phone, v.avatar_url, v.role::user_role, v.is_active
 FROM (VALUES
     ('admin', 'admin@demo.local', 'Admin', '090 123 4567', 'https://i.pravatar.cc/64?img=33', 'ADMIN', TRUE),
     ('owner', 'owner@demo.local', 'Shop Owner', '090 222 3333', 'https://i.pravatar.cc/64?img=12', 'SHOP_OWNER', TRUE),
@@ -632,6 +632,58 @@ FROM (VALUES
 WHERE NOT EXISTS (
     SELECT 1 FROM app_users u
     WHERE LOWER(u.email) = LOWER(v.email) AND u.deleted_at IS NULL
+);
+
+-- Representative development transactions for dashboard and report testing.
+INSERT INTO incomes (
+    income_date, description, income_category_id, amount, reference_code,
+    order_code, sale_region, sales_channel, product_qty, unit_price,
+    item_total, discount_amount, subtotal, shipping_amount, tax_amount,
+    tax_percent, amount_after_tax, created_by
+)
+SELECT
+    v.income_date, v.description, c.id, v.amount, v.reference_code,
+    v.order_code, v.sale_region::sale_region, v.sales_channel::sales_channel,
+    v.product_qty, v.unit_price, v.item_total, v.discount_amount,
+    v.subtotal, v.shipping_amount, v.tax_amount, v.tax_percent,
+    v.amount_after_tax, u.id
+FROM (VALUES
+    (CURRENT_DATE - 20, 'Etsy flower bouquet order', 125.00, 'PAY-10001', 'HF-2026-001', 'IN_EU', 'ETSY_STORE', 2, 60.00, 120.00, 5.00, 115.00, 10.00, 0.00, 0.00, 125.00),
+    (CURRENT_DATE - 12, 'Direct website macrame order', 89.00, 'PAY-10002', 'HF-2026-002', 'OUTSIDE_EU', 'WEBSITE_DIRECT', 1, 80.00, 80.00, 0.00, 80.00, 9.00, 0.00, 0.00, 89.00),
+    (CURRENT_DATE - 5, 'Local market weekend sales', 210.00, 'PAY-10003', 'HF-2026-003', 'IN_EU', 'LOCAL_MARKET', 7, 30.00, 210.00, 0.00, 210.00, 0.00, 0.00, 0.00, 210.00)
+) AS v(
+    income_date, description, amount, reference_code, order_code, sale_region,
+    sales_channel, product_qty, unit_price, item_total, discount_amount,
+    subtotal, shipping_amount, tax_amount, tax_percent, amount_after_tax
+)
+JOIN income_categories c ON c.name = 'Sales'
+JOIN app_users u ON u.email = 'owner@demo.local'
+WHERE NOT EXISTS (
+    SELECT 1 FROM incomes i WHERE i.reference_code = v.reference_code
+);
+
+INSERT INTO expenses (
+    expense_date, description, expense_category_id, amount, payee,
+    origin_scope, payment_method, tax_percent, amount_after_tax, note, created_by
+)
+SELECT
+    v.expense_date, v.description, c.id, v.amount, v.payee,
+    v.origin_scope::origin_scope, v.payment_method::payment_method,
+    v.tax_percent, v.amount_after_tax, v.note, u.id
+FROM (VALUES
+    (CURRENT_DATE - 18, 'Cotton yarn and fabric', 'Raw Materials', 48.00, 'Craft Supply Co.', 'DOMESTIC', 'BANK_TRANSFER', 10.00, 52.80, 'Materials for September orders'),
+    (CURRENT_DATE - 10, 'Shipping boxes and labels', 'Packaging', 24.00, 'PackRight', 'DOMESTIC', 'CREDIT_CARD', 10.00, 26.40, 'Packaging restock'),
+    (CURRENT_DATE - 3, 'Social media campaign', 'Advertising', 35.00, 'Meta Ads', 'INTERNATIONAL', 'CREDIT_CARD', 0.00, 35.00, 'Seven-day campaign')
+) AS v(
+    expense_date, description, category_name, amount, payee, origin_scope,
+    payment_method, tax_percent, amount_after_tax, note
+)
+JOIN expense_categories c ON c.name = v.category_name
+JOIN app_users u ON u.email = 'owner@demo.local'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM expenses e
+    WHERE e.description = v.description AND e.expense_date = v.expense_date
 );
 
 COMMIT;

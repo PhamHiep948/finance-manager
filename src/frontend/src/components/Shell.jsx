@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { I } from "../lib/icons";
 import { initials, roleUi } from "../lib/format";
-import { UI_MOCK } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import { BrandLogo } from "./BrandLogo";
 
@@ -33,7 +32,7 @@ export default function Shell() {
   const location = useLocation();
   const [dd, setDd] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("fm_theme") === "dark");
-  const displayName = current.role === "ADMIN" ? UI_MOCK.displayName : current.name;
+  const displayName = current.name;
   const mark = initials(displayName);
 
   const PAGE_METAS = {
@@ -145,9 +144,9 @@ export default function Shell() {
           <div className="topbar-left">
             <div className="topbar-breadcrumb-row">
               <div className="topbar-breadcrumb">
-                <NavLink to="/dashboard" className="topbar-root" title="Về trang Dashboard">
+                <NavLink to="/dashboard" className="topbar-root" title="Về trang Tổng quan">
                   <I name="layout-dashboard" size={14} />
-                  <span>Dashboard</span>
+                  <span>Tổng quan</span>
                 </NavLink>
                 {location.pathname !== "/dashboard" && (
                   <>
