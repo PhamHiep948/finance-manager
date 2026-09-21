@@ -34,23 +34,35 @@ public sealed class OperationalStore : IOperationalStore
         int rows,
         long actor,
         DateTimeOffset now
+    ) => AddImport(type, name, rows, rows, 0, null, actor, now);
+
+    public ImportBatchRecord AddImport(
+        string type,
+        string name,
+        int total,
+        int success,
+        int failed,
+        object? errors,
+        long actor,
+        DateTimeOffset now
     )
     {
         var item = new ImportBatchRecord(
             Interlocked.Increment(ref _importId),
             type,
             name,
-            "COMPLETED",
-            rows,
-            rows,
-            0,
+            success == 0 && total > 0 ? "FAILED" : "COMPLETED",
+            total,
+            success,
+            failed,
             actor,
             now,
-            now
+            now,
+            errors
         );
         lock (_gate)
             _imports.Add(item);
-        Audit("IMPORT", "IMPORT", $"Imported {rows} rows from {name}", actor, now);
+        Audit("IMPORT", "IMPORT", $"Imported {success}/{total} rows from {name}", actor, now);
         return item;
     }
 

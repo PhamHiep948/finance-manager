@@ -3397,7 +3397,7 @@ body.app { background: var(--app-canvas); }
 
 .page {
   width: 100%;
-  max-width: 1480px;
+  max-width: none;
   margin: 0 auto;
   padding: 22px 28px 36px;
   gap: 16px;

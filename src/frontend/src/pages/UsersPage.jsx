@@ -3,7 +3,7 @@ import { I } from "../lib/icons";
 import { initials, roleUi } from "../lib/format";
 import { ROLE_LABEL } from "../lib/auth";
 import { useFinance } from "../lib/store";
-import { Kpi } from "./Dashboard";
+import { Kpi } from "../features/dashboard/pages/Dashboard";
 
 function RolePill({ role }) {
   return <span className="role-text">{roleUi(role)}</span>;

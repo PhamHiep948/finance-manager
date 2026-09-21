@@ -13,6 +13,81 @@ public sealed class LedgerServiceTests
     private static LedgerWrite Valid => new(new DateOnly(2026, 9, 17), "Order", 1, 100m, 10m, 110m);
 
     [Fact]
+    public async Task Create_stores_and_trims_detail_fields()
+    {
+        var request = Valid with
+        {
+            OrderCode = "  HF-2026-0001 ",
+            SaleRegion = "IN_EU",
+            SalesChannel = "ETSY_STORE",
+            ProductQty = 3,
+            Payee = "DHL Express",
+            OriginScope = "INTERNATIONAL",
+            PaymentMethod = "PAYPAL",
+        };
+        var row = await Service.CreateAsync(EntryKind.INCOME, request, new(7, UserRole.EMPLOYEE), default);
+        Assert.Equal("HF-2026-0001", row.OrderCode);
+        Assert.Equal("IN_EU", row.SaleRegion);
+        Assert.Equal("ETSY_STORE", row.SalesChannel);
+        Assert.Equal(3, row.ProductQty);
+        Assert.Equal("DHL Express", row.Payee);
+        Assert.Equal("INTERNATIONAL", row.OriginScope);
+        Assert.Equal("PAYPAL", row.PaymentMethod);
+    }
+
+    [Fact]
+    public async Task Blank_detail_fields_are_stored_as_null()
+    {
+        var row = await Service.CreateAsync(
+            EntryKind.EXPENSE,
+            Valid with { OrderCode = "  ", Payee = "" },
+            new(7, UserRole.EMPLOYEE),
+            default
+        );
+        Assert.Null(row.OrderCode);
+        Assert.Null(row.Payee);
+    }
+
+    [Theory]
+    [InlineData("SaleRegion", "MARS")]
+    [InlineData("SalesChannel", "TIKTOK")]
+    [InlineData("OriginScope", "GALAXY")]
+    [InlineData("PaymentMethod", "BITCOIN")]
+    public async Task Unknown_enum_value_is_rejected(string field, string value)
+    {
+        var request = field switch
+        {
+            "SaleRegion" => Valid with { SaleRegion = value },
+            "SalesChannel" => Valid with { SalesChannel = value },
+            "OriginScope" => Valid with { OriginScope = value },
+            _ => Valid with { PaymentMethod = value },
+        };
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            Service.CreateAsync(EntryKind.INCOME, request, new(7, UserRole.EMPLOYEE), default)
+        );
+        Assert.Equal(400, ex.Status);
+    }
+
+    [Fact]
+    public async Task Non_positive_product_quantity_is_rejected()
+    {
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            Service.CreateAsync(EntryKind.INCOME, Valid with { ProductQty = 0 }, new(7, UserRole.EMPLOYEE), default)
+        );
+        Assert.Equal(400, ex.Status);
+    }
+
+    [Fact]
+    public async Task Update_replaces_detail_fields()
+    {
+        var actor = new Actor(7, UserRole.EMPLOYEE);
+        var row = await Service.CreateAsync(EntryKind.INCOME, Valid with { OrderCode = "A" }, actor, default);
+        var updated = await Service.UpdateAsync(EntryKind.INCOME, row.Id, Valid with { OrderCode = "B", SaleRegion = "OUTSIDE_EU" }, actor, default);
+        Assert.Equal("B", updated.OrderCode);
+        Assert.Equal("OUTSIDE_EU", updated.SaleRegion);
+    }
+
+    [Fact]
     public async Task Viewer_cannot_create()
     {
         var ex = await Assert.ThrowsAsync<AppException>(() =>

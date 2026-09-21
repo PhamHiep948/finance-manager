@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import { useNavigate } from "react-router-dom";
-import { I } from "../lib/icons";
-import { useFinance } from "../lib/store";
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../lib/data";
-import { catName, groupByCat, inRange, money, sum } from "../lib/format";
-import { CHART_PALETTE } from "../lib/theme";
+import { I } from "../../../lib/icons";
+import { useFinance } from "../../../lib/store";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../../../lib/data";
+import { catName, groupByCat, inRange, money } from "../../../lib/format";
+import { useDashboard } from "../hooks/useDashboard";
+
+const localISO = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const net = (x) => Number(x.amountAfterTax ?? x.amount) || 0;
 
 // ------------------------------------------------------------------
 // KPI Card — accent border trái, không có icon vô nghĩa
@@ -44,20 +48,17 @@ export default function Dashboard() {
 
   function getFrom(r) {
     const d = new Date(today);
-    if (r === "today") return d.toISOString().slice(0, 10);
-    if (r === "7days") { d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10); }
+    if (r === "today") return localISO(d);
+    if (r === "7days") { d.setDate(d.getDate() - 6); return localISO(d); }
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
   }
   const dashFrom = getFrom(range);
-  const dashTo = today.toISOString().slice(0, 10);
+  const dashTo = localISO(today);
+  const { summary, error: summaryError } = useDashboard(dashFrom, dashTo, incomes);
 
   const inc = incomes.filter((x) => inRange(x.incomeDate, dashFrom, dashTo));
   const exp = expenses.filter((x) => inRange(x.expenseDate, dashFrom, dashTo));
-  const tin = sum(inc);
-  const platformFee = sum(exp.filter((x) => x.categoryId === 5));
-  const actualRevenue = tin - platformFee;
-  const deliveredCount = inc.length;
-  const feePct = tin ? ((platformFee / tin) * 100).toFixed(1) : "0.0";
+  const tin = inc.reduce((a, x) => a + Number(x.amount), 0);
 
   const channelData = groupByCat(inc, INCOME_CATEGORIES).map((c, i) => ({
     ...c,
@@ -67,10 +68,10 @@ export default function Dashboard() {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() - (6 - i));
-    const key = d.toISOString().slice(0, 10);
+    const key = localISO(d);
     const label = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const income = incomes.filter((x) => x.incomeDate === key).reduce((s, x) => s + x.amount, 0);
-    const expense = expenses.filter((x) => x.expenseDate === key).reduce((s, x) => s + x.amount, 0);
+    const income = incomes.filter((x) => x.incomeDate === key).reduce((s, x) => s + net(x), 0);
+    const expense = expenses.filter((x) => x.expenseDate === key).reduce((s, x) => s + net(x), 0);
     return { label, income, expense };
   });
 
@@ -86,7 +87,7 @@ export default function Dashboard() {
       date: x.incomeDate,
       desc: x.description,
       cat: catName(INCOME_CATEGORIES, x.categoryId),
-      code: x.orderCode || x.referenceCode || `ORD-${8800 + (x.id % 900)}`,
+      code: x.orderCode || x.referenceCode || `IN-${String(x.id).padStart(3, "0")}`,
       amount: x.amount,
       targetUrl: "/incomes",
     })),
@@ -124,9 +125,9 @@ export default function Dashboard() {
             categoryPercentage: 0.65,
           },
           {
-            label: "Thực thu",
-            data: last7Days.map((d) => Math.max(0, d.income * 0.845)),
-            backgroundColor: "#D1FAE5",
+            label: "Chi phí",
+            data: last7Days.map((d) => d.expense),
+            backgroundColor: "#FCA5A5",
             borderRadius: 3,
             barPercentage: 0.5,
             categoryPercentage: 0.65,
@@ -153,7 +154,7 @@ export default function Dashboard() {
       },
     });
     return () => chart.destroy();
-  }, [range, tin, tab]);
+  }, [range, tab, incomes, expenses]);
 
   useEffect(() => {
     if (tab !== "overview") return;
@@ -171,7 +172,7 @@ export default function Dashboard() {
       },
     });
     return () => chart.destroy();
-  }, [range, tab]);
+  }, [range, tab, incomes]);
 
   const TABS = [
     ["overview", "Tổng quan"],
@@ -216,31 +217,33 @@ export default function Dashboard() {
       {/* ── Overview ── */}
       {tab === "overview" && (
         <>
+          {summaryError ? <div className="alert-error" style={{ marginBottom: 12 }}>{summaryError}</div> : null}
           {/* KPI row */}
           <div className="ds-kpi-row">
             <KpiCard
-              label="Doanh thu gộp"
-              value={money(tin, ccy)}
-              sub={`${inc.length} đơn hàng`}
+              label="Doanh thu (sau thuế)"
+              value={summary ? money(summary.totalIncome, ccy) : "—"}
+              sub={`${inc.length} khoản thu · ${rangeLabel}`}
               accent="#2563EB"
             />
             <KpiCard
-              label="Phí sàn"
-              value={money(platformFee, ccy)}
-              sub={`${feePct}% doanh thu gộp`}
+              label="Chi phí (sau thuế)"
+              value={summary ? money(summary.totalExpense, ccy) : "—"}
+              sub={`${exp.length} khoản chi · ${rangeLabel}`}
               accent="#DC2626"
               negative
             />
             <KpiCard
-              label="Thực thu về ví"
-              value={money(actualRevenue, ccy)}
-              sub="Sau khi trừ phí sàn"
+              label="Lợi nhuận ròng"
+              value={summary ? money(summary.netResult, ccy) : "—"}
+              sub="Doanh thu trừ chi phí"
               accent="#059669"
+              negative={summary ? summary.netResult < 0 : false}
             />
             <KpiCard
-              label="Đơn hoàn tất"
-              value={`${deliveredCount}`}
-              sub="Trong kỳ đã chọn"
+              label="Số giao dịch"
+              value={summary ? String(summary.transactionCount) : "—"}
+              sub="Thu và chi trong kỳ"
               accent="#7C3AED"
             />
           </div>
@@ -253,11 +256,11 @@ export default function Dashboard() {
                 <div className="ds-card-head">
                   <div>
                     <h2 className="ds-card-title">Xu hướng 7 ngày</h2>
-                    <p className="ds-card-sub">Doanh thu và thực thu sau phí</p>
+                    <p className="ds-card-sub">Doanh thu và chi phí (sau thuế) theo ngày</p>
                   </div>
                   <div className="ds-legend">
                     <span><i className="ds-dot" style={{ background: "#2563EB" }} />Doanh thu</span>
-                    <span><i className="ds-dot" style={{ background: "#D1FAE5", border: "1px solid #6EE7B7" }} />Thực thu</span>
+                    <span><i className="ds-dot" style={{ background: "#FCA5A5" }} />Chi phí</span>
                   </div>
                 </div>
                 <div className="ds-chart-area"><canvas ref={barRef} /></div>

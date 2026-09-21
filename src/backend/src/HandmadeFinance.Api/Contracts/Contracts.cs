@@ -11,7 +11,14 @@ public sealed record LedgerRequest(
     decimal Amount,
     decimal TaxPercent,
     decimal AmountAfterTax,
-    string CurrencyCode = "USD"
+    string CurrencyCode = "USD",
+    string? OrderCode = null,
+    string? SaleRegion = null,
+    string? SalesChannel = null,
+    int? ProductQty = null,
+    string? Payee = null,
+    string? OriginScope = null,
+    string? PaymentMethod = null
 );
 
 public sealed record CreateUserRequest(

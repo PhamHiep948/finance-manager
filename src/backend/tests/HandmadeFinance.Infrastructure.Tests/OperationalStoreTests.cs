@@ -76,4 +76,33 @@ public sealed class OperationalStoreTests
         Assert.Equal([1L, 2L], store.Audits.Select(x => x.Id));
         Assert.Equal(Now.AddMinutes(1), store.Audits[1].ChangedAt);
     }
+
+    [Fact]
+    public void Add_import_with_failures_keeps_counts_and_error_details()
+    {
+        var store = new OperationalStore();
+        object errors = "row 4";
+        var batch = store.AddImport("INCOME", "book.xlsx", 10, 7, 3, errors, 7, Now);
+        Assert.Equal((10, 7, 3), (batch.TotalRows, batch.SuccessRows, batch.FailedRows));
+        Assert.Equal("COMPLETED", batch.Status);
+        Assert.NotNull(batch.ErrorDetails);
+        Assert.Contains(
+            store.Audits,
+            a => a.Action == "IMPORT" && a.Detail.Contains("7/10", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Add_import_with_no_successful_rows_is_failed()
+    {
+        var batch = new OperationalStore().AddImport("EXPENSE", "bad.xlsx", 4, 0, 4, null, 7, Now);
+        Assert.Equal("FAILED", batch.Status);
+    }
+
+    [Fact]
+    public void Add_import_of_an_empty_batch_is_still_completed()
+    {
+        var batch = new OperationalStore().AddImport("INCOME", "e.xlsx", 0, 0, 0, null, 7, Now);
+        Assert.Equal("COMPLETED", batch.Status);
+    }
 }

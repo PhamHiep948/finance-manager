@@ -71,6 +71,13 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
                 TaxPercent = request.TaxPercent,
                 AmountAfterTax = request.AmountAfterTax,
                 CurrencyCode = request.CurrencyCode,
+                OrderCode = Clean(request.OrderCode),
+                SaleRegion = Clean(request.SaleRegion),
+                SalesChannel = Clean(request.SalesChannel),
+                ProductQty = request.ProductQty,
+                Payee = Clean(request.Payee),
+                OriginScope = Clean(request.OriginScope),
+                PaymentMethod = Clean(request.PaymentMethod),
                 CreatedBy = actor.UserId,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -99,6 +106,13 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
         row.TaxPercent = request.TaxPercent;
         row.AmountAfterTax = request.AmountAfterTax;
         row.CurrencyCode = request.CurrencyCode;
+        row.OrderCode = Clean(request.OrderCode);
+        row.SaleRegion = Clean(request.SaleRegion);
+        row.SalesChannel = Clean(request.SalesChannel);
+        row.ProductQty = request.ProductQty;
+        row.Payee = Clean(request.Payee);
+        row.OriginScope = Clean(request.OriginScope);
+        row.PaymentMethod = Clean(request.PaymentMethod);
         row.UpdatedBy = actor.UserId;
         row.UpdatedAt = clock.UtcNow;
         await repository.UpdateAsync(row, ct);
@@ -115,6 +129,15 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
         row.UpdatedAt = clock.UtcNow;
         await repository.UpdateAsync(row, ct);
     }
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static readonly string[] SaleRegions = ["IN_EU", "OUTSIDE_EU"];
+    private static readonly string[] SalesChannels =
+        ["ETSY_STORE", "WEBSITE_DIRECT", "INSTAGRAM_SHOP", "LOCAL_MARKET", "B2B_WHOLESALE"];
+    private static readonly string[] OriginScopes = ["DOMESTIC", "INTERNATIONAL"];
+    private static readonly string[] PaymentMethods = ["CREDIT_CARD", "BANK_TRANSFER", "CASH", "PAYPAL"];
 
     private static void RequireWrite(Actor actor)
     {
@@ -134,6 +157,9 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
             throw AppException.Validation("dateFrom must not be after dateTo.");
     }
 
+    private static bool OneOf(string? value, string[] allowed) =>
+        Clean(value) is not { } v || allowed.Contains(v);
+
     private static void Validate(LedgerWrite r)
     {
         if (
@@ -144,6 +170,16 @@ public sealed class LedgerService(ILedgerRepository repository, IClock clock) : 
             || r.CurrencyCode != "USD"
         )
             throw AppException.Validation("Invalid ledger values.");
+        if (
+            r.ProductQty is < 1
+            || (Clean(r.OrderCode)?.Length ?? 0) > 150
+            || (Clean(r.Payee)?.Length ?? 0) > 255
+            || !OneOf(r.SaleRegion, SaleRegions)
+            || !OneOf(r.SalesChannel, SalesChannels)
+            || !OneOf(r.OriginScope, OriginScopes)
+            || !OneOf(r.PaymentMethod, PaymentMethods)
+        )
+            throw AppException.Validation("Invalid ledger detail values.");
         var expected = decimal.Round(
             r.Amount * (1 + r.TaxPercent / 100m),
             2,

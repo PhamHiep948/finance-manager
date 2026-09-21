@@ -182,7 +182,7 @@ public sealed class ApiContractTests : IClassFixture<TestApiFactory>
             HttpStatusCode.BadRequest,
             (await client.PostAsync("/api/v1/imports/preview", invalid)).StatusCode
         );
-        using var valid = Upload("data.xlsx", [1, 2, 3]);
+        using var valid = Upload("data.xlsx", TestWorkbooks.Income(["2026-09-01", "Order", "Sales", "10", "USD", ""]));
         Assert.Equal(
             HttpStatusCode.OK,
             (await client.PostAsync("/api/v1/imports/preview", valid)).StatusCode
@@ -193,7 +193,7 @@ public sealed class ApiContractTests : IClassFixture<TestApiFactory>
     public async Task Import_create_returns_202_and_can_be_read_from_history()
     {
         using var client = await AuthenticatedClient();
-        using var form = Upload("data.xlsx", [1, 2, 3]);
+        using var form = Upload("data.xlsx", TestWorkbooks.Income(["2026-09-01", "Order", "Sales", "10", "USD", ""]));
         var response = await client.PostAsync("/api/v1/imports", form);
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         var batch = await response.Content.ReadFromJsonAsync<JsonElement>();

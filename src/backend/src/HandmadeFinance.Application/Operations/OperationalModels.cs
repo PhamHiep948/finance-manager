@@ -44,6 +44,16 @@ public interface IOperationalStore
     IReadOnlyList<AuditRecord> Audits { get; }
 
     ImportBatchRecord AddImport(string type, string name, int rows, long actor, DateTimeOffset now);
+    ImportBatchRecord AddImport(
+        string type,
+        string name,
+        int total,
+        int success,
+        int failed,
+        object? errors,
+        long actor,
+        DateTimeOffset now
+    );
     AttachmentRecord AddAttachment(
         EntryKind kind,
         long entryId,

@@ -45,6 +45,93 @@ public sealed class ReportingServiceTests
         Assert.Equal("VALIDATION_ERROR", error.Code);
     }
 
+    [Fact]
+    public async Task Summary_without_a_range_includes_every_active_entry()
+    {
+        var repository = new StubLedgerRepository(
+            [
+                Entry(1, EntryKind.INCOME, new(2020, 1, 1), 10),
+                Entry(2, EntryKind.INCOME, new(2030, 12, 31), 20),
+                Entry(3, EntryKind.EXPENSE, new(2026, 6, 1), 5),
+            ]
+        );
+        var result = await new ReportingService(repository).GetSummaryAsync(null, null, default);
+        Assert.Equal((30m, 5m, 25m), (result.TotalIncome, result.TotalExpense, result.NetResult));
+    }
+
+    [Fact]
+    public async Task Summary_range_boundaries_are_inclusive()
+    {
+        var repository = new StubLedgerRepository(
+            [
+                Entry(1, EntryKind.INCOME, new(2026, 9, 1), 1),
+                Entry(2, EntryKind.INCOME, new(2026, 9, 30), 2),
+                Entry(3, EntryKind.INCOME, new(2026, 8, 31), 4),
+                Entry(4, EntryKind.INCOME, new(2026, 10, 1), 8),
+            ]
+        );
+        var result = await new ReportingService(repository).GetSummaryAsync(
+            new(2026, 9, 1),
+            new(2026, 9, 30),
+            default
+        );
+        Assert.Equal(3m, result.TotalIncome);
+    }
+
+    [Fact]
+    public async Task Summary_supports_open_ended_ranges()
+    {
+        var repository = new StubLedgerRepository(
+            [
+                Entry(1, EntryKind.INCOME, new(2026, 9, 1), 1),
+                Entry(2, EntryKind.INCOME, new(2026, 9, 10), 2),
+            ]
+        );
+        var service = new ReportingService(repository);
+        Assert.Equal(2m, (await service.GetSummaryAsync(new(2026, 9, 5), null, default)).TotalIncome);
+        Assert.Equal(1m, (await service.GetSummaryAsync(null, new(2026, 9, 5), default)).TotalIncome);
+    }
+
+    [Fact]
+    public async Task Summary_totals_use_the_after_tax_amount()
+    {
+        var taxed = Entry(1, EntryKind.INCOME, new(2026, 9, 1), 100);
+        taxed.TaxPercent = 10;
+        taxed.AmountAfterTax = 110;
+        var result = await new ReportingService(new StubLedgerRepository([taxed])).GetSummaryAsync(
+            null,
+            null,
+            default
+        );
+        Assert.Equal(110m, result.TotalIncome);
+        Assert.Equal("USD", result.CurrencyCode);
+    }
+
+    [Fact]
+    public async Task Summary_of_nothing_is_all_zero()
+    {
+        var result = await new ReportingService(new StubLedgerRepository([])).GetSummaryAsync(
+            null,
+            null,
+            default
+        );
+        Assert.Equal((0m, 0m, 0m), (result.TotalIncome, result.TotalExpense, result.NetResult));
+        Assert.Empty(result.Incomes);
+        Assert.Empty(result.Expenses);
+    }
+
+    [Fact]
+    public async Task Summary_accepts_a_single_day_range()
+    {
+        var repository = new StubLedgerRepository([Entry(1, EntryKind.INCOME, new(2026, 9, 1), 7)]);
+        var result = await new ReportingService(repository).GetSummaryAsync(
+            new(2026, 9, 1),
+            new(2026, 9, 1),
+            default
+        );
+        Assert.Equal(7m, result.TotalIncome);
+    }
+
     private static LedgerEntry Entry(
         long id,
         EntryKind kind,

@@ -19,6 +19,17 @@ public sealed class LedgerEntry
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public long? DeletedBy { get; set; }
+
+    // Income-only
+    public string? OrderCode { get; set; }
+    public string? SaleRegion { get; set; }
+    public string? SalesChannel { get; set; }
+    public int? ProductQty { get; set; }
+
+    // Expense-only
+    public string? Payee { get; set; }
+    public string? OriginScope { get; set; }
+    public string? PaymentMethod { get; set; }
 }
 
 public sealed record LedgerWrite(
@@ -28,7 +39,14 @@ public sealed record LedgerWrite(
     decimal Amount,
     decimal TaxPercent,
     decimal AmountAfterTax,
-    string CurrencyCode = "USD"
+    string CurrencyCode = "USD",
+    string? OrderCode = null,
+    string? SaleRegion = null,
+    string? SalesChannel = null,
+    int? ProductQty = null,
+    string? Payee = null,
+    string? OriginScope = null,
+    string? PaymentMethod = null
 );
 
 public sealed record LedgerQuery(

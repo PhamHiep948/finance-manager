@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { AUDIT_LOGS, EXPENSE_CATEGORIES, IMPORTS, INCOME_CATEGORIES } from "./data";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "./data";
 import {
   can as canPerm,
   canDeleteOwn as canDel,
@@ -9,7 +9,7 @@ import {
   saveSession,
 } from "./auth";
 import { api, fetchAllPages, setAccessToken, setUnauthorizedHandler } from "./api";
-import { afterTax, fromDisplay, fromDisplayNum, isActive, nextId } from "./format";
+import { afterTax, fromDisplay, fromDisplayNum, isActive } from "./format";
 
 const Ctx = createContext(null);
 
@@ -58,6 +58,13 @@ const mapLedger = (dateKey) => (r) => ({
   updatedAt: r.updatedAt,
   deletedAt: r.deletedAt,
   deletedBy: r.deletedBy,
+  orderCode: r.orderCode || "",
+  saleRegion: r.saleRegion || "",
+  salesChannel: r.salesChannel || "",
+  productQty: r.productQty ?? null,
+  recipient: r.payee || "",
+  originScope: r.originScope || "",
+  paymentMethod: r.paymentMethod || "",
 });
 
 const toLedgerBody = (dateKey, p) => ({
@@ -68,6 +75,13 @@ const toLedgerBody = (dateKey, p) => ({
   taxPercent: p.taxPercent,
   amountAfterTax: p.amountAfterTax,
   currencyCode: p.currency || "USD",
+  orderCode: p.orderCode || null,
+  saleRegion: p.saleRegion || null,
+  salesChannel: p.salesChannel || null,
+  productQty: p.productQty || null,
+  payee: p.recipient || null,
+  originScope: p.originScope || null,
+  paymentMethod: p.paymentMethod || null,
 });
 
 const KIND = {
@@ -183,19 +197,6 @@ export function FinanceProvider({ children }) {
     [current, userRows]
   );
 
-  const pushAudit = useCallback(
-    (action, target, detail) => {
-      AUDIT_LOGS.unshift({
-        id: nextId(AUDIT_LOGS),
-        time: new Date().toISOString().slice(0, 16).replace("T", " "),
-        userId: current?.id,
-        action,
-        target,
-        detail,
-      });
-    },
-    [current]
-  );
 
   const incomes = useMemo(() => incomeRows.filter(isActive), [incomeRows]);
   const expenses = useMemo(() => expenseRows.filter(isActive), [expenseRows]);
@@ -204,19 +205,24 @@ export function FinanceProvider({ children }) {
     async (kind, payload, editId) => {
       const k = KIND[kind];
       try {
-        const body = toLedgerBody(k.dateKey, payload);
+        // Form chưa có ô kênh bán / phương thức thanh toán: giữ nguyên giá trị cũ khi sửa.
+        const prev = editId ? (kind === "income" ? incomeRows : expenseRows).find((x) => x.id === editId) : null;
+        const body = toLedgerBody(k.dateKey, {
+          salesChannel: prev?.salesChannel,
+          paymentMethod: prev?.paymentMethod,
+          ...payload,
+        });
         if (editId) await api(`${k.path}/${editId}`, { method: "PUT", body });
         else await api(k.path, { method: "POST", body });
       } catch (e) {
         toast(e.message);
         return false;
       }
-      pushAudit(`${editId ? "Sửa" : "Tạo"} ${k.label}`, k.label, payload.description);
       toast(editId ? `Đã cập nhật ${k.label}` : `Đã thêm ${k.label}`);
       await reload();
       return true;
     },
-    [pushAudit, reload, toast]
+    [incomeRows, expenseRows, reload, toast]
   );
 
   const saveIncome = useCallback((payload, editId) => saveRecord("income", payload, editId), [saveRecord]);
@@ -231,33 +237,10 @@ export function FinanceProvider({ children }) {
         toast(e.message);
         return;
       }
-      pushAudit(`Xóa ${k.label}`, k.label, `#${id} (xóa mềm)`);
       toast(`Đã xóa ${k.label}`);
       await reload();
     },
-    [pushAudit, reload, toast]
-  );
-
-  const mockImport = useCallback(
-    (file, type) => {
-      const fail = /fail|sai/i.test(file.name);
-      IMPORTS.unshift({
-        id: nextId(IMPORTS),
-        fileName: file.name,
-        type,
-        status: fail ? "FAILED" : "COMPLETED",
-        totalRows: fail ? 8 : 2,
-        successRows: fail ? 0 : 2,
-        failedRows: fail ? 8 : 0,
-        createdBy: current.id,
-        createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-      });
-      pushAudit("Import dữ liệu", "Import", `${file.name} · ${fail ? "thất bại mock" : "thành công mock"}`);
-      toast(fail ? "Import thất bại (mock)" : "Import thành công (mock — không đọc file)");
-      bump();
-      return !fail;
-    },
-    [bump, current, pushAudit, toast]
+    [reload, toast]
   );
 
   const userBody = (u, over) => ({
@@ -286,7 +269,6 @@ export function FinanceProvider({ children }) {
               isActive: form.status === "active",
             }),
           });
-          pushAudit("Sửa người dùng", "Người dùng", form.email);
           toast("Đã cập nhật người dùng");
         } else {
           if (!form.password || form.password.length < 4) {
@@ -306,7 +288,6 @@ export function FinanceProvider({ children }) {
               isActive: form.status === "active",
             },
           });
-          pushAudit("Tạo người dùng", "Người dùng", form.email);
           toast("Đã thêm người dùng");
         }
       } catch (e) {
@@ -316,7 +297,7 @@ export function FinanceProvider({ children }) {
       await reload();
       return true;
     },
-    [pushAudit, reload, toast, userRows]
+    [reload, toast, userRows]
   );
 
   const toggleUser = useCallback(
@@ -397,13 +378,10 @@ export function FinanceProvider({ children }) {
       expenses,
       allIncomes: incomeRows,
       allExpenses: expenseRows,
-      imports: IMPORTS,
-      audits: AUDIT_LOGS,
       users: userRows,
       saveIncome,
       saveExpense,
       softDelete,
-      mockImport,
       upsertUser,
       toggleUser,
       updateProfile,
@@ -416,7 +394,7 @@ export function FinanceProvider({ children }) {
     }),
     [
       current, ccy, toasts, toast, confirm, loading, login, logout, can, canEditOwn, canDeleteOwn, userName,
-      incomes, expenses, incomeRows, expenseRows, userRows, saveIncome, saveExpense, softDelete, mockImport,
+      incomes, expenses, incomeRows, expenseRows, userRows, saveIncome, saveExpense, softDelete,
       upsertUser, toggleUser, updateProfile, changePassword, reload, bump,
     ]
   );

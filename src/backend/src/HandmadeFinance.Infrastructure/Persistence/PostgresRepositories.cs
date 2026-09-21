@@ -54,7 +54,7 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
             $"""
             SELECT id, {date}, description, {category}, amount, tax_percent,
                    amount_after_tax, currency_code, created_by, updated_by,
-                   created_at, updated_at, deleted_at, deleted_by
+                   created_at, updated_at, deleted_at, deleted_by, {Details(kind)}
             FROM shop_finance.{table}
             WHERE {where}
             ORDER BY {order} {direction}, id {direction}
@@ -81,7 +81,7 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
         await using var command = new NpgsqlCommand(
             $"SELECT id, {date}, description, {category}, amount, tax_percent, " +
             $"amount_after_tax, currency_code, created_by, updated_by, created_at, " +
-            $"updated_at, deleted_at, deleted_by FROM shop_finance.{table} WHERE id=@id",
+            $"updated_at, deleted_at, deleted_by, {Details(kind)} FROM shop_finance.{table} WHERE id=@id",
             db
         );
         command.Parameters.AddWithValue("id", id);
@@ -99,8 +99,10 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
         await db.OpenAsync(ct);
         await using var command = new NpgsqlCommand(
             $"INSERT INTO shop_finance.{table} ({date}, description, {category}, amount, " +
-            "tax_percent, amount_after_tax, currency_code, created_by, created_at, updated_at) " +
-            "VALUES (@date,@description,@category,@amount,@tax,@after,@currency,@createdBy,@createdAt,@updatedAt) RETURNING id",
+            "tax_percent, amount_after_tax, currency_code, created_by, created_at, updated_at, " +
+            $"{(income ? "order_code, sale_region, sales_channel, product_qty" : "payee, origin_scope, payment_method")}) " +
+            "VALUES (@date,@description,@category,@amount,@tax,@after,@currency,@createdBy,@createdAt,@updatedAt, " +
+            $"{(income ? IncomeValues : ExpenseValues)}) RETURNING id",
             db
         );
         WriteParameters(command, entry);
@@ -120,13 +122,34 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
             $"UPDATE shop_finance.{table} SET {date}=@date, description=@description, " +
             $"{category}=@category, amount=@amount, tax_percent=@tax, amount_after_tax=@after, " +
             "currency_code=@currency, updated_by=@updatedBy, updated_at=@updatedAt, " +
-            "deleted_at=@deletedAt, deleted_by=@deletedBy WHERE id=@id",
+            "deleted_at=@deletedAt, deleted_by=@deletedBy, " +
+            (income
+                ? $"order_code=@orderCode, sale_region={Enum("saleRegion", "sale_region")}, sales_channel={Enum("salesChannel", "sales_channel")}, product_qty=@qty"
+                : $"payee=@payee, origin_scope=COALESCE({Enum("originScope", "origin_scope")}, 'DOMESTIC'), payment_method={Enum("paymentMethod", "payment_method")}") +
+            " WHERE id=@id",
             db
         );
         WriteParameters(command, entry);
         command.Parameters.AddWithValue("id", entry.Id);
         await command.ExecuteNonQueryAsync(ct);
     }
+
+    private const string IncomeValues =
+        "@orderCode, CAST(CAST(@saleRegion AS text) AS shop_finance.sale_region), " +
+        "CAST(CAST(@salesChannel AS text) AS shop_finance.sales_channel), @qty";
+
+    private const string ExpenseValues =
+        "@payee, COALESCE(CAST(CAST(@originScope AS text) AS shop_finance.origin_scope), 'DOMESTIC'), " +
+        "CAST(CAST(@paymentMethod AS text) AS shop_finance.payment_method)";
+
+    private static string Enum(string parameter, string type) =>
+        $"CAST(CAST(@{parameter} AS text) AS shop_finance.{type})";
+
+    // Cột chi tiết theo loại, luôn trả đủ 7 cột (14..20) để Read dùng chung.
+    private static string Details(EntryKind kind) =>
+        kind == EntryKind.INCOME
+            ? "order_code, sale_region::text, sales_channel::text, product_qty, NULL::text, NULL::text, NULL::text"
+            : "NULL::text, NULL::text, NULL::text, NULL::int, payee, origin_scope::text, payment_method::text";
 
     private static void Parameters(NpgsqlCommand command, LedgerQuery q)
     {
@@ -151,6 +174,13 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
         c.Parameters.AddWithValue("updatedBy", (object?)e.UpdatedBy ?? DBNull.Value);
         c.Parameters.AddWithValue("deletedAt", (object?)e.DeletedAt ?? DBNull.Value);
         c.Parameters.AddWithValue("deletedBy", (object?)e.DeletedBy ?? DBNull.Value);
+        c.Parameters.AddWithValue("orderCode", (object?)e.OrderCode ?? DBNull.Value);
+        c.Parameters.AddWithValue("saleRegion", (object?)e.SaleRegion ?? DBNull.Value);
+        c.Parameters.AddWithValue("salesChannel", (object?)e.SalesChannel ?? DBNull.Value);
+        c.Parameters.AddWithValue("qty", (object?)e.ProductQty ?? DBNull.Value);
+        c.Parameters.AddWithValue("payee", (object?)e.Payee ?? DBNull.Value);
+        c.Parameters.AddWithValue("originScope", (object?)e.OriginScope ?? DBNull.Value);
+        c.Parameters.AddWithValue("paymentMethod", (object?)e.PaymentMethod ?? DBNull.Value);
     }
 
     private static LedgerEntry Read(NpgsqlDataReader r, EntryKind kind) => new()
@@ -162,6 +192,13 @@ public sealed class PostgresLedgerRepository(PostgresConnectionFactory connectio
         CreatedAt = r.GetFieldValue<DateTimeOffset>(10), UpdatedAt = r.GetFieldValue<DateTimeOffset>(11),
         DeletedAt = r.IsDBNull(12) ? null : r.GetFieldValue<DateTimeOffset>(12),
         DeletedBy = r.IsDBNull(13) ? null : r.GetInt64(13),
+        OrderCode = r.IsDBNull(14) ? null : r.GetString(14),
+        SaleRegion = r.IsDBNull(15) ? null : r.GetString(15),
+        SalesChannel = r.IsDBNull(16) ? null : r.GetString(16),
+        ProductQty = r.IsDBNull(17) ? null : r.GetInt32(17),
+        Payee = r.IsDBNull(18) ? null : r.GetString(18),
+        OriginScope = r.IsDBNull(19) ? null : r.GetString(19),
+        PaymentMethod = r.IsDBNull(20) ? null : r.GetString(20),
     };
 }
 

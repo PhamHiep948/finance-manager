@@ -35,6 +35,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<OperationalStore>();
+builder.Services.AddSingleton<AuditTrail>();
+builder.Services.AddSingleton<IImportSheetReader, ClosedXmlSheetReader>();
+builder.Services.AddSingleton<IReportDocumentBuilder, ReportDocumentBuilder>();
 builder.Services.AddSingleton<IOperationalStore>(x => x.GetRequiredService<OperationalStore>());
 if (builder.Environment.IsEnvironment("Testing"))
 {
@@ -62,6 +65,7 @@ builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<IImportService, ImportService>();
 var app = builder.Build();
 app.UseMiddleware<AppExceptionMiddleware>();
 app.UseCors();

@@ -4,11 +4,11 @@ import { FinanceProvider, useFinance } from "./lib/store";
 import { PAGE_PERM, can } from "./lib/auth";
 import Login from "./components/Login";
 import Shell from "./components/Shell";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./features/dashboard/pages/Dashboard";
 import RecordList from "./pages/RecordList";
-import Reports from "./pages/Reports";
-import ImportPage from "./pages/ImportPage";
-import AuditPage from "./pages/AuditPage";
+import Reports from "./features/reports/pages/Reports";
+import ImportPage from "./features/imports/pages/ImportPage";
+import AuditPage from "./features/audit/pages/AuditPage";
 import UsersPage from "./pages/UsersPage";
 import ProfilePage, { Forbidden } from "./pages/ProfilePage";
 

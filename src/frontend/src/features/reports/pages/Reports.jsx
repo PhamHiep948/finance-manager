@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
-import { I } from "../lib/icons";
-import { FX_USD_TO_EUR, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../lib/data";
-import { dmy, groupByCat, inRange, lastDayOfMonth, money, monthlyFrom, sum } from "../lib/format";
-import { CHART_EXPENSE, CHART_INCOME, CHART_PALETTE } from "../lib/theme";
-import { useFinance } from "../lib/store";
+import { I } from "../../../lib/icons";
+import { FX_USD_TO_EUR, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../../../lib/data";
+import { dmy, groupByCat, inRange, lastDayOfMonth, money, monthlyFrom, sum } from "../../../lib/format";
+import { CHART_EXPENSE, CHART_INCOME, CHART_PALETTE } from "../../../lib/theme";
+import { useFinance } from "../../../lib/store";
+import { downloadReport } from "../services/reportService";
 
 export default function Reports() {
-  const { incomes, expenses, ccy, setCcy, toast, current } = useFinance();
+  const { incomes, expenses, ccy, setCcy, toast } = useFinance();
+  const [exporting, setExporting] = useState("");
   const [tab, setTab] = useState("overview");
-  const [from, setFrom] = useState("2026-07-01");
-  const [to, setTo] = useState("2026-09-30");
+  const allMonths = [...new Set([...incomes.map((x) => x.incomeDate), ...expenses.map((x) => x.expenseDate)].filter(Boolean).map((d) => d.slice(0, 7)))].sort();
+  const spanFrom = allMonths.length ? `${allMonths[0]}-01` : "";
+  const spanTo = allMonths.length ? lastDayOfMonth(allMonths[allMonths.length - 1]) : "";
+  const [range, setRange] = useState(null);
+  const from = range ? range.from : spanFrom;
+  const to = range ? range.to : spanTo;
+  const setFrom = (v) => setRange({ from: v, to });
+  const setTo = (v) => setRange({ from, to: v });
   const [kind, setKind] = useState("ALL");
   const [src, setSrc] = useState("");
   const [cat, setCat] = useState("");
@@ -56,8 +64,8 @@ export default function Reports() {
         data: {
           labels: monthly.length ? monthly.map((x) => x.m) : ["Không có dữ liệu"],
           datasets: [
-            { label: "Doanh thu", data: monthly.map((x) => (ccy === "EUR" ? x.income * 0.92 : x.income)), borderColor: CHART_INCOME, backgroundColor: "rgba(0,113,227,0.12)", fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: CHART_INCOME, borderWidth: 2 },
-            { label: "Chi phí", data: monthly.map((x) => (ccy === "EUR" ? x.expense * 0.92 : x.expense)), borderColor: CHART_EXPENSE, backgroundColor: "transparent", fill: false, tension: 0.35, pointRadius: 3, pointBackgroundColor: CHART_EXPENSE, borderWidth: 2 },
+            { label: "Doanh thu", data: monthly.map((x) => (ccy === "EUR" ? x.income * FX_USD_TO_EUR : x.income)), borderColor: CHART_INCOME, backgroundColor: "rgba(0,113,227,0.12)", fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: CHART_INCOME, borderWidth: 2 },
+            { label: "Chi phí", data: monthly.map((x) => (ccy === "EUR" ? x.expense * FX_USD_TO_EUR : x.expense)), borderColor: CHART_EXPENSE, backgroundColor: "transparent", fill: false, tension: 0.35, pointRadius: 3, pointBackgroundColor: CHART_EXPENSE, borderWidth: 2 },
           ],
         },
         options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "#EEF1F4" } }, x: { grid: { display: false } } }, maintainAspectRatio: false },
@@ -85,19 +93,16 @@ export default function Reports() {
     return () => charts.forEach((c) => c.destroy());
   }, [tab, ccy, from, to, kind, src, cat, tin, tex]);
 
-  function exportReport() {
-    const no = "BC-" + Date.now().toString().slice(-8);
-    const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Báo cáo ${no}</title></head><body>
-      <h1>HandmadeFinance</h1><p>Kỳ: ${dmy(from)} – ${dmy(to)} · ${ccy}</p>
-      <p>Tổng thu: ${money(tin, ccy)} · Tổng chi: ${money(tex, ccy)} · Chênh lệch: ${money(tin - tex, ccy)}</p>
-      <p>Người xuất: ${current.name}</p></body></html>`;
-    const w = window.open("", "_blank", "width=900,height=700");
-    if (!w) { toast("Trình duyệt chặn cửa sổ in. Hãy cho phép popup."); return; }
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
-    toast("Đã mở báo cáo để in");
+  async function exportReport(format) {
+    setExporting(format);
+    try {
+      await downloadReport({ format, dateFrom: from, dateTo: to });
+      toast(`Đã tải báo cáo ${format}`);
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      setExporting("");
+    }
   }
 
   const days = {};
@@ -114,13 +119,11 @@ export default function Reports() {
           <span>Kỳ báo cáo</span>
           <select aria-label="Kỳ báo cáo" value={monthVal} onChange={(e) => {
             const v = e.target.value;
-            if (v === "all") { setFrom("2026-07-01"); setTo("2026-09-30"); }
-            else { setFrom(`${v}-01`); setTo(lastDayOfMonth(v)); }
+            if (v === "all") setRange(null);
+            else setRange({ from: `${v}-01`, to: lastDayOfMonth(v) });
           }}>
-            <option value="all">Tất cả (T7–T9/2026)</option>
-            <option value="2026-07">Tháng 7, 2026</option>
-            <option value="2026-08">Tháng 8, 2026</option>
-            <option value="2026-09">Tháng 9, 2026</option>
+            <option value="all">Tất cả kỳ</option>
+            {allMonths.map((m) => <option key={m} value={m}>Tháng {Number(m.slice(5))}, {m.slice(0, 4)}</option>)}
           </select>
         </label>
         <label className="rpt-field">
@@ -172,8 +175,11 @@ export default function Reports() {
           <button className={`btn ghost sm${filters ? " on" : ""}`} type="button" onClick={() => setFilters((v) => !v)}>
             <I name="list-filter" /> Bộ lọc
           </button>
-          <button className="btn primary sm" type="button" onClick={exportReport}>
-            <I name="download" /> Xuất dữ liệu
+          <button className="btn ghost sm" type="button" onClick={() => exportReport("PDF")} disabled={!!exporting}>
+            <I name="download" /> {exporting === "PDF" ? "Đang xuất..." : "Xuất PDF"}
+          </button>
+          <button className="btn primary sm" type="button" onClick={() => exportReport("XLSX")} disabled={!!exporting}>
+            <I name="download" /> {exporting === "XLSX" ? "Đang xuất..." : "Xuất Excel"}
           </button>
         </div>
       </div>

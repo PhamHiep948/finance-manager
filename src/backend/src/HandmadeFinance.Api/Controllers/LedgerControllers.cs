@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace HandmadeFinance.Api.Controllers;
 
 [Authorize, ApiController]
-public abstract class LedgerControllerBase(ILedgerService service, EntryKind kind) : ControllerBase
+public abstract class LedgerControllerBase(ILedgerService service, EntryKind kind, AuditTrail audit)
+    : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(
@@ -27,20 +28,31 @@ public abstract class LedgerControllerBase(ILedgerService service, EntryKind kin
     [HttpPost]
     public async Task<IActionResult> Create(LedgerRequest r, CancellationToken ct)
     {
-        var row = await service.CreateAsync(kind, Map(r), User.Actor(), ct);
+        var actor = User.Actor();
+        var row = await service.CreateAsync(kind, Map(r), actor, ct);
+        audit.Record(actor.UserId, "INSERT", kind.ToString(), $"Created {Label} #{row.Id}: {row.Description}");
         return CreatedAtAction(nameof(Get), new { id = row.Id }, row);
     }
 
     [HttpPut("{id:long}")]
-    public async Task<IActionResult> Update(long id, LedgerRequest r, CancellationToken ct) =>
-        Ok(await service.UpdateAsync(kind, id, Map(r), User.Actor(), ct));
+    public async Task<IActionResult> Update(long id, LedgerRequest r, CancellationToken ct)
+    {
+        var actor = User.Actor();
+        var row = await service.UpdateAsync(kind, id, Map(r), actor, ct);
+        audit.Record(actor.UserId, "UPDATE", kind.ToString(), $"Updated {Label} #{id}: {row.Description}");
+        return Ok(row);
+    }
 
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
-        await service.DeleteAsync(kind, id, User.Actor(), ct);
+        var actor = User.Actor();
+        await service.DeleteAsync(kind, id, actor, ct);
+        audit.Record(actor.UserId, "DELETE", kind.ToString(), $"Deleted {Label} #{id} (soft delete)");
         return NoContent();
     }
+
+    private string Label => kind.ToString().ToLowerInvariant();
 
     private static LedgerWrite Map(LedgerRequest r) =>
         new(
@@ -50,13 +62,21 @@ public abstract class LedgerControllerBase(ILedgerService service, EntryKind kin
             r.Amount,
             r.TaxPercent,
             r.AmountAfterTax,
-            r.CurrencyCode
+            r.CurrencyCode,
+            r.OrderCode,
+            r.SaleRegion,
+            r.SalesChannel,
+            r.ProductQty,
+            r.Payee,
+            r.OriginScope,
+            r.PaymentMethod
         );
 }
 
 [Route("api/v1/incomes")]
-public sealed class IncomesController(ILedgerService s) : LedgerControllerBase(s, EntryKind.INCOME);
+public sealed class IncomesController(ILedgerService s, AuditTrail a)
+    : LedgerControllerBase(s, EntryKind.INCOME, a);
 
 [Route("api/v1/expenses")]
-public sealed class ExpensesController(ILedgerService s)
-    : LedgerControllerBase(s, EntryKind.EXPENSE);
+public sealed class ExpensesController(ILedgerService s, AuditTrail a)
+    : LedgerControllerBase(s, EntryKind.EXPENSE, a);

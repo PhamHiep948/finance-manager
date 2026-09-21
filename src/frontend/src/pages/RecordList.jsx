@@ -7,10 +7,10 @@ import {
   paymentMethodLabel, pctLabel, recStatus, saleRegionLabel, salesChannelLabel, saveCols, sum, usd,
 } from "../lib/format";
 
-import { IMG_RECEIPT, INCOME_SOURCES_UI, PAY_METHODS } from "../lib/ui-mock";
+import { IMG_RECEIPT } from "../lib/ui-mock";
 import { useFinance } from "../lib/store";
 import RecordForm from "./RecordForm";
-import { Kpi } from "./Dashboard";
+import { Kpi } from "../features/dashboard/pages/Dashboard";
 
 const PAGE_SIZE = 10;
 
@@ -26,7 +26,7 @@ function RecordDetail({ kind, rec, onClose, onEdit, onDelete, toast }) {
     );
   }
   const st = recStatus(rec.id, kind, rec);
-  const code = isIncome ? rec.orderCode || rec.referenceCode || `ORD-${8800 + (rec.id % 900)}` : `EXP-${String(rec.id).padStart(3, "0")}`;
+  const code = isIncome ? rec.orderCode || rec.referenceCode || `IN-${String(rec.id).padStart(3, "0")}` : `EXP-${String(rec.id).padStart(3, "0")}`;
   const canChange = isIncome ? canEditOwn(rec, "incomeUpdate") : canEditOwn(rec, "expenseUpdate");
   const canRemove = isIncome ? canDeleteOwn(rec, "incomeDelete") : canDeleteOwn(rec, "expenseDelete");
   const item = Number(rec.itemTotal) || Number(rec.amount) || 0;
@@ -56,7 +56,7 @@ function RecordDetail({ kind, rec, onClose, onEdit, onDelete, toast }) {
               <>
                 <span>Ngày thu</span><b>{rec.incomeDate}</b>
                 <span>Danh mục</span><b>{catName(INCOME_CATEGORIES, rec.categoryId)}</b>
-                <span>Nguồn</span><b>{salesChannelLabel(rec.salesChannel) !== "—" ? salesChannelLabel(rec.salesChannel) : INCOME_SOURCES_UI[rec.id % INCOME_SOURCES_UI.length]}</b>
+                <span>Nguồn</span><b>{salesChannelLabel(rec.salesChannel)}</b>
                 <span>Khu vực</span><b>{saleRegionLabel(rec.saleRegion)}</b>
                 <span>Mã đơn</span><b>{code}</b>
                 <span>Số lượng</span><b>{rec.productQty || "—"}</b>
@@ -68,7 +68,7 @@ function RecordDetail({ kind, rec, onClose, onEdit, onDelete, toast }) {
                 <span>Danh mục</span><b>{catName(EXPENSE_CATEGORIES, rec.categoryId)}</b>
                 <span>Người nhận</span><b>{rec.recipient || "—"}</b>
                 <span>Phạm vi</span><b>{originScopeLabel(rec.originScope)}</b>
-                <span>Phương thức</span><b>{paymentMethodLabel(rec.paymentMethod) !== "—" ? paymentMethodLabel(rec.paymentMethod) : PAY_METHODS[rec.id % PAY_METHODS.length]}</b>
+                <span>Phương thức</span><b>{paymentMethodLabel(rec.paymentMethod)}</b>
                 <span>Trạng thái</span><b>{st.t}</b>
               </>
             )}

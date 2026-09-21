@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HandmadeFinance.Api.Controllers;
 
 [Authorize(Roles = "ADMIN"), ApiController, Route("api/v1/users")]
-public sealed class UsersController(UserService service) : ControllerBase
+public sealed class UsersController(UserService service, AuditTrail audit) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) =>
@@ -21,6 +21,7 @@ public sealed class UsersController(UserService service) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateUserRequest r, CancellationToken ct)
     {
+        var actor = User.Actor();
         var user = await service.CreateAsync(
             new(
                 r.Username,
@@ -33,31 +34,26 @@ public sealed class UsersController(UserService service) : ControllerBase
                 r.AvatarUrl
             ),
             r.Password,
-            User.Actor(),
+            actor,
             ct
         );
+        audit.Record(actor.UserId, "INSERT", "USER", $"Created user {user.Email} ({user.Role})");
         return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
     }
 
     [HttpPut("{id:long}")]
-    public async Task<IActionResult> Update(long id, UpdateUserRequest r, CancellationToken ct) =>
-        Ok(
-            await service.UpdateAsync(
-                id,
-                new(
-                    r.Username,
-                    r.Email,
-                    r.FullName,
-                    r.Phone,
-                    r.Timezone,
-                    r.Role,
-                    r.IsActive,
-                    r.AvatarUrl
-                ),
-                User.Actor(),
-                ct
-            )
+    public async Task<IActionResult> Update(long id, UpdateUserRequest r, CancellationToken ct)
+    {
+        var actor = User.Actor();
+        var user = await service.UpdateAsync(
+            id,
+            new(r.Username, r.Email, r.FullName, r.Phone, r.Timezone, r.Role, r.IsActive, r.AvatarUrl),
+            actor,
+            ct
         );
+        audit.Record(actor.UserId, "UPDATE", "USER", $"Updated user {user.Email} (#{id})");
+        return Ok(user);
+    }
 
     [HttpPatch("{id:long}/status")]
     public async Task<IActionResult> Status(
@@ -66,24 +62,26 @@ public sealed class UsersController(UserService service) : ControllerBase
         CancellationToken ct
     )
     {
-        var current = await service.GetAsync(id, User.Actor(), ct);
-        return Ok(
-            await service.UpdateAsync(
-                id,
-                new(
-                    current.Username,
-                    current.Email,
-                    current.FullName,
-                    current.Phone,
-                    current.Timezone,
-                    current.Role,
-                    r.IsActive,
-                    current.AvatarUrl
-                ),
-                User.Actor(),
-                ct
-            )
+        var actor = User.Actor();
+        var current = await service.GetAsync(id, actor, ct);
+        var user = await service.UpdateAsync(
+            id,
+            new(
+                current.Username,
+                current.Email,
+                current.FullName,
+                current.Phone,
+                current.Timezone,
+                current.Role,
+                r.IsActive,
+                current.AvatarUrl
+            ),
+            actor,
+            ct
         );
+        var verb = r.IsActive ? "Activated" : "Deactivated";
+        audit.Record(actor.UserId, "UPDATE", "USER", $"{verb} user {user.Email} (#{id})");
+        return Ok(user);
     }
 
     public sealed record StatusRequest(bool IsActive);

@@ -16,10 +16,18 @@ public sealed class InMemoryCategoryRepository : ICategoryRepository
 {
     private static readonly Category[] Items =
     [
-        new() { Id = 1, Kind = EntryKind.INCOME, Name = "TEST SALES", CreatedAt = DateTimeOffset.UnixEpoch },
-        new() { Id = 2, Kind = EntryKind.INCOME, Name = "TEST SERVICES", CreatedAt = DateTimeOffset.UnixEpoch },
-        new() { Id = 3, Kind = EntryKind.EXPENSE, Name = "TEST MATERIALS", CreatedAt = DateTimeOffset.UnixEpoch },
-        new() { Id = 4, Kind = EntryKind.EXPENSE, Name = "TEST SHIPPING", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 1, Kind = EntryKind.INCOME, Name = "Sales", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 2, Kind = EntryKind.INCOME, Name = "Other Income", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 3, Kind = EntryKind.EXPENSE, Name = "Raw Materials", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 4, Kind = EntryKind.EXPENSE, Name = "Shipping", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 5, Kind = EntryKind.EXPENSE, Name = "Packaging", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 6, Kind = EntryKind.EXPENSE, Name = "Advertising", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 7, Kind = EntryKind.EXPENSE, Name = "Service Fees", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 8, Kind = EntryKind.EXPENSE, Name = "Employee Salaries", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 9, Kind = EntryKind.EXPENSE, Name = "Electricity / Water / Internet", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 10, Kind = EntryKind.EXPENSE, Name = "Premises Rent", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 11, Kind = EntryKind.EXPENSE, Name = "Tools / Equipment", CreatedAt = DateTimeOffset.UnixEpoch },
+        new() { Id = 12, Kind = EntryKind.EXPENSE, Name = "Other Expenses", CreatedAt = DateTimeOffset.UnixEpoch },
     ];
 
     public Task<IReadOnlyList<Category>> ListActiveAsync(EntryKind kind, CancellationToken ct) =>
@@ -214,6 +222,13 @@ public sealed class InMemoryStore : ILedgerRepository, IUserRepository
             UpdatedAt = x.UpdatedAt,
             DeletedAt = x.DeletedAt,
             DeletedBy = x.DeletedBy,
+            OrderCode = x.OrderCode,
+            SaleRegion = x.SaleRegion,
+            SalesChannel = x.SalesChannel,
+            ProductQty = x.ProductQty,
+            Payee = x.Payee,
+            OriginScope = x.OriginScope,
+            PaymentMethod = x.PaymentMethod,
         };
 
     private static UserAccount Clone(UserAccount x) =>

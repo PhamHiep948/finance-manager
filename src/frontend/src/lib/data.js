@@ -164,12 +164,6 @@ export const EXPENSES = [
   });
 })();
 
-export const IMPORTS = [
-  { id: 1, fileName: "Import_DonHang_Etsy_T9.xlsx", type: "INCOME", status: "COMPLETED", totalRows: 48, successRows: 47, failedRows: 1, createdBy: 2, createdAt: "2026-09-11 10:20" },
-  { id: 2, fileName: "ChiPhi_VanChuyen_Q3.xlsx", type: "EXPENSE", status: "COMPLETED", totalRows: 12, successRows: 12, failedRows: 0, createdBy: 2, createdAt: "2026-09-10 16:02" },
-  { id: 3, fileName: "Import_Sai_Format.xlsx", type: "INCOME", status: "FAILED", totalRows: 32, successRows: 0, failedRows: 32, createdBy: 3, createdAt: "2026-09-09 09:14" },
-];
-
 export const SALES_CHANNELS = ["ETSY_STORE", "WEBSITE_DIRECT", "INSTAGRAM_SHOP", "LOCAL_MARKET", "B2B_WHOLESALE"];
 export const PAYMENT_METHODS = ["CREDIT_CARD", "BANK_TRANSFER", "CASH", "PAYPAL"];
 
@@ -188,11 +182,3 @@ EXPENSES.forEach((r) => {
   if (!r.recordStatus) r.recordStatus = r.id % 7 === 3 ? "PENDING" : "COMPLETED";
 });
 
-export const AUDIT_LOGS = [
-  { id: 1, time: "2026-09-13 10:00", userId: 2, action: "Tạo khoản thu", target: "Khoản thu", detail: "Lily Flower · đơn 4154185113 · 22.10 USD" },
-  { id: 2, time: "2026-09-15 14:02", userId: 2, action: "Tạo khoản thu", target: "Khoản thu", detail: "Đơn hàng #ETS-9011 · 85 USD" },
-  { id: 3, time: "2026-09-15 13:40", userId: 3, action: "Tạo khoản chi", target: "Khoản chi", detail: "Mua 20 cuộn len thô · 180 USD" },
-  { id: 4, time: "2026-09-14 09:12", userId: 2, action: "Sửa khoản thu", target: "Khoản thu", detail: "Cập nhật mô tả WEB-190" },
-  { id: 5, time: "2026-09-11 10:21", userId: 2, action: "Import dữ liệu", target: "Import", detail: "Import_DonHang_Etsy_T9.xlsx · 47 thành công" },
-  { id: 6, time: "2026-09-10 18:00", userId: 2, action: "Xóa khoản thu", target: "Khoản thu", detail: "Xóa mềm khoản thu #0 (mẫu audit)" },
-];

@@ -1,7 +1,6 @@
-using System.IO.Compression;
-using System.Text;
 using HandmadeFinance.Api.Authorization;
 using HandmadeFinance.Application.Abstractions.Persistence;
+using HandmadeFinance.Application.Categories;
 using HandmadeFinance.Application.Common;
 using HandmadeFinance.Application.Operations;
 using HandmadeFinance.Application.Reporting;
@@ -13,6 +12,8 @@ namespace HandmadeFinance.Api.Controllers;
 [Authorize(Roles = "ADMIN,SHOP_OWNER,VIEWER"), ApiController, Route("api/v1/reports/export")]
 public sealed class ReportExportController(
     IReportingService reports,
+    IReportDocumentBuilder documents,
+    ICategoryRepository categories,
     IOperationalStore operations,
     IClock clock
 ) : ControllerBase
@@ -29,6 +30,14 @@ public sealed class ReportExportController(
         if (normalized is not ("PDF" or "XLSX"))
             throw AppException.Validation("format must be PDF or XLSX.");
         var summary = await reports.GetSummaryAsync(dateFrom, dateTo, ct);
+        var data = new ReportDocumentData(
+            summary,
+            dateFrom,
+            dateTo,
+            await Names(EntryKind.INCOME, ct),
+            await Names(EntryKind.EXPENSE, ct),
+            clock.UtcNow
+        );
         var actor = User.Actor();
         operations.Audit(
             "EXPORT",
@@ -38,51 +47,21 @@ public sealed class ReportExportController(
             clock.UtcNow
         );
         if (normalized == "PDF")
-            return File(
-                Pdf(summary.TotalIncome, summary.TotalExpense),
-                "application/pdf",
-                "financial-report.pdf"
-            );
+            return File(documents.BuildPdf(data), "application/pdf", "financial-report.pdf");
         return File(
-            Xlsx(summary.TotalIncome, summary.TotalExpense),
+            documents.BuildXlsx(data),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "financial-report.xlsx"
         );
     }
 
-    private static byte[] Pdf(decimal income, decimal expense) =>
-        Encoding.ASCII.GetBytes(
-            $"%PDF-1.4\n% HandmadeFinance report\nIncome {income}\nExpense {expense}\nNet {income - expense}\n%%EOF"
-        );
-
-    private static byte[] Xlsx(decimal income, decimal expense)
-    {
-        using var stream = new MemoryStream();
-        using (var zip = new ZipArchive(stream, ZipArchiveMode.Create, true))
-        {
-            Write(
-                zip,
-                "[Content_Types].xml",
-                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"xml\" ContentType=\"application/xml\"/></Types>"
-            );
-            Write(
-                zip,
-                "report.xml",
-                $"<report><income>{income}</income><expense>{expense}</expense><net>{income - expense}</net></report>"
-            );
-        }
-        return stream.ToArray();
-    }
-
-    private static void Write(ZipArchive zip, string name, string value)
-    {
-        using var writer = new StreamWriter(zip.CreateEntry(name).Open());
-        writer.Write(value);
-    }
+    private async Task<IReadOnlyDictionary<long, string>> Names(EntryKind kind, CancellationToken ct) =>
+        (await categories.ListActiveAsync(kind, ct)).ToDictionary(c => c.Id, c => c.Name);
 }
 
 [Authorize(Roles = "ADMIN,SHOP_OWNER,EMPLOYEE"), ApiController, Route("api/v1/imports")]
-public sealed class ImportsController(IOperationalStore store, IClock clock) : ControllerBase
+public sealed class ImportsController(IOperationalStore store, IImportService imports)
+    : ControllerBase
 {
     private const long MaxBytes = 10 * 1024 * 1024;
 
@@ -94,16 +73,22 @@ public sealed class ImportsController(IOperationalStore store, IClock clock) : C
     )
     {
         Validate(importType, file);
-        var rows = await CountRows(file, ct);
+        await using var stream = file.OpenReadStream();
+        var preview = await imports.PreviewAsync(
+            Kind(importType),
+            Path.GetFileName(file.FileName),
+            stream,
+            ct
+        );
         return Ok(
             new
             {
-                importType = importType.ToUpperInvariant(),
-                originalFileName = Path.GetFileName(file.FileName),
-                totalRows = rows,
-                validRows = rows,
-                invalidRows = 0,
-                rows = Array.Empty<object>(),
+                importType = preview.ImportType,
+                originalFileName = preview.OriginalFileName,
+                totalRows = preview.TotalRows,
+                validRows = preview.ValidRows,
+                invalidRows = preview.InvalidRows,
+                rows = preview.Rows,
             }
         );
     }
@@ -150,13 +135,13 @@ public sealed class ImportsController(IOperationalStore store, IClock clock) : C
     )
     {
         Validate(importType, file);
-        var rows = await CountRows(file, ct);
-        var batch = store.AddImport(
-            importType.ToUpperInvariant(),
+        await using var stream = file.OpenReadStream();
+        var batch = await imports.ImportAsync(
+            Kind(importType),
             Path.GetFileName(file.FileName),
-            rows,
-            User.Actor().UserId,
-            clock.UtcNow
+            stream,
+            User.Actor(),
+            ct
         );
         return AcceptedAtAction(nameof(Get), new { importId = batch.Id }, batch);
     }
@@ -177,20 +162,14 @@ public sealed class ImportsController(IOperationalStore store, IClock clock) : C
         if (file.Length > MaxBytes)
             throw new AppException(413, "PAYLOAD_TOO_LARGE", "File exceeds 10 MB.");
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (ext is not (".xls" or ".xlsx"))
-            throw AppException.Validation("Only .xls and .xlsx files are allowed.");
+        if (ext is not ".xlsx")
+            throw AppException.Validation("Only .xlsx files are allowed.");
     }
 
-    private static async Task<int> CountRows(IFormFile file, CancellationToken ct)
-    {
-        await using var s = file.OpenReadStream();
-        var buffer = new byte[8192];
-        var bytes = 0;
-        int read;
-        while ((read = await s.ReadAsync(buffer, ct)) > 0)
-            bytes += read;
-        return bytes == 0 ? 0 : 1;
-    }
+    private static EntryKind Kind(string importType) =>
+        importType.Equals("INCOME", StringComparison.OrdinalIgnoreCase)
+            ? EntryKind.INCOME
+            : EntryKind.EXPENSE;
 
     private static void Page(int page, int size)
     {
@@ -276,17 +255,19 @@ public sealed class AttachmentsController(
 }
 
 [Authorize(Roles = "ADMIN,SHOP_OWNER"), ApiController, Route("api/v1/audit-logs")]
-public sealed class AuditLogsController(IOperationalStore store) : ControllerBase
+public sealed class AuditLogsController(IOperationalStore store, IUserRepository users)
+    : ControllerBase
 {
     [HttpGet]
-    public IActionResult List(
+    public async Task<IActionResult> List(
         int page = 1,
         int pageSize = 20,
         string? action = null,
         long? actorUserId = null,
         string? module = null,
         DateOnly? dateFrom = null,
-        DateOnly? dateTo = null
+        DateOnly? dateTo = null,
+        CancellationToken ct = default
     )
     {
         if (page < 1 || pageSize is < 1 or > 100 || dateFrom > dateTo)
@@ -303,10 +284,23 @@ public sealed class AuditLogsController(IOperationalStore store) : ControllerBas
         if (dateTo.HasValue)
             q = q.Where(x => DateOnly.FromDateTime(x.ChangedAt.UtcDateTime) <= dateTo);
         var all = q.OrderByDescending(x => x.ChangedAt).ToList();
+        var pageItems = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var names = new Dictionary<long, string?>();
+        foreach (var id in pageItems.Select(x => x.ActorUserId).Distinct())
+            names[id] = (await users.GetAsync(id, ct))?.FullName;
         return Ok(
             new
             {
-                items = all.Skip((page - 1) * pageSize).Take(pageSize),
+                items = pageItems.Select(x => new
+                {
+                    x.Id,
+                    x.Action,
+                    x.Module,
+                    x.Detail,
+                    x.ActorUserId,
+                    actorName = names[x.ActorUserId],
+                    x.ChangedAt,
+                }),
                 meta = new
                 {
                     page,
