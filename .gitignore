@@ -28,7 +28,7 @@ data/uploads/
 *.coveragexml
 
 # Temporary screenshot artifacts
-scripts/.shot-tmp/
+scripts/
 
 # Frontend dependencies and build outputs
 node_modules/

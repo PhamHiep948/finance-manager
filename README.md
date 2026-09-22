@@ -999,28 +999,32 @@ Runtime sequences cover authentication, ledger reads and writes, import validati
 
 ## Project Progress
 
-- [x] Xác định phạm vi, mục tiêu và vai trò người dùng
-- [x] Viết danh sách tính năng và use cases
-- [x] Viết user stories theo INVEST
-- [x] Viết acceptance criteria và business rules
-- [x] Viết non-functional requirements
-- [x] Thiết kế information architecture và phân quyền màn hình
-- [x] Thiết kế screen hierarchy, task flows và UI states
-- [x] Xây dựng giao diện React prototype cho các vai trò
-- [x] Thiết kế C4 System Context
-- [x] Thiết kế C4 Container
-- [x] Thiết kế C4 Component và tài liệu arc42
-- [x] Thiết kế PostgreSQL schema, DBML và quan hệ dữ liệu
-- [x] Viết tài liệu API theo OpenAPI 3.0
-- [x] Thiết kế folder structure cho React frontend
-- [x] Thiết kế folder structure backend ba tầng
-- [x] Thiết kế class diagrams và sequence diagrams
-- [x] Tạo traceability giữa requirements, màn hình, API và database
-- [x] Xây dựng backend ASP.NET Core ba tầng
-- [x] Xây dựng API xác thực, quản lý người dùng và hồ sơ cá nhân
-- [x] Implement income và expense CRUD API
-- [x] Hoàn thiện dashboard, reports, import, attachments và audit API
-- [x] Viết unit test và API integration test
-- [ ] Hoàn thiện PostgreSQL migrations và integration tests với database thật
-- [ ] Hoàn thiện import Excel, file storage và report export cho production
-- [ ] Chuẩn hóa JWT, rate limit, authorization và security tests
+- [x] Define scope, goals, and user roles
+- [x] Write the feature list and use cases
+- [x] Write user stories following INVEST
+- [x] Write acceptance criteria and business rules
+- [x] Write non-functional requirements
+- [x] Design the information architecture and screen permissions
+- [x] Design the screen hierarchy, task flows, and UI states
+- [x] Build the React UI prototype for each role
+- [x] Design the C4 System Context
+- [x] Design the C4 Container
+- [x] Design the C4 Component and arc42 documentation
+- [x] Design the PostgreSQL schema, DBML, and data relationships
+- [x] Write the API documentation in OpenAPI 3.0
+- [x] Design the React frontend folder structure
+- [x] Design the three-tier backend folder structure
+- [x] Design class diagrams and sequence diagrams
+- [x] Create traceability between requirements, screens, API, and database
+- [x] Build the three-tier ASP.NET Core backend
+- [x] Build the authentication, user management, and personal profile API
+- [x] Implement the income and expense CRUD API
+- [x] Complete the dashboard, reports, import, attachments, and audit API
+- [x] Write unit tests and API integration tests
+- [x] Connect the React frontend to the API (login, income/expenses, users, profile, dashboard, reports, import, audit)
+- [x] Implement Excel (.xlsx) import with row-level preview and PDF/XLSX report export
+- [x] Record audit events for create, update, delete, login, logout, import, and export
+- [x] Add frontend tests with Vitest
+- [ ] Complete PostgreSQL migrations and integration tests against a real database
+- [ ] Add durable file storage for imports and attachments
+- [ ] Standardize JWT, rate limiting, authorization, and security tests
